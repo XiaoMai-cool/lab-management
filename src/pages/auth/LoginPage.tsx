@@ -1,8 +1,68 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, FlaskConical } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  FlaskConical,
+  Megaphone,
+  CalendarCheck,
+  AlertTriangle,
+  ChevronRight,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  priority: 'normal' | 'important' | 'urgent';
+  created_at: string;
+}
+
+interface DutyInfo {
+  area: string;
+  user: { name: string } | null;
+  start_date: string;
+  end_date: string;
+}
+
+const OFFICE_DUTY_ORDER = ['彭鸿昌', '邓岩昊', '林弋杰', '陈鸿琳', '麦宏博'];
+
+function getWeekNumber(): number {
+  const now = new Date();
+  const start = new Date(2026, 0, 12); // 2026-01-12 start date
+  const diff = now.getTime() - start.getTime();
+  return Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
+}
+
+function getCurrentOfficeDuty(): string {
+  const week = getWeekNumber();
+  return OFFICE_DUTY_ORDER[((week % OFFICE_DUTY_ORDER.length) + OFFICE_DUTY_ORDER.length) % OFFICE_DUTY_ORDER.length];
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function getToday() {
+  const now = new Date();
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  return `${now.getMonth() + 1}月${now.getDate()}日 星期${weekdays[now.getDay()]}`;
+}
+
+const priorityStyles = {
+  urgent: 'border-l-red-500 bg-red-50',
+  important: 'border-l-yellow-500 bg-yellow-50',
+  normal: 'border-l-blue-500 bg-white',
+};
+
+const priorityLabels = {
+  urgent: '紧急',
+  important: '重要',
+  normal: '',
+};
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -13,12 +73,40 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // If already logged in, redirect to home
+  // Public data (no auth required)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [dutyRosters, setDutyRosters] = useState<DutyInfo[]>([]);
+
   useEffect(() => {
     if (!authLoading && user) {
       navigate('/', { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Fetch public data
+  useEffect(() => {
+    async function fetchPublicData() {
+      const today = new Date().toISOString().split('T')[0];
+
+      const [announcementsRes, dutyRes] = await Promise.all([
+        supabase
+          .from('announcements')
+          .select('id,title,content,priority,created_at')
+          .eq('published', true)
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('duty_roster')
+          .select('area,start_date,end_date,user:profiles!user_id(name)')
+          .lte('start_date', today)
+          .gte('end_date', today),
+      ]);
+
+      if (announcementsRes.data) setAnnouncements(announcementsRes.data);
+      if (dutyRes.data) setDutyRosters(dutyRes.data as unknown as DutyInfo[]);
+    }
+    fetchPublicData();
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -42,104 +130,211 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-
-      // Login successful - AuthContext will detect the session change
-      // and update user/profile, then the useEffect above redirects
     } catch {
       setError('登录失败，请稍后再试');
       setLoading(false);
     }
   }
 
+  const labDuty = dutyRosters.find((d) => d.area === 'lab');
+  const officeDutyName = getCurrentOfficeDuty();
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white mb-4">
-            <FlaskConical className="w-8 h-8" />
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="w-6 h-6 text-blue-600" />
+            <span className="text-lg font-bold text-gray-900">实验室管理系统</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">实验室管理系统</h1>
-          <p className="text-sm text-gray-500 mt-1">深圳大学 冯老师课题组</p>
+          <span className="text-sm text-gray-500">{getToday()}</span>
         </div>
+      </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Error Message */}
-            {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                {error}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+          {/* Left: Public Info (announcements + duty) */}
+          <div className="md:col-span-2 space-y-5 order-2 md:order-1">
+
+            {/* Duty Info Bar */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <CalendarCheck className="w-5 h-5 text-blue-600" />
+                <h2 className="text-sm font-bold text-gray-900">今日值日</h2>
               </div>
-            )}
-
-            {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1.5"
-              >
-                邮箱
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="请输入邮箱地址"
-                required
-                autoComplete="email"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-3">
+                  <div>
+                    <p className="text-xs text-blue-600 font-medium">办公室值日（每周四）</p>
+                    <p className="text-lg font-bold text-gray-900 mt-0.5">{officeDutyName}</p>
+                  </div>
+                  <CalendarCheck className="w-8 h-8 text-blue-200" />
+                </div>
+                <div className="flex items-center justify-between bg-green-50 rounded-xl px-4 py-3">
+                  <div>
+                    <p className="text-xs text-green-600 font-medium">实验室卫生（月轮换）</p>
+                    <p className="text-lg font-bold text-gray-900 mt-0.5">
+                      {labDuty?.user?.name ?? '暂未安排'}
+                    </p>
+                  </div>
+                  <CalendarCheck className="w-8 h-8 text-green-200" />
+                </div>
+              </div>
             </div>
 
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1.5"
-              >
-                密码
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="请输入密码"
-                  required
-                  autoComplete="current-password"
-                  className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4.5 h-4.5" />
-                  ) : (
-                    <Eye className="w-4.5 h-4.5" />
+            {/* Announcements */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Megaphone className="w-5 h-5 text-orange-500" />
+                <h2 className="text-sm font-bold text-gray-900">公告通知</h2>
+              </div>
+
+              {announcements.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  暂无公告
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {announcements.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`border-l-4 rounded-lg px-4 py-3 ${priorityStyles[a.priority]}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-gray-900 truncate">
+                              {a.title}
+                            </h3>
+                            {a.priority !== 'normal' && (
+                              <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                a.priority === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {priorityLabels[a.priority]}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                            {a.content}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">
+                          {formatDate(a.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Info */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <h2 className="text-sm font-bold text-gray-900">注意事项</h2>
+              </div>
+              <ul className="space-y-2 text-xs text-gray-600">
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                  <span>耗材预约每周一 11:00 后统一发放，周一 9:00 后提交的顺延至下周</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                  <span>危化品使用需登记，使用完的空瓶集中放在药品柜旁纸箱</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                  <span>办公室值日时间为每周四，请将高挥发性物品及时带离</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                  <span>违规两次及以上暂停一周领取资格</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Right: Login Form */}
+          <div className="order-1 md:order-2">
+            <div className="md:sticky md:top-6">
+              {/* Logo */}
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white mb-3">
+                  <FlaskConical className="w-8 h-8" />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">系统登录</h1>
+                <p className="text-xs text-gray-500 mt-1">深圳大学 冯老师课题组</p>
+              </div>
+
+              {/* Login Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-xs text-red-700">
+                      {error}
+                    </div>
                   )}
-                </button>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      账号
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="请输入账号"
+                      required
+                      autoComplete="email"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      密码
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="请输入密码"
+                        required
+                        autoComplete="current-password"
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-2.5 px-4 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {loading ? '登录中...' : '登录'}
+                  </button>
+                </form>
               </div>
+
+              <p className="text-center text-[10px] text-gray-400 mt-4">
+                如需账号请联系管理员
+              </p>
             </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? '登录中...' : '登录'}
-            </button>
-          </form>
+          </div>
         </div>
-
-        <p className="text-center text-xs text-gray-400 mt-6">
-          如需账号请联系管理员
-        </p>
       </div>
     </div>
   );
