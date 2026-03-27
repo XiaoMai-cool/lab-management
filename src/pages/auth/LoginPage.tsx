@@ -27,18 +27,15 @@ interface DutyInfo {
   end_date: string;
 }
 
-const OFFICE_DUTY_ORDER = ['彭鸿昌', '邓岩昊', '林弋杰', '陈鸿琳', '麦宏博'];
-
-function getWeekNumber(): number {
-  const now = new Date();
-  const start = new Date(2026, 0, 12); // 2026-01-12 start date
-  const diff = now.getTime() - start.getTime();
-  return Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
-}
+const OFFICE_DUTY_ORDER = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
+// 基准：2026-03-27 这一周是陈鸿琳值日，之后按顺序轮换
 
 function getCurrentOfficeDuty(): string {
-  const week = getWeekNumber();
-  return OFFICE_DUTY_ORDER[((week % OFFICE_DUTY_ORDER.length) + OFFICE_DUTY_ORDER.length) % OFFICE_DUTY_ORDER.length];
+  const now = new Date();
+  const refDate = new Date(2026, 2, 23); // 2026-03-23 周一（陈鸿琳值日的这一周）
+  const diffWeeks = Math.floor((now.getTime() - refDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  const idx = ((diffWeeks % OFFICE_DUTY_ORDER.length) + OFFICE_DUTY_ORDER.length) % OFFICE_DUTY_ORDER.length;
+  return OFFICE_DUTY_ORDER[idx];
 }
 
 function formatDate(dateStr: string) {

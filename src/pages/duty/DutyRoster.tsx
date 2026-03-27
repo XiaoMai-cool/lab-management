@@ -14,7 +14,8 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 dayjs.extend(isBetween);
 
 // 办公室值日顺序（每周四轮换）
-const OFFICE_DUTY_ORDER = ['彭鸿昌', '邓岩昊', '林弋杰', '陈鸿琳', '麦宏博'];
+// 基准：2026-03-27 这一周是陈鸿琳值日，之后按顺序轮换
+const OFFICE_DUTY_ORDER = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
 
 interface DutyWithUser extends DutyRosterType {
   user?: Profile;
@@ -112,8 +113,8 @@ export default function DutyRoster() {
 
   // 计算本周四的办公室值日人（基于固定轮换顺序）
   const currentOfficeDutyName = useMemo(() => {
-    // 以 2024-01-04 (周四) 为基准周
-    const baseDate = dayjs('2024-01-04');
+    // 以 2026-03-23 (周一，陈鸿琳值日的这一周) 为基准
+    const baseDate = dayjs('2026-03-23');
     const weeksDiff = today.diff(baseDate, 'week');
     const index =
       ((weeksDiff % OFFICE_DUTY_ORDER.length) + OFFICE_DUTY_ORDER.length) %
