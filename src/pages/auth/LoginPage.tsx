@@ -106,6 +106,7 @@ export default function LoginPage() {
   // Public data (no auth required)
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [dutyRosters, setDutyRosters] = useState<DutyInfo[]>([]);
+  const [expandedAnnouncement, setExpandedAnnouncement] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -242,35 +243,49 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  {announcements.map((a) => (
-                    <div
-                      key={a.id}
-                      className={`border-l-4 rounded-lg px-4 py-3 ${priorityStyles[a.priority]}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-semibold text-gray-900 truncate">
-                              {a.title}
-                            </h3>
-                            {a.priority !== 'normal' && (
-                              <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                a.priority === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                              }`}>
-                                {priorityLabels[a.priority]}
-                              </span>
+                  {announcements.map((a) => {
+                    const isExpanded = expandedAnnouncement === a.id;
+                    return (
+                      <div
+                        key={a.id}
+                        className={`border-l-4 rounded-lg px-4 py-3 cursor-pointer transition-colors hover:opacity-90 ${priorityStyles[a.priority]}`}
+                        onClick={() => setExpandedAnnouncement(isExpanded ? null : a.id)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-semibold text-gray-900 truncate">
+                                {a.title}
+                              </h3>
+                              {a.priority !== 'normal' && (
+                                <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                  a.priority === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {priorityLabels[a.priority]}
+                                </span>
+                              )}
+                            </div>
+                            {!isExpanded && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-1 whitespace-pre-line">
+                                {a.content}
+                              </p>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">
-                            {a.content}
-                          </p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] text-gray-400">{formatDate(a.created_at)}</span>
+                            <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                          </div>
                         </div>
-                        <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">
-                          {formatDate(a.created_at)}
-                        </span>
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-gray-200/50">
+                            <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+                              {a.content}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
