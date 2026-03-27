@@ -1,0 +1,334 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw, CheckCircle, XCircle, ClipboardList, ShieldAlert } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import type { SupplyReservation } from '../../lib/types';
+import PageHeader from '../../components/PageHeader';
+
+function formatDateTime(dateStr: string) {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+export default function ReservationReview() {
+  const navigate = useNavigate();
+  const { user, isAdmin, canManageModule } = useAuth();
+  const [reservations, setReservations] = useState<SupplyReservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const canReview = isAdmin || canManageModule('supplies');
+
+  async function fetchReservations() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('supply_reservations')
+        .select(
+          '*, supply:supplies(id, name, specification, stock, unit, min_stock), user:profiles!user_id(name, email)'
+        )
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+      if (fetchError) throw fetchError;
+      setReservations(data || []);
+    } catch (err: any) {
+      setError(err.message || '加载失败');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!canReview) return;
+    fetchReservations();
+  }, [canReview]);
+
+  async function handleApprove(reservation: SupplyReservation) {
+    if (!user) return;
+    const supply = reservation.supply as any;
+
+    if (supply && reservation.quantity > supply.stock) {
+      setActionError(`库存不足: 当前库存 ${supply.stock}${supply.unit}，预约数量 ${reservation.quantity}${supply.unit}`);
+      return;
+    }
+
+    setProcessingId(reservation.id);
+    setActionError(null);
+
+    try {
+      // Update reservation status
+      const { error: updateError } = await supabase
+        .from('supply_reservations')
+        .update({
+          status: 'approved',
+          reviewer_id: user.id,
+          review_note: reviewNotes[reservation.id]?.trim() || null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', reservation.id);
+
+      if (updateError) throw updateError;
+
+      // Decrease supply stock
+      if (supply) {
+        const newStock = Math.max(0, supply.stock - reservation.quantity);
+        const { error: stockError } = await supabase
+          .from('supplies')
+          .update({ stock: newStock, updated_at: new Date().toISOString() })
+          .eq('id', supply.id);
+
+        if (stockError) throw stockError;
+      }
+
+      // Remove from local list
+      setReservations((prev) => prev.filter((r) => r.id !== reservation.id));
+      setReviewNotes((prev) => {
+        const next = { ...prev };
+        delete next[reservation.id];
+        return next;
+      });
+    } catch (err: any) {
+      setActionError(err.message || '操作失败');
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  async function handleReject(reservation: SupplyReservation) {
+    if (!user) return;
+
+    const note = reviewNotes[reservation.id]?.trim();
+    if (!note) {
+      setActionError('拒绝时请填写原因');
+      return;
+    }
+
+    setProcessingId(reservation.id);
+    setActionError(null);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('supply_reservations')
+        .update({
+          status: 'rejected',
+          reviewer_id: user.id,
+          review_note: note,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', reservation.id);
+
+      if (updateError) throw updateError;
+
+      setReservations((prev) => prev.filter((r) => r.id !== reservation.id));
+      setReviewNotes((prev) => {
+        const next = { ...prev };
+        delete next[reservation.id];
+        return next;
+      });
+    } catch (err: any) {
+      setActionError(err.message || '操作失败');
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  // Access guard
+  if (!canReview) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <ShieldAlert className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">无权限访问</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            该页面仅限耗材管理员或系统管理员访问。
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+          >
+            返回首页
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <PageHeader
+        title="预约审批"
+        subtitle="审批待处理的耗材预约申请"
+        action={
+          <button
+            onClick={fetchReservations}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg text-sm transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            刷新
+          </button>
+        }
+      />
+
+      <div className="px-4 md:px-6 space-y-4">
+        {actionError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+            {actionError}
+            <button
+              onClick={() => setActionError(null)}
+              className="ml-2 text-red-500 hover:text-red-700 font-medium"
+            >
+              关闭
+            </button>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="flex flex-col items-center gap-3">
+              <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+              <span className="text-sm text-gray-500">加载中...</span>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-500 mb-3">{error}</p>
+            <button
+              onClick={fetchReservations}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+            >
+              重试
+            </button>
+          </div>
+        ) : reservations.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">暂无待审批的预约</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reservations.map((reservation) => {
+              const supply = reservation.supply as any;
+              const requester = reservation.user as any;
+              const isProcessing = processingId === reservation.id;
+
+              return (
+                <div
+                  key={reservation.id}
+                  className="bg-white rounded-xl border border-gray-200 p-4 md:p-5"
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        {supply?.name || '未知耗材'}
+                        {supply?.specification && (
+                          <span className="text-gray-400 font-normal ml-1.5">
+                            ({supply.specification})
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        申请人: {requester?.name || '未知'}
+                        {requester?.email && (
+                          <span className="text-gray-400 ml-1">
+                            ({requester.email})
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      待审批
+                    </span>
+                  </div>
+
+                  {/* Details */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                      <p className="text-xs text-gray-400">预约数量</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {reservation.quantity} {supply?.unit || ''}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">当前库存</p>
+                      <p
+                        className={`text-sm font-semibold ${
+                          supply && supply.stock < reservation.quantity
+                            ? 'text-red-600'
+                            : 'text-gray-900'
+                        }`}
+                      >
+                        {supply?.stock ?? '-'} {supply?.unit || ''}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">是否归还</p>
+                      <p className="text-sm text-gray-900">
+                        {reservation.is_returnable ? '是' : '否'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">申请时间</p>
+                      <p className="text-sm text-gray-900">
+                        {formatDateTime(reservation.created_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-400 mb-0.5">用途</p>
+                    <p className="text-sm text-gray-700">{reservation.purpose}</p>
+                  </div>
+
+                  {/* Review note input */}
+                  <div className="mb-3">
+                    <textarea
+                      value={reviewNotes[reservation.id] || ''}
+                      onChange={(e) =>
+                        setReviewNotes((prev) => ({
+                          ...prev,
+                          [reservation.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="审批备注 (拒绝时必填)..."
+                      rows={2}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none transition-colors"
+                    />
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleApprove(reservation)}
+                      disabled={isProcessing}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      {isProcessing ? '处理中...' : '批准'}
+                    </button>
+                    <button
+                      onClick={() => handleReject(reservation)}
+                      disabled={isProcessing}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      {isProcessing ? '处理中...' : '拒绝'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
