@@ -58,11 +58,48 @@ function getToday() {
   return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 星期${weekdays[now.getDay()]}`;
 }
 
+// === 值日计算（与登录页保持一致） ===
+const LAB_DUTY_PEOPLE = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
+const LAB_DUTY_REF_MONDAY = new Date(2026, 2, 30);
+const LAB_DUTY_ROTATION_WEEKS = 4;
+
+const OFFICE_DUTY_PEOPLE = ['林弋杰', '陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊'];
+const OFFICE_DUTY_REF_YEAR = 2026;
+const OFFICE_DUTY_REF_MONTH = 2; // March
+
+function getLabDutyToday(): string {
+  const now = new Date();
+  const dow = now.getDay();
+  if (dow === 0 || dow === 6) return '今日无值日（周末）';
+  const diffDays = Math.floor((now.getTime() - LAB_DUTY_REF_MONDAY.getTime()) / 86400000);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const rotationCount = Math.floor(diffWeeks / LAB_DUTY_ROTATION_WEEKS);
+  const personIndex = (((dow - 1 - rotationCount) % 5) + 5) % 5;
+  return LAB_DUTY_PEOPLE[personIndex];
+}
+
+function getLabWeekSchedule(): { day: string; name: string }[] {
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - LAB_DUTY_REF_MONDAY.getTime()) / 86400000);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const rotationCount = Math.floor(diffWeeks / LAB_DUTY_ROTATION_WEEKS);
+  return ['周一', '周二', '周三', '周四', '周五'].map((day, i) => ({
+    day,
+    name: LAB_DUTY_PEOPLE[(((i - rotationCount) % 5) + 5) % 5],
+  }));
+}
+
+function getOfficeDutyThisMonth(): string {
+  const now = new Date();
+  const monthDiff = (now.getFullYear() - OFFICE_DUTY_REF_YEAR) * 12 + (now.getMonth() - OFFICE_DUTY_REF_MONTH);
+  return OFFICE_DUTY_PEOPLE[((monthDiff % 5) + 5) % 5];
+}
+
 export default function Dashboard() {
   const { user, profile } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<Supply[]>([]);
-  const [dutyRosters, setDutyRosters] = useState<DutyRoster[]>([]);
+  const [_dutyRosters, _setDutyRosters] = useState<DutyRoster[]>([]);
   const [pendingReservations, setPendingReservations] = useState<SupplyReservation[]>([]);
   const [pendingReimbursements, setPendingReimbursements] = useState<Reimbursement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,8 +199,9 @@ export default function Dashboard() {
     );
   }
 
-  const labDuty = dutyRosters.find((d) => d.area === 'lab');
-  const officeDuty = dutyRosters.find((d) => d.area === 'office');
+  const labDutyName = getLabDutyToday();
+  const labWeekSchedule = getLabWeekSchedule();
+  const officeDutyName = getOfficeDutyThisMonth();
 
   return (
     <div className="px-4 md:px-6 py-4 md:py-6 space-y-6">
@@ -309,22 +347,40 @@ export default function Dashboard() {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <CalendarCheck className="w-5 h-5 text-green-600" />
-            <h2 className="text-base font-semibold text-gray-900">本周值日</h2>
+            <h2 className="text-base font-semibold text-gray-900">值日安排</h2>
           </div>
-          <div className="space-y-2">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-400 mb-1">实验室值日</p>
-              <p className="text-sm font-medium text-gray-900">
-                {labDuty ? (labDuty.user as any)?.name || '未知' : '暂无安排'}
-              </p>
+          <div className="space-y-3">
+            {/* 今日值日 + 办公室本月 */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-blue-50 rounded-xl px-3 py-3 text-center">
+                <p className="text-[10px] text-blue-500 font-medium">实验室今日</p>
+                <p className="text-base font-bold text-gray-900 mt-1">{labDutyName}</p>
+              </div>
+              <div className="bg-green-50 rounded-xl px-3 py-3 text-center">
+                <p className="text-[10px] text-green-500 font-medium">办公室本月</p>
+                <p className="text-base font-bold text-gray-900 mt-1">{officeDutyName}</p>
+              </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-400 mb-1">办公室值日</p>
-              <p className="text-sm font-medium text-gray-900">
-                {officeDuty
-                  ? (officeDuty.user as any)?.name || '未知'
-                  : '暂无安排'}
-              </p>
+            {/* 本周排班 */}
+            <div className="bg-white rounded-xl border border-gray-200 p-3">
+              <p className="text-[10px] text-gray-400 mb-2">实验室本周排班</p>
+              <div className="flex gap-1.5">
+                {labWeekSchedule.map((item) => {
+                  const dow = new Date().getDay();
+                  const isToday = item.day === ['', '周一', '周二', '周三', '周四', '周五', ''][dow];
+                  return (
+                    <div
+                      key={item.day}
+                      className={`flex-1 text-center rounded-lg py-2 ${
+                        isToday ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      <p className={`text-[10px] ${isToday ? 'text-blue-100' : 'text-gray-400'}`}>{item.day}</p>
+                      <p className={`text-xs font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-700'}`}>{item.name}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
