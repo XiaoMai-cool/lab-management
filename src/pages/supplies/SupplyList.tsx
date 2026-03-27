@@ -130,6 +130,17 @@ export default function SupplyList() {
         }
       />
 
+      {/* 功能导航 */}
+      <div className="px-4 md:px-6 mt-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+          <Link to="/supplies" className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium">库存总览</Link>
+          <Link to="/supplies/reserve" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">预约领取</Link>
+          <Link to="/supplies/borrow" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">借用耗材</Link>
+          <Link to="/supplies/my-reservations" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">我的预约</Link>
+          <Link to="/supplies/my-returns" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">我的借用</Link>
+        </div>
+      </div>
+
       <div className="px-4 md:px-6 space-y-4">
         {/* Search Bar */}
         <div className="relative">

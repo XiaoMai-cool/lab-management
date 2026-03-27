@@ -113,6 +113,12 @@ export default function ProfilePage() {
       color: 'text-blue-600 bg-blue-50',
     },
     {
+      label: '我的借用',
+      icon: Calendar,
+      path: '/supplies/my-returns',
+      color: 'text-cyan-600 bg-cyan-50',
+    },
+    {
       label: '我的报销',
       icon: Receipt,
       path: '/reimbursements',
@@ -131,10 +137,10 @@ export default function ProfilePage() {
       color: 'text-orange-600 bg-orange-50',
     },
     {
-      label: '我的借用',
-      icon: Calendar,
-      path: '/supplies/my-returns',
-      color: 'text-cyan-600 bg-cyan-50',
+      label: '药品使用登记',
+      icon: FlaskConical,
+      path: '/chemicals/log',
+      color: 'text-pink-600 bg-pink-50',
     },
   ];
 

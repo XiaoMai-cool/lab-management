@@ -21,30 +21,12 @@ import type {
 } from '../lib/types';
 
 const quickActions = [
-  {
-    label: '预约耗材',
-    path: '/supplies/reserve',
-    icon: Package,
-    color: 'bg-blue-50 text-blue-600',
-  },
-  {
-    label: '危化品登记',
-    path: '/chemicals/log',
-    icon: FlaskConical,
-    color: 'bg-purple-50 text-purple-600',
-  },
-  {
-    label: '报销申请',
-    path: '/reimbursements/new',
-    icon: Receipt,
-    color: 'bg-green-50 text-green-600',
-  },
-  {
-    label: '值日查询',
-    path: '/duty',
-    icon: CalendarCheck,
-    color: 'bg-orange-50 text-orange-600',
-  },
+  { label: '预约耗材', path: '/supplies/reserve', icon: Package, color: 'bg-blue-50 text-blue-600' },
+  { label: '借用耗材', path: '/supplies/borrow', icon: Package, color: 'bg-cyan-50 text-cyan-600' },
+  { label: '药品登记', path: '/chemicals/log', icon: FlaskConical, color: 'bg-purple-50 text-purple-600' },
+  { label: '药品申购', path: '/reagents/purchase', icon: FlaskConical, color: 'bg-pink-50 text-pink-600' },
+  { label: '报销申请', path: '/reimbursements/new', icon: Receipt, color: 'bg-green-50 text-green-600' },
+  { label: '值日查询', path: '/duty', icon: CalendarCheck, color: 'bg-orange-50 text-orange-600' },
 ];
 
 function formatDate(dateStr: string) {
@@ -267,7 +249,7 @@ export default function Dashboard() {
       {/* 快捷操作 */}
       <section>
         <h2 className="text-base font-semibold text-gray-900 mb-3">快捷操作</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (

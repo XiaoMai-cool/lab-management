@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/Card';
@@ -156,6 +156,15 @@ export default function ReagentList() {
           ) : undefined
         }
       />
+
+      {/* 功能导航 */}
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
+        <Link to="/reagents" className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium">药品总览</Link>
+        <Link to="/chemicals/log" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">使用登记</Link>
+        <Link to="/reagents/purchase" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">申购药品</Link>
+        <Link to="/reagents/my-ledger" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">我的台账</Link>
+        <Link to="/chemicals/history" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">使用记录</Link>
+      </div>
 
       {/* 搜索栏 */}
       <div className="mt-4">
