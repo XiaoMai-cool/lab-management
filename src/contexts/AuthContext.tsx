@@ -31,24 +31,72 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   return data as Profile;
 }
 
+// Force clear all auth data from browser
+function forceCleanup() {
+  // Clear Supabase auth keys from localStorage
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.includes('supabase') || key.includes('sb-'))) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  sessionStorage.clear();
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     async function init() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Safety timeout: if auth takes longer than 5 seconds, force stop loading
+        timeoutId = setTimeout(() => {
+          console.warn('Auth init timed out, clearing session');
+          forceCleanup();
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }, 5000);
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          console.error('Session error:', sessionError.message);
+          forceCleanup();
+          clearTimeout(timeoutId);
+          setLoading(false);
+          return;
+        }
 
         if (session?.user) {
-          setUser(session.user);
           const p = await fetchProfile(session.user.id);
-          setProfile(p);
+
+          if (!p) {
+            // Session exists but profile not found — invalid state, sign out
+            console.warn('Profile not found for session user, signing out');
+            await supabase.auth.signOut().catch(() => {});
+            forceCleanup();
+            setUser(null);
+            setProfile(null);
+          } else {
+            setUser(session.user);
+            setProfile(p);
+          }
         }
       } catch (err) {
         console.error('Auth init error:', err);
+        // On any error, clean up and show login page
+        forceCleanup();
+        setUser(null);
+        setProfile(null);
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     }
@@ -70,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => {
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
@@ -80,8 +129,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // If signOut fails, force cleanup
+    }
+    forceCleanup();
+    setUser(null);
+    setProfile(null);
   };
 
   const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';

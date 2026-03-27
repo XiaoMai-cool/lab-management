@@ -15,11 +15,20 @@ import SupplyReserve from './pages/supplies/SupplyReserve'
 import MyReservations from './pages/supplies/MyReservations'
 import ReservationReview from './pages/supplies/ReservationReview'
 
-// Chemicals
+// Chemicals (legacy pages)
 import ChemicalList from './pages/chemicals/ChemicalList'
 import ChemicalLog from './pages/chemicals/ChemicalLog'
 import ChemicalHistory from './pages/chemicals/ChemicalHistory'
 import ChemicalPurchaseRequest from './pages/chemicals/ChemicalPurchaseRequest'
+
+// Reagents (new full lifecycle)
+import ReagentList from './pages/reagents/ReagentList'
+import ReagentDetail from './pages/reagents/ReagentDetail'
+import ReagentForm from './pages/reagents/ReagentForm'
+import ReagentPurchaseRequest from './pages/reagents/ReagentPurchaseRequest'
+import ReagentStockMovement from './pages/reagents/ReagentStockMovement'
+import MyReagentLedger from './pages/reagents/MyReagentLedger'
+import SupplierManage from './pages/reagents/SupplierManage'
 
 // Documents
 import DocumentList from './pages/documents/DocumentList'
@@ -70,8 +79,26 @@ export default function App() {
               <ProtectedRoute requiredModule="supplies"><ReservationReview /></ProtectedRoute>
             } />
 
-            {/* Chemicals */}
-            <Route path="/chemicals" element={<ChemicalList />} />
+            {/* Reagents / Chemicals - new full lifecycle */}
+            <Route path="/reagents" element={<ReagentList />} />
+            <Route path="/reagents/new" element={
+              <ProtectedRoute requiredModule="chemicals"><ReagentForm /></ProtectedRoute>
+            } />
+            <Route path="/reagents/:id" element={<ReagentDetail />} />
+            <Route path="/reagents/:id/edit" element={
+              <ProtectedRoute requiredModule="chemicals"><ReagentForm /></ProtectedRoute>
+            } />
+            <Route path="/reagents/purchase" element={<ReagentPurchaseRequest />} />
+            <Route path="/reagents/stock" element={
+              <ProtectedRoute requiredModule="chemicals"><ReagentStockMovement /></ProtectedRoute>
+            } />
+            <Route path="/reagents/my-ledger" element={<MyReagentLedger />} />
+            <Route path="/reagents/suppliers" element={
+              <ProtectedRoute requiredModule="chemicals"><SupplierManage /></ProtectedRoute>
+            } />
+
+            {/* Chemicals - legacy (redirect to new reagents) */}
+            <Route path="/chemicals" element={<ReagentList />} />
             <Route path="/chemicals/log" element={<ChemicalLog />} />
             <Route path="/chemicals/history" element={<ChemicalHistory />} />
             <Route path="/chemicals/purchase" element={<ChemicalPurchaseRequest />} />

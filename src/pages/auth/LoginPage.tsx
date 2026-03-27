@@ -1,15 +1,24 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, FlaskConical } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // If already logged in, redirect to home
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -30,13 +39,14 @@ export default function LoginPage() {
         } else {
           setError(signInError.message);
         }
+        setLoading(false);
         return;
       }
 
-      navigate('/', { replace: true });
+      // Login successful - AuthContext will detect the session change
+      // and update user/profile, then the useEffect above redirects
     } catch {
       setError('登录失败，请稍后再试');
-    } finally {
       setLoading(false);
     }
   }
