@@ -172,7 +172,17 @@ export default function ReagentDetail() {
       {/* 头部 */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{chemical.name}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold text-gray-900">{chemical.name}</h1>
+            {chemical.batch_number && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 text-sm font-semibold">
+                {chemical.batch_number}
+              </span>
+            )}
+          </div>
+          {chemical.molecular_formula && (
+            <p className="mt-1 text-sm text-gray-600 font-mono">{chemical.molecular_formula}</p>
+          )}
           {chemical.cas_number && (
             <p className="mt-1 text-sm text-gray-500">CAS: {chemical.cas_number}</p>
           )}
@@ -303,7 +313,7 @@ export default function ReagentDetail() {
       {activeTab === 'movements' && (
         <div className="mt-4 space-y-3">
           {movements.length === 0 ? (
-            <EmptyState message="暂无出入库记录" />
+            <EmptyState title="暂无出入库记录" />
           ) : (
             movements.map((m) => {
               const typeInfo = MOVEMENT_TYPE_LABELS[m.movement_type] || {
@@ -340,7 +350,7 @@ export default function ReagentDetail() {
       {activeTab === 'usage' && (
         <div className="mt-4 space-y-3">
           {usageLogs.length === 0 ? (
-            <EmptyState message="暂无领用记录" />
+            <EmptyState title="暂无领用记录" />
           ) : (
             usageLogs.map((log) => (
               <div key={log.id} className="rounded-lg border border-gray-100 bg-white p-3">

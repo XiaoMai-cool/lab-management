@@ -8,6 +8,7 @@ import {
   Calendar,
   Receipt,
   FileText,
+  FlaskConical,
   Lock,
   LogOut,
   ChevronRight,
@@ -108,7 +109,7 @@ export default function ProfilePage() {
     {
       label: '我的预约',
       icon: Calendar,
-      path: '/supplies/reservations',
+      path: '/supplies/my-reservations',
       color: 'text-blue-600 bg-blue-50',
     },
     {
@@ -120,8 +121,20 @@ export default function ProfilePage() {
     {
       label: '我的汇报',
       icon: FileText,
-      path: '/meetings/progress',
+      path: '/meetings/report',
       color: 'text-purple-600 bg-purple-50',
+    },
+    {
+      label: '试剂台账',
+      icon: FlaskConical,
+      path: '/reagents/my-ledger',
+      color: 'text-orange-600 bg-orange-50',
+    },
+    {
+      label: '我的借用',
+      icon: Calendar,
+      path: '/supplies/my-returns',
+      color: 'text-cyan-600 bg-cyan-50',
     },
   ];
 

@@ -221,7 +221,7 @@ export default function AnnouncementManage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">
                       {a.content}
                     </p>
                     <p className="text-xs text-gray-400 mt-2">
@@ -296,11 +296,23 @@ export default function AnnouncementManage() {
             <textarea
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="请输入公告内容"
-              rows={5}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              placeholder="请输入公告内容（支持换行）"
+              rows={8}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
             />
           </div>
+
+          {/* Preview */}
+          {form.content.trim() && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                预览
+              </label>
+              <div className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 whitespace-pre-line min-h-[60px]">
+                {form.content}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">

@@ -14,6 +14,9 @@ import SupplyList from './pages/supplies/SupplyList'
 import SupplyReserve from './pages/supplies/SupplyReserve'
 import MyReservations from './pages/supplies/MyReservations'
 import ReservationReview from './pages/supplies/ReservationReview'
+import SupplyBorrow from './pages/supplies/SupplyBorrow'
+import SupplyReturn from './pages/supplies/SupplyReturn'
+import BorrowingManage from './pages/supplies/BorrowingManage'
 
 // Chemicals (legacy pages)
 import ChemicalList from './pages/chemicals/ChemicalList'
@@ -77,6 +80,11 @@ export default function App() {
             <Route path="/supplies/my-reservations" element={<MyReservations />} />
             <Route path="/supplies/review" element={
               <ProtectedRoute requiredModule="supplies"><ReservationReview /></ProtectedRoute>
+            } />
+            <Route path="/supplies/borrow" element={<SupplyBorrow />} />
+            <Route path="/supplies/my-returns" element={<SupplyReturn />} />
+            <Route path="/supplies/borrowings" element={
+              <ProtectedRoute requiredModule="supplies"><BorrowingManage /></ProtectedRoute>
             } />
 
             {/* Reagents / Chemicals - new full lifecycle */}

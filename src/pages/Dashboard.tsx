@@ -213,7 +213,7 @@ export default function Dashboard() {
                     {a.title}
                   </h3>
                 </div>
-                <p className="text-sm text-gray-600 mt-1.5 line-clamp-2">
+                <p className="text-sm text-gray-600 mt-1.5 line-clamp-2 whitespace-pre-line">
                   {a.content}
                 </p>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">

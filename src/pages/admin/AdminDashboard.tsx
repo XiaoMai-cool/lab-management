@@ -9,6 +9,7 @@ import {
   Download,
   ClipboardCheck,
   Receipt,
+  FlaskConical,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -81,6 +82,20 @@ const modules: ModuleCard[] = [
     path: '/reimbursements/review',
     color: 'bg-rose-50 text-rose-600',
     badgeKey: 'pendingReimbursements',
+  },
+  {
+    title: '供应商管理',
+    description: '管理试剂供应商信息',
+    icon: FlaskConical,
+    path: '/reagents/suppliers',
+    color: 'bg-cyan-50 text-cyan-600',
+  },
+  {
+    title: '借用管理',
+    description: '查看耗材借用与归还',
+    icon: Package,
+    path: '/supplies/borrowings',
+    color: 'bg-teal-50 text-teal-600',
   },
 ];
 
