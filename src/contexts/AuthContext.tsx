@@ -38,15 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        setUser(session.user);
-        const p = await fetchProfile(session.user.id);
-        setProfile(p);
+        if (session?.user) {
+          setUser(session.user);
+          const p = await fetchProfile(session.user.id);
+          setProfile(p);
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     init();

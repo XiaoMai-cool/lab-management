@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -7,6 +8,8 @@ import {
   User,
   Settings,
   Bell,
+  LogOut,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -16,6 +19,14 @@ interface NavItem {
   path: string;
   adminOnly?: boolean;
 }
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: '超级管理员',
+  admin: '管理员',
+  manager: '板块负责人',
+  teacher: '教师',
+  student: '学生',
+};
 
 const navItems: NavItem[] = [
   { label: '首页', icon: Home, path: '/' },
@@ -29,7 +40,8 @@ const navItems: NavItem[] = [
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, isAdmin, isManager } = useAuth();
+  const { profile, isAdmin, isManager, signOut } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const showAdmin = isAdmin || isManager;
 
@@ -41,6 +53,18 @@ export default function Layout() {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
+
+  async function handleLogout() {
+    try {
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch {
+      // 清除本地存储强制退出
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -76,7 +100,7 @@ export default function Layout() {
           })}
         </nav>
 
-        {/* Sidebar Footer - User Info */}
+        {/* Sidebar Footer - User Info + Logout */}
         <div className="p-4 border-t border-gray-200 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
@@ -87,13 +111,16 @@ export default function Layout() {
                 {profile?.name || '用户'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {profile?.role === 'admin'
-                  ? '管理员'
-                  : profile?.role === 'manager'
-                    ? '负责人'
-                    : '成员'}
+                {ROLE_LABELS[profile?.role ?? ''] ?? '成员'}
               </p>
             </div>
+            <button
+              onClick={handleLogout}
+              title="退出登录"
+              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4.5 h-4.5" />
+            </button>
           </div>
         </div>
       </aside>
@@ -108,13 +135,49 @@ export default function Layout() {
               实验室管理系统
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button className="relative p-1.5 text-gray-500 hover:text-gray-700 transition-colors">
               <Bell className="w-5 h-5" />
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-              {profile?.name?.charAt(0) || 'U'}
+            {/* Mobile user menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-1 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
+                  {profile?.name?.charAt(0) || 'U'}
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+              </button>
+              {showUserMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in">
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{profile?.name}</p>
+                      <p className="text-xs text-gray-500">{ROLE_LABELS[profile?.role ?? ''] ?? '成员'}</p>
+                    </div>
+                    <button
+                      onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4 text-gray-400" />
+                      个人中心
+                    </button>
+                    <button
+                      onClick={() => { handleLogout(); setShowUserMenu(false); }}
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      退出登录
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -124,15 +187,54 @@ export default function Layout() {
           <div className="flex items-center gap-4">
             <button className="relative p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
-            <div className="flex items-center gap-2.5 pl-3 border-l border-gray-200">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-                {profile?.name?.charAt(0) || 'U'}
-              </div>
-              <span className="text-sm font-medium text-gray-700">
-                {profile?.name || '用户'}
-              </span>
+            {/* Desktop user menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2.5 pl-3 border-l border-gray-200 hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
+                  {profile?.name?.charAt(0) || 'U'}
+                </div>
+                <span className="text-sm font-medium text-gray-700">
+                  {profile?.name || '用户'}
+                </span>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </button>
+              {showUserMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in">
+                    <div className="px-4 py-2.5 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{profile?.name}</p>
+                      <p className="text-xs text-gray-500">{profile?.email}</p>
+                      <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium text-blue-700 bg-blue-50 rounded-full">
+                        {ROLE_LABELS[profile?.role ?? ''] ?? '成员'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5"
+                    >
+                      <User className="w-4 h-4 text-gray-400" />
+                      个人中心
+                    </button>
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <button
+                        onClick={() => { handleLogout(); setShowUserMenu(false); }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        退出登录
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>

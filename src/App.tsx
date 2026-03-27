@@ -112,7 +112,7 @@ export default function App() {
               <ProtectedRoute requiredRole="admin"><AnnouncementManage /></ProtectedRoute>
             } />
             <Route path="/admin/members" element={
-              <ProtectedRoute requiredRole="admin"><MemberManage /></ProtectedRoute>
+              <ProtectedRoute requiredModule="members"><MemberManage /></ProtectedRoute>
             } />
             <Route path="/admin/supplies" element={
               <ProtectedRoute requiredModule="supplies"><SupplyManage /></ProtectedRoute>
