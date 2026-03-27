@@ -358,7 +358,7 @@ export default function LoginPage() {
                     </label>
                     <input
                       id="email"
-                      type="email"
+                      type="text"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="请输入账号"
