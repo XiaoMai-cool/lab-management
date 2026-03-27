@@ -29,12 +29,12 @@ const navItems: NavItem[] = [
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { profile, isAdmin, isManager } = useAuth();
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'manager';
+  const showAdmin = isAdmin || isManager;
 
   const visibleItems = navItems.filter(
-    (item) => !item.adminOnly || isAdmin
+    (item) => !item.adminOnly || showAdmin
   );
 
   const isActive = (path: string) => {
@@ -80,16 +80,16 @@ export default function Layout() {
         <div className="p-4 border-t border-gray-200 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-              {user?.name?.charAt(0) || 'U'}
+              {profile?.name?.charAt(0) || 'U'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.name || '用户'}
+                {profile?.name || '用户'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {user?.role === 'admin'
+                {profile?.role === 'admin'
                   ? '管理员'
-                  : user?.role === 'manager'
+                  : profile?.role === 'manager'
                     ? '负责人'
                     : '成员'}
               </p>
@@ -114,7 +114,7 @@ export default function Layout() {
               <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full" />
             </button>
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-              {user?.name?.charAt(0) || 'U'}
+              {profile?.name?.charAt(0) || 'U'}
             </div>
           </div>
         </header>
@@ -128,10 +128,10 @@ export default function Layout() {
             </button>
             <div className="flex items-center gap-2.5 pl-3 border-l border-gray-200">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
-                {user?.name?.charAt(0) || 'U'}
+                {profile?.name?.charAt(0) || 'U'}
               </div>
               <span className="text-sm font-medium text-gray-700">
-                {user?.name || '用户'}
+                {profile?.name || '用户'}
               </span>
             </div>
           </div>

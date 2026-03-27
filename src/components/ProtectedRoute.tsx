@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 import type { Role } from '../lib/types';
 import type { ReactNode } from 'react';
 
@@ -25,11 +26,7 @@ export default function ProtectedRoute({
   const { user, profile, loading, canManageModule } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div className="spinner" aria-label="Loading" />
-      </div>
-    );
+    return <LoadingSpinner fullPage />;
   }
 
   if (!user) {
