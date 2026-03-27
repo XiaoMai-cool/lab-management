@@ -51,74 +51,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+
+    // Auto-clear stale sessions: if URL has ?reset or session is broken
+    if (window.location.search.includes('reset')) {
+      forceCleanup();
+      supabase.auth.signOut().catch(() => {});
+      window.location.href = '/login';
+      return;
+    }
 
     async function init() {
       try {
-        // Safety timeout: if auth takes longer than 5 seconds, force stop loading
-        timeoutId = setTimeout(() => {
-          console.warn('Auth init timed out, clearing session');
-          forceCleanup();
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        }, 5000);
+        // Race: getSession vs 8s timeout
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 8000)
+          ),
+        ]);
 
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (cancelled) return;
 
-        if (sessionError) {
-          console.error('Session error:', sessionError.message);
-          forceCleanup();
-          clearTimeout(timeoutId);
-          setLoading(false);
-          return;
-        }
+        const { data: { session } } = sessionResult;
 
         if (session?.user) {
           const p = await fetchProfile(session.user.id);
+          if (cancelled) return;
 
-          if (!p) {
-            // Session exists but profile not found — invalid state, sign out
-            console.warn('Profile not found for session user, signing out');
-            await supabase.auth.signOut().catch(() => {});
-            forceCleanup();
-            setUser(null);
-            setProfile(null);
-          } else {
+          if (p) {
             setUser(session.user);
             setProfile(p);
+          } else {
+            // Profile not found, sign out
+            await supabase.auth.signOut().catch(() => {});
+            forceCleanup();
           }
         }
       } catch (err) {
         console.error('Auth init error:', err);
-        // On any error, clean up and show login page
-        forceCleanup();
-        setUser(null);
-        setProfile(null);
+        if (!cancelled) {
+          // Timeout or other error: clear everything and go to login
+          await supabase.auth.signOut().catch(() => {});
+          forceCleanup();
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
-        clearTimeout(timeoutId);
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
+      async (event, session) => {
+        if (cancelled) return;
 
-        if (currentUser) {
-          const p = await fetchProfile(currentUser.id);
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        // SIGNED_IN or TOKEN_REFRESHED
+        const p = await fetchProfile(session.user.id);
+        if (cancelled) return;
+
+        if (p) {
+          setUser(session.user);
           setProfile(p);
         } else {
+          setUser(null);
           setProfile(null);
         }
+        setLoading(false);
       },
     );
 
     return () => {
-      clearTimeout(timeoutId);
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);

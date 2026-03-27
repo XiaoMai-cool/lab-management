@@ -90,7 +90,7 @@ export default function Dashboard() {
           .limit(3),
         supabase.from('supplies').select('*, category:supply_categories(name)'),
         supabase
-          .from('duty_rosters')
+          .from('duty_roster')
           .select('*, user:profiles!user_id(name)')
           .lte('start_date', today)
           .gte('end_date', today),
