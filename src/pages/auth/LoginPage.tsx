@@ -279,26 +279,40 @@ export default function LoginPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h2 className="text-sm font-bold text-gray-900">注意事项</h2>
+                <h2 className="text-sm font-bold text-gray-900">日常须知</h2>
               </div>
-              <ul className="space-y-2 text-xs text-gray-600">
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                  <span>耗材预约每周一 11:00 后统一发放，周一 9:00 后提交的顺延至下周</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                  <span>危化品使用需登记，使用完的空瓶集中放在药品柜旁纸箱</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                  <span>办公室值日时间为每周四，请将高挥发性物品及时带离</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                  <span>违规两次及以上暂停一周领取资格</span>
-                </li>
-              </ul>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">实验室</p>
+                  <ul className="space-y-1.5 text-xs text-gray-600">
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <span>耗材每周一 11:00 后统一发放，周一 9:00 后提交的顺延至下周</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <span>危化品使用须登记，空瓶集中放在药品柜旁纸箱回收</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <span>废弃物严格分类投放，违规两次暂停一周领取资格</span>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">办公室</p>
+                  <ul className="space-y-1.5 text-xs text-gray-600">
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <span>值日负责垃圾清运、环境清理及地面拖洗</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <span>个人异味物品请及时带离，保持办公环境整洁</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
 
