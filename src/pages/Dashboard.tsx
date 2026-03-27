@@ -92,59 +92,46 @@ export default function Dashboard() {
     setError(null);
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-
-      const [
-        announcementsRes,
-        suppliesRes,
-        dutyRes,
-        reservationsRes,
-        reimbursementsRes,
-      ] = await Promise.all([
-        supabase
-          .from('announcements')
-          .select('*, author:profiles!author_id(name)')
-          .eq('published', true)
-          .order('created_at', { ascending: false })
-          .limit(3),
-        supabase.from('supplies').select('*, category:supply_categories(name)'),
-        supabase
-          .from('duty_roster')
-          .select('*, user:profiles!user_id(name)')
-          .lte('start_date', today)
-          .gte('end_date', today),
-        user
-          ? supabase
-              .from('supply_reservations')
-              .select('*, supply:supplies(name)')
-              .eq('user_id', user.id)
-              .eq('status', 'pending')
-              .order('created_at', { ascending: false })
-              .limit(5)
-          : Promise.resolve({ data: [], error: null }),
-        user
-          ? supabase
-              .from('reimbursements')
-              .select('*')
-              .eq('user_id', user.id)
-              .eq('status', 'pending')
-              .order('created_at', { ascending: false })
-              .limit(5)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-
+      // 每个查询独立处理，一个失败不影响其他
+      const announcementsRes = await supabase
+        .from('announcements')
+        .select('*, author:profiles!author_id(name)')
+        .eq('published', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
       if (announcementsRes.data) setAnnouncements(announcementsRes.data);
+
+      const suppliesRes = await supabase
+        .from('supplies')
+        .select('*, category:supply_categories(name)');
       if (suppliesRes.data) {
         setLowStockSupplies(
           suppliesRes.data.filter((s: Supply) => s.stock <= s.min_stock)
         );
       }
-      if (dutyRes.data) setDutyRosters(dutyRes.data);
-      if (reservationsRes.data) setPendingReservations(reservationsRes.data);
-      if (reimbursementsRes.data) setPendingReimbursements(reimbursementsRes.data);
+
+      if (user) {
+        const reservationsRes = await supabase
+          .from('supply_reservations')
+          .select('*, supply:supplies(name)')
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        if (reservationsRes.data) setPendingReservations(reservationsRes.data);
+
+        const reimbursementsRes = await supabase
+          .from('reimbursements')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        if (reimbursementsRes.data) setPendingReimbursements(reimbursementsRes.data);
+      }
     } catch (err) {
-      setError('数据加载失败，请稍后再试');
-      console.error(err);
+      console.error('Dashboard fetch error:', err);
+      setError('部分数据加载失败，请刷新重试');
     } finally {
       setLoading(false);
     }
