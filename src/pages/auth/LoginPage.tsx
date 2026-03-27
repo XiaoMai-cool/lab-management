@@ -27,15 +27,47 @@ interface DutyInfo {
   end_date: string;
 }
 
-const OFFICE_DUTY_ORDER = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
-// 基准：2026-03-27 这一周是陈鸿琳值日，之后按顺序轮换
+// 值日排班：每人一天（周一~周五），每4周轮换一次（每人往后挪一天，周五→周一）
+// 基准：2026-03-30 这一周开始，周一=陈鸿琳
+const DUTY_PEOPLE = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
+const DUTY_REF_MONDAY = new Date(2026, 2, 30); // 2026-03-30 周一
+const DUTY_ROTATION_WEEKS = 4; // 每4周轮换
 
-function getCurrentOfficeDuty(): string {
+function getTodayDutyPerson(): { name: string; isWeekday: boolean } {
   const now = new Date();
-  const refDate = new Date(2026, 2, 23); // 2026-03-23 周一（陈鸿琳值日的这一周）
-  const diffWeeks = Math.floor((now.getTime() - refDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-  const idx = ((diffWeeks % OFFICE_DUTY_ORDER.length) + OFFICE_DUTY_ORDER.length) % OFFICE_DUTY_ORDER.length;
-  return OFFICE_DUTY_ORDER[idx];
+  const dayOfWeek = now.getDay(); // 0=周日, 1=周一, ..., 5=周五, 6=周六
+
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    return { name: '今日无值日', isWeekday: false };
+  }
+
+  // 计算从基准周一到现在经过了多少天
+  const diffDays = Math.floor((now.getTime() - DUTY_REF_MONDAY.getTime()) / (24 * 60 * 60 * 1000));
+  // 计算经过了多少个4周周期
+  const diffWeeks = Math.floor(diffDays / 7);
+  const rotationCount = Math.floor(diffWeeks / DUTY_ROTATION_WEEKS);
+
+  // 当天是周几（0=周一, 1=周二, ..., 4=周五）
+  const weekdayIndex = dayOfWeek - 1;
+
+  // 每次轮换，所有人往后挪一天：原来周一的人变周二，周五的人变周一
+  // 等价于：dayIndex 对应的人 = (weekdayIndex - rotationCount) mod 5
+  const personIndex = (((weekdayIndex - rotationCount) % 5) + 5) % 5;
+
+  return { name: DUTY_PEOPLE[personIndex], isWeekday: true };
+}
+
+function getWeekDutySchedule(): { day: string; name: string }[] {
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - DUTY_REF_MONDAY.getTime()) / (24 * 60 * 60 * 1000));
+  const diffWeeks = Math.floor(diffDays / 7);
+  const rotationCount = Math.floor(diffWeeks / DUTY_ROTATION_WEEKS);
+
+  const days = ['周一', '周二', '周三', '周四', '周五'];
+  return days.map((day, i) => ({
+    day,
+    name: DUTY_PEOPLE[(((i - rotationCount) % 5) + 5) % 5],
+  }));
 }
 
 function formatDate(dateStr: string) {
@@ -134,7 +166,8 @@ export default function LoginPage() {
   }
 
   const labDuty = dutyRosters.find((d) => d.area === 'lab');
-  const officeDutyName = getCurrentOfficeDuty();
+  const todayDuty = getTodayDutyPerson();
+  const weekSchedule = getWeekDutySchedule();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-50">
@@ -161,24 +194,45 @@ export default function LoginPage() {
                 <CalendarCheck className="w-5 h-5 text-blue-600" />
                 <h2 className="text-sm font-bold text-gray-900">今日值日</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-3">
-                  <div>
-                    <p className="text-xs text-blue-600 font-medium">办公室值日（每周四）</p>
-                    <p className="text-lg font-bold text-gray-900 mt-0.5">{officeDutyName}</p>
-                  </div>
-                  <CalendarCheck className="w-8 h-8 text-blue-200" />
+              {/* 今日值日 */}
+              <div className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-3 mb-3">
+                <div>
+                  <p className="text-xs text-blue-600 font-medium">今日值日</p>
+                  <p className="text-lg font-bold text-gray-900 mt-0.5">{todayDuty.name}</p>
                 </div>
-                <div className="flex items-center justify-between bg-green-50 rounded-xl px-4 py-3">
+                <CalendarCheck className="w-8 h-8 text-blue-200" />
+              </div>
+
+              {/* 本周排班 */}
+              <div className="flex gap-1.5">
+                {weekSchedule.map((item) => {
+                  const isToday = item.day === ['', '周一', '周二', '周三', '周四', '周五', ''][new Date().getDay()];
+                  return (
+                    <div
+                      key={item.day}
+                      className={`flex-1 text-center rounded-lg py-2 ${
+                        isToday ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      <p className={`text-[10px] ${isToday ? 'text-blue-100' : 'text-gray-400'}`}>{item.day}</p>
+                      <p className={`text-xs font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-700'}`}>
+                        {item.name.slice(0, 1)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 实验室卫生 */}
+              {labDuty?.user?.name && (
+                <div className="flex items-center justify-between bg-green-50 rounded-xl px-4 py-3 mt-3">
                   <div>
                     <p className="text-xs text-green-600 font-medium">实验室卫生（月轮换）</p>
-                    <p className="text-lg font-bold text-gray-900 mt-0.5">
-                      {labDuty?.user?.name ?? '暂未安排'}
-                    </p>
+                    <p className="text-lg font-bold text-gray-900 mt-0.5">{labDuty.user.name}</p>
                   </div>
                   <CalendarCheck className="w-8 h-8 text-green-200" />
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Announcements */}

@@ -14,8 +14,11 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 dayjs.extend(isBetween);
 
 // 办公室值日顺序（每周四轮换）
-// 基准：2026-03-27 这一周是陈鸿琳值日，之后按顺序轮换
-const OFFICE_DUTY_ORDER = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
+// 值日排班：每人一天（周一~周五），每4周轮换（每人往后挪一天，周五→周一）
+// 基准：2026-03-30 周一起，周一=陈鸿琳
+const DUTY_PEOPLE = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
+const DUTY_REF_MONDAY = dayjs('2026-03-30');
+const DUTY_ROTATION_WEEKS = 4;
 
 interface DutyWithUser extends DutyRosterType {
   user?: Profile;
@@ -111,16 +114,22 @@ export default function DutyRoster() {
     );
   }, [dutyList, today]);
 
-  // 计算本周四的办公室值日人（基于固定轮换顺序）
-  const currentOfficeDutyName = useMemo(() => {
-    // 以 2026-03-23 (周一，陈鸿琳值日的这一周) 为基准
-    const baseDate = dayjs('2026-03-23');
-    const weeksDiff = today.diff(baseDate, 'week');
-    const index =
-      ((weeksDiff % OFFICE_DUTY_ORDER.length) + OFFICE_DUTY_ORDER.length) %
-      OFFICE_DUTY_ORDER.length;
-    return OFFICE_DUTY_ORDER[index];
+  // 计算本周值日排班
+  const weekDutySchedule = useMemo(() => {
+    const diffWeeks = today.diff(DUTY_REF_MONDAY, 'week');
+    const rotationCount = Math.floor(diffWeeks / DUTY_ROTATION_WEEKS);
+    const days = ['周一', '周二', '周三', '周四', '周五'];
+    return days.map((day, i) => ({
+      day,
+      name: DUTY_PEOPLE[(((i - rotationCount) % 5) + 5) % 5],
+    }));
   }, [today]);
+
+  const todayDutyName = useMemo(() => {
+    const dow = today.day(); // 0=周日
+    if (dow === 0 || dow === 6) return '今日无值日';
+    return weekDutySchedule[dow - 1]?.name ?? '';
+  }, [today, weekDutySchedule]);
 
   // 即将到来的排班
   const upcomingDuties = useMemo(() => {
@@ -181,20 +190,32 @@ export default function DutyRoster() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+            <div className="p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-5 h-5 text-green-600" />
+                <p className="text-sm font-medium text-gray-700">
+                  今日值日：<span className="font-bold text-gray-900">{todayDutyName}</span>
+                </p>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">
-                  办公室值日（每周四轮换）
-                </p>
-                <p className="text-base font-semibold text-gray-900">
-                  {currentOfficeDutyName}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  轮换顺序：{OFFICE_DUTY_ORDER.join(' → ')}
-                </p>
+              <p className="text-xs text-gray-500 mb-2">每4周轮换一次，每人往后挪一天</p>
+              <div className="flex gap-1.5">
+                {weekDutySchedule.map((item) => {
+                  const dow = today.day();
+                  const isToday = item.day === ['', '周一', '周二', '周三', '周四', '周五', ''][dow];
+                  return (
+                    <div
+                      key={item.day}
+                      className={`flex-1 text-center rounded-lg py-2 ${
+                        isToday ? 'bg-green-600 text-white' : 'bg-white text-gray-600'
+                      }`}
+                    >
+                      <p className={`text-[10px] ${isToday ? 'text-green-100' : 'text-gray-400'}`}>{item.day}</p>
+                      <p className={`text-xs font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-700'}`}>
+                        {item.name}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
