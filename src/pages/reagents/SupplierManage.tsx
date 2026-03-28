@@ -158,7 +158,7 @@ export default function SupplierManage() {
 
       {suppliers.length === 0 ? (
         <div className="mt-6">
-          <EmptyState message="暂无供应商信息" />
+          <EmptyState title="暂无供应商信息" />
         </div>
       ) : (
         <div className="mt-4 space-y-3">

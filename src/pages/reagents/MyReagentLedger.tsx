@@ -225,7 +225,7 @@ export default function MyReagentLedger() {
       {/* 台账列表 */}
       {filteredLogs.length === 0 ? (
         <div className="mt-6">
-          <EmptyState message={searchQuery ? '没有找到匹配的记录' : '暂无使用记录'} />
+          <EmptyState title={searchQuery ? '没有找到匹配的记录' : '暂无使用记录'} />
         </div>
       ) : (
         <>

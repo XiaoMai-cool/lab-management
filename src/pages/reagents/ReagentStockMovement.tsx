@@ -20,7 +20,7 @@ interface Chemical {
   id: string;
   name: string;
   cas_number: string | null;
-  current_stock: number;
+  stock: number;
   unit: string | null;
 }
 
@@ -77,7 +77,7 @@ export default function ReagentStockMovement() {
     chemical_id: '',
     chemical_name: '',
     new_stock: 0,
-    current_stock: 0,
+    stock: 0,
     reason: '',
   });
 
@@ -98,7 +98,7 @@ export default function ReagentStockMovement() {
   async function fetchChemicals() {
     const { data } = await supabase
       .from('chemicals')
-      .select('id, name, cas_number, current_stock, unit')
+      .select('id, name, cas_number, stock, unit')
       .order('name');
     setChemicals(data || []);
   }
@@ -143,15 +143,15 @@ export default function ReagentStockMovement() {
         ...p,
         chemical_id: chem.id,
         chemical_name: chem.name,
-        maxStock: chem.current_stock,
+        maxStock: chem.stock,
       }));
     } else {
       setAdjustForm((p) => ({
         ...p,
         chemical_id: chem.id,
         chemical_name: chem.name,
-        current_stock: chem.current_stock,
-        new_stock: chem.current_stock,
+        stock: chem.stock,
+        new_stock: chem.stock,
       }));
     }
     setChemSearch('');
@@ -183,7 +183,7 @@ export default function ReagentStockMovement() {
       if (chem) {
         await supabase
           .from('chemicals')
-          .update({ current_stock: chem.current_stock + inForm.quantity })
+          .update({ stock: chem.stock + inForm.quantity })
           .eq('id', inForm.chemical_id);
       }
 
@@ -218,7 +218,7 @@ export default function ReagentStockMovement() {
       if (chem) {
         await supabase
           .from('chemicals')
-          .update({ current_stock: chem.current_stock - outForm.quantity })
+          .update({ stock: chem.stock - outForm.quantity })
           .eq('id', outForm.chemical_id);
       }
 
@@ -240,7 +240,7 @@ export default function ReagentStockMovement() {
       setSubmitting(true);
       setError(null);
 
-      const diff = adjustForm.new_stock - adjustForm.current_stock;
+      const diff = adjustForm.new_stock - adjustForm.stock;
 
       const { error: mvErr } = await supabase.from('reagent_stock_movements').insert({
         chemical_id: adjustForm.chemical_id,
@@ -253,10 +253,10 @@ export default function ReagentStockMovement() {
 
       await supabase
         .from('chemicals')
-        .update({ current_stock: adjustForm.new_stock })
+        .update({ stock: adjustForm.new_stock })
         .eq('id', adjustForm.chemical_id);
 
-      setAdjustForm({ chemical_id: '', chemical_name: '', new_stock: 0, current_stock: 0, reason: '' });
+      setAdjustForm({ chemical_id: '', chemical_name: '', new_stock: 0, stock: 0, reason: '' });
       fetchChemicals();
       showSuccess('库存调整成功！');
     } catch (err: any) {
@@ -292,7 +292,7 @@ export default function ReagentStockMovement() {
                 className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50"
               >
                 <span className="font-medium">{c.name}</span>
-                <span className="ml-2 text-gray-400">库存: {c.current_stock} {c.unit || ''}</span>
+                <span className="ml-2 text-gray-400">库存: {c.stock} {c.unit || ''}</span>
               </button>
             ))}
           </div>
@@ -485,7 +485,7 @@ export default function ReagentStockMovement() {
               {adjustForm.chemical_name && (
                 <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-700">
                   已选择: <strong>{adjustForm.chemical_name}</strong>
-                  <span className="ml-2 text-blue-500">（当前库存: {adjustForm.current_stock}）</span>
+                  <span className="ml-2 text-blue-500">（当前库存: {adjustForm.stock}）</span>
                 </p>
               )}
 
@@ -500,8 +500,8 @@ export default function ReagentStockMovement() {
                 />
                 {adjustForm.chemical_id && (
                   <p className="mt-1 text-xs text-gray-400">
-                    调整幅度: {adjustForm.new_stock - adjustForm.current_stock > 0 ? '+' : ''}
-                    {adjustForm.new_stock - adjustForm.current_stock}
+                    调整幅度: {adjustForm.new_stock - adjustForm.stock > 0 ? '+' : ''}
+                    {adjustForm.new_stock - adjustForm.stock}
                   </p>
                 )}
               </div>
@@ -589,7 +589,7 @@ export default function ReagentStockMovement() {
           {loading ? (
             <LoadingSpinner />
           ) : movements.length === 0 ? (
-            <EmptyState message="暂无出入库记录" />
+            <EmptyState title="暂无出入库记录" />
           ) : (
             <div className="space-y-2">
               {movements.map((m) => {

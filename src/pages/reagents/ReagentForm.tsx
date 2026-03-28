@@ -36,8 +36,8 @@ interface FormData {
   manufacturer: string;
   supplier_id: string;
   unit: string;
-  current_stock: number;
-  min_stock_alert: number;
+  stock: number;
+  min_stock: number;
   storage_location: string;
   batch_number: string;
   expiry_date: string;
@@ -57,8 +57,8 @@ const defaultFormData: FormData = {
   manufacturer: '',
   supplier_id: '',
   unit: '瓶',
-  current_stock: 0,
-  min_stock_alert: 0,
+  stock: 0,
+  min_stock: 0,
   storage_location: '',
   batch_number: '',
   expiry_date: '',
@@ -122,8 +122,8 @@ export default function ReagentForm() {
             manufacturer: data.manufacturer || '',
             supplier_id: data.supplier_id || '',
             unit: data.unit || '瓶',
-            current_stock: data.current_stock ?? 0,
-            min_stock_alert: data.min_stock_alert ?? 0,
+            stock: data.stock ?? 0,
+            min_stock: data.min_stock ?? 0,
             storage_location: data.storage_location || '',
             batch_number: data.batch_number || '',
             expiry_date: data.expiry_date || '',
@@ -235,8 +235,8 @@ export default function ReagentForm() {
         manufacturer: form.manufacturer.trim() || null,
         supplier_id: form.supplier_id || null,
         unit: form.unit.trim() || null,
-        current_stock: form.current_stock,
-        min_stock_alert: form.min_stock_alert,
+        stock: form.stock,
+        min_stock: form.min_stock,
         storage_location: form.storage_location.trim() || null,
         batch_number: form.batch_number.trim() || null,
         expiry_date: form.expiry_date || null,
@@ -478,8 +478,8 @@ export default function ReagentForm() {
               <input
                 type="number"
                 min={0}
-                value={form.current_stock}
-                onChange={(e) => updateField('current_stock', parseInt(e.target.value) || 0)}
+                value={form.stock}
+                onChange={(e) => updateField('stock', parseInt(e.target.value) || 0)}
                 className="input"
               />
             </FormField>
@@ -488,8 +488,8 @@ export default function ReagentForm() {
               <input
                 type="number"
                 min={0}
-                value={form.min_stock_alert}
-                onChange={(e) => updateField('min_stock_alert', parseInt(e.target.value) || 0)}
+                value={form.min_stock}
+                onChange={(e) => updateField('min_stock', parseInt(e.target.value) || 0)}
                 className="input"
               />
             </FormField>

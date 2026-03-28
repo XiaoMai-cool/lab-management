@@ -41,8 +41,8 @@ interface Chemical {
   category: string | null;
   manufacturer: string | null;
   unit: string | null;
-  current_stock: number;
-  min_stock_alert: number | null;
+  stock: number;
+  min_stock: number | null;
   storage_location: string | null;
   batch_number: string | null;
   expiry_date: string | null;
@@ -255,18 +255,18 @@ export default function ReagentDetail() {
           />
           <InfoItem
             label="当前库存"
-            value={`${chemical.current_stock} ${chemical.unit || ''}`}
+            value={`${chemical.stock} ${chemical.unit || ''}`}
             valueClassName={
-              chemical.current_stock <= 0
+              chemical.stock <= 0
                 ? 'text-red-600 font-bold'
-                : chemical.min_stock_alert && chemical.current_stock <= chemical.min_stock_alert
+                : chemical.min_stock && chemical.stock <= chemical.min_stock
                   ? 'text-yellow-600 font-semibold'
                   : ''
             }
           />
           <InfoItem
             label="最低库存预警"
-            value={chemical.min_stock_alert != null ? `${chemical.min_stock_alert} ${chemical.unit || ''}` : null}
+            value={chemical.min_stock != null ? `${chemical.min_stock} ${chemical.unit || ''}` : null}
           />
         </div>
 

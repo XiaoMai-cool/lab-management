@@ -231,7 +231,7 @@ export default function ReagentPurchaseRequest() {
           // 先查找对应药品
           const { data: chem } = await supabase
             .from('chemicals')
-            .select('id, current_stock')
+            .select('id, stock')
             .eq('name', request.chemical_name)
             .limit(1)
             .single();
@@ -247,7 +247,7 @@ export default function ReagentPurchaseRequest() {
 
             await supabase
               .from('chemicals')
-              .update({ current_stock: chem.current_stock + request.quantity })
+              .update({ stock: chem.stock + request.quantity })
               .eq('id', chem.id);
           }
           break;
@@ -496,7 +496,7 @@ export default function ReagentPurchaseRequest() {
           {loading ? (
             <LoadingSpinner />
           ) : requests.length === 0 ? (
-            <EmptyState message="暂无申购记录" />
+            <EmptyState title="暂无申购记录" />
           ) : (
             <div className="space-y-3">
               {requests.map((req) => {

@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type {
   Announcement,
   Supply,
-  DutyRoster,
+
   SupplyReservation,
   Reimbursement,
 } from '../lib/types';
@@ -81,7 +81,6 @@ export default function Dashboard() {
   const { user, profile } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<Supply[]>([]);
-  const [_dutyRosters, _setDutyRosters] = useState<DutyRoster[]>([]);
   const [pendingReservations, setPendingReservations] = useState<SupplyReservation[]>([]);
   const [pendingReimbursements, setPendingReimbursements] = useState<Reimbursement[]>([]);
   const [loading, setLoading] = useState(true);
