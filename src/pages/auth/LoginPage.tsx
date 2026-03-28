@@ -155,14 +155,23 @@ export default function LoginPage() {
           setError('邮箱或密码错误，请重试');
         } else if (signInError.message.includes('Email not confirmed')) {
           setError('邮箱尚未验证，请联系管理员');
+        } else if (signInError.message.includes('Network')) {
+          setError('网络连接失败，请检查网络后重试');
         } else {
-          setError(signInError.message);
+          setError('登录失败：' + signInError.message);
         }
         setLoading(false);
         return;
       }
+
+      // Login succeeded - add fallback redirect in case onAuthStateChange is slow
+      const fallbackTimer = setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 3000);
+      // Clean up timer if component unmounts (i.e. redirect already happened)
+      return () => clearTimeout(fallbackTimer);
     } catch {
-      setError('登录失败，请稍后再试');
+      setError('登录失败，请检查网络连接后重试');
       setLoading(false);
     }
   }

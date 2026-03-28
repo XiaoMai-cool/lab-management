@@ -158,7 +158,7 @@ export default function Layout() {
                   />
                   <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in">
                     <div className="px-3 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{profile?.name}</p>
+                      <p className="text-sm font-medium text-gray-900">{profile?.name || '用户'}</p>
                       <p className="text-xs text-gray-500">{ROLE_LABELS[profile?.role ?? ''] ?? '成员'}</p>
                     </div>
                     <button
@@ -210,8 +210,8 @@ export default function Layout() {
                   />
                   <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in">
                     <div className="px-4 py-2.5 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{profile?.name}</p>
-                      <p className="text-xs text-gray-500">{profile?.email}</p>
+                      <p className="text-sm font-medium text-gray-900">{profile?.name || '用户'}</p>
+                      <p className="text-xs text-gray-500">{profile?.email || ''}</p>
                       <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium text-blue-700 bg-blue-50 rounded-full">
                         {ROLE_LABELS[profile?.role ?? ''] ?? '成员'}
                       </span>

@@ -36,21 +36,29 @@ export default function ChemicalLog() {
     fetchChemicals();
   }, []);
 
-  async function fetchChemicals() {
-    const { data } = await supabase
-      .from('chemicals')
-      .select('*')
-      .order('name');
+  const [fetchError, setFetchError] = useState('');
 
-    if (data) setChemicals(data as Chemical[]);
-    setLoading(false);
+  async function fetchChemicals() {
+    try {
+      const { data, error: fetchErr } = await supabase
+        .from('chemicals')
+        .select('*')
+        .order('name');
+
+      if (fetchErr) throw fetchErr;
+      setChemicals((data || []) as Chemical[]);
+    } catch (err: any) {
+      setFetchError(err.message || '加载药品列表失败');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const selectedChemical = chemicals.find((c) => c.id === chemicalId);
 
   const filteredChemicals = chemicals.filter((c) => {
     const q = chemicalSearch.toLowerCase();
-    return c.name.toLowerCase().includes(q) || c.cas_number.toLowerCase().includes(q);
+    return c.name.toLowerCase().includes(q) || (c.cas_number && c.cas_number.toLowerCase().includes(q));
   });
 
   function selectChemical(chemical: Chemical) {
@@ -130,6 +138,20 @@ export default function ChemicalLog() {
 
   if (loading) return <LoadingSpinner />;
 
+  if (fetchError) {
+    return (
+      <div className="p-4">
+        <div className="rounded-lg bg-red-50 p-4 text-red-700">
+          <p className="font-medium">加载失败</p>
+          <p className="mt-1 text-sm">{fetchError}</p>
+          <button onClick={fetchChemicals} className="mt-3 rounded-md bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">
+            重试
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader title="危化品使用登记" subtitle="记录危化品使用情况" />
@@ -191,7 +213,10 @@ export default function ChemicalLog() {
             </div>
             {selectedChemical && (
               <p className="mt-1 text-xs text-gray-500">
-                当前库存: {selectedChemical.stock} {selectedChemical.unit} | 位置: {selectedChemical.location}
+                当前库存: {selectedChemical.stock} {selectedChemical.unit}
+                {((selectedChemical as any).storage_location || selectedChemical.location) && (
+                  <> | 位置: {(selectedChemical as any).storage_location || selectedChemical.location}</>
+                )}
               </p>
             )}
           </div>

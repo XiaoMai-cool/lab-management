@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/Card';
@@ -61,6 +61,7 @@ const CODE_PREFIXES = [
 
 export default function ReagentList() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin, canManageModule } = useAuth();
   const canManage = isAdmin || canManageModule('chemicals');
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
@@ -159,11 +160,30 @@ export default function ReagentList() {
 
       {/* 功能导航 */}
       <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
-        <Link to="/reagents" className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium">药品总览</Link>
-        <Link to="/chemicals/log" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">使用登记</Link>
-        <Link to="/reagents/purchase" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">申购药品</Link>
-        <Link to="/reagents/my-ledger" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">我的台账</Link>
-        <Link to="/chemicals/history" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">使用记录</Link>
+        {[
+          { to: '/reagents', label: '药品总览', exact: true },
+          { to: '/chemicals/log', label: '使用登记' },
+          { to: '/reagents/purchase', label: '申购药品' },
+          { to: '/reagents/my-ledger', label: '我的台账' },
+          { to: '/chemicals/history', label: '使用记录' },
+        ].map((link) => {
+          const isActive = link.exact
+            ? location.pathname === link.to
+            : location.pathname.startsWith(link.to);
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                isActive
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* 搜索栏 */}

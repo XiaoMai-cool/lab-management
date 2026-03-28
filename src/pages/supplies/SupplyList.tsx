@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Search, Plus, RefreshCw, Package } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,6 +41,7 @@ export default function SupplyList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const location = useLocation();
   const canManage = isAdmin || canManageModule('supplies');
 
   async function fetchSupplies() {
@@ -133,11 +134,30 @@ export default function SupplyList() {
       {/* 功能导航 */}
       <div className="px-4 md:px-6 mt-2">
         <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
-          <Link to="/supplies" className="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium">库存总览</Link>
-          <Link to="/supplies/reserve" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">预约领取</Link>
-          <Link to="/supplies/borrow" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">借用耗材</Link>
-          <Link to="/supplies/my-reservations" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">我的预约</Link>
-          <Link to="/supplies/my-returns" className="shrink-0 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">我的借用</Link>
+          {[
+            { to: '/supplies', label: '库存总览', exact: true },
+            { to: '/supplies/reserve', label: '预约领取' },
+            { to: '/supplies/borrow', label: '借用耗材' },
+            { to: '/supplies/my-reservations', label: '我的预约' },
+            { to: '/supplies/my-returns', label: '我的借用' },
+          ].map((link) => {
+            const isActive = link.exact
+              ? location.pathname === link.to
+              : location.pathname.startsWith(link.to);
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                  isActive
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

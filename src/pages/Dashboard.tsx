@@ -90,26 +90,38 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
 
+    let hasAnyError = false;
+
+    // 每个查询独立 try/catch，一个失败不影响其他
     try {
-      // 每个查询独立处理，一个失败不影响其他
       const announcementsRes = await supabase
         .from('announcements')
         .select('*, author:profiles!author_id(name)')
         .eq('published', true)
         .order('created_at', { ascending: false })
         .limit(3);
-      if (announcementsRes.data) setAnnouncements(announcementsRes.data);
+      if (announcementsRes.error) throw announcementsRes.error;
+      setAnnouncements(announcementsRes.data || []);
+    } catch (err) {
+      console.error('Announcements fetch error:', err);
+      hasAnyError = true;
+    }
 
+    try {
       const suppliesRes = await supabase
         .from('supplies')
         .select('*, category:supply_categories(name)');
-      if (suppliesRes.data) {
-        setLowStockSupplies(
-          suppliesRes.data.filter((s: Supply) => s.stock <= s.min_stock)
-        );
-      }
+      if (suppliesRes.error) throw suppliesRes.error;
+      setLowStockSupplies(
+        (suppliesRes.data || []).filter((s: Supply) => s.stock <= s.min_stock)
+      );
+    } catch (err) {
+      console.error('Supplies fetch error:', err);
+      hasAnyError = true;
+    }
 
-      if (user) {
+    if (user) {
+      try {
         const reservationsRes = await supabase
           .from('supply_reservations')
           .select('*, supply:supplies(name)')
@@ -117,8 +129,14 @@ export default function Dashboard() {
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(5);
-        if (reservationsRes.data) setPendingReservations(reservationsRes.data);
+        if (reservationsRes.error) throw reservationsRes.error;
+        setPendingReservations(reservationsRes.data || []);
+      } catch (err) {
+        console.error('Reservations fetch error:', err);
+        hasAnyError = true;
+      }
 
+      try {
         const reimbursementsRes = await supabase
           .from('reimbursements')
           .select('*')
@@ -126,19 +144,40 @@ export default function Dashboard() {
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(5);
-        if (reimbursementsRes.data) setPendingReimbursements(reimbursementsRes.data);
+        if (reimbursementsRes.error) throw reimbursementsRes.error;
+        setPendingReimbursements(reimbursementsRes.data || []);
+      } catch (err) {
+        console.error('Reimbursements fetch error:', err);
+        hasAnyError = true;
       }
-    } catch (err) {
-      console.error('Dashboard fetch error:', err);
-      setError('部分数据加载失败，请刷新重试');
-    } finally {
-      setLoading(false);
     }
+
+    if (hasAnyError) {
+      setError('部分数据加载失败');
+    }
+    setLoading(false);
   }
+
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  // Loading timeout: after 10 seconds, show content anyway
+  useEffect(() => {
+    if (!loading) {
+      setLoadingTimeout(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (loading) {
+        setLoadingTimeout(true);
+        setLoading(false);
+      }
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   if (loading) {
     return (
@@ -151,28 +190,33 @@ export default function Dashboard() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <p className="text-red-500 mb-3">{error}</p>
-          <button
-            onClick={fetchData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
-          >
-            重试
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const labDutyName = getLabDutyToday();
   const labWeekSchedule = getLabWeekSchedule();
   const officeDutyName = getOfficeDutyThisMonth();
 
   return (
     <div className="px-4 md:px-6 py-4 md:py-6 space-y-6">
+      {/* Loading timeout notice */}
+      {loadingTimeout && (
+        <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-sm">
+          <RefreshCw className="w-4 h-4 shrink-0" />
+          部分数据加载中，已显示可用内容
+        </div>
+      )}
+
+      {/* Error banner (non-blocking) */}
+      {error && (
+        <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          <span>{error}</span>
+          <button
+            onClick={fetchData}
+            className="shrink-0 ml-3 px-3 py-1 bg-red-600 text-white rounded-md text-xs hover:bg-red-700 transition-colors"
+          >
+            重试
+          </button>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold text-gray-900">

@@ -33,16 +33,20 @@ export default function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && profile) {
-    const userLevel = ROLE_LEVEL[profile.role] ?? 0;
-    const requiredLevel = ROLE_LEVEL[requiredRole] ?? 0;
-    if (userLevel < requiredLevel) {
+  // If profile is null (network issue), still show the page - don't redirect
+  // Role/module checks only apply when profile is available
+  if (profile) {
+    if (requiredRole) {
+      const userLevel = ROLE_LEVEL[profile.role] ?? 0;
+      const requiredLevel = ROLE_LEVEL[requiredRole] ?? 0;
+      if (userLevel < requiredLevel) {
+        return <Navigate to="/" replace />;
+      }
+    }
+
+    if (requiredModule && !canManageModule(requiredModule)) {
       return <Navigate to="/" replace />;
     }
-  }
-
-  if (requiredModule && !canManageModule(requiredModule)) {
-    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
