@@ -29,7 +29,8 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
       return null;
     }
     return data as Profile;
-  } catch {
+  } catch (err) {
+    console.error('Profile fetch exception:', err);
     return null;
   }
 }
@@ -45,7 +46,7 @@ function clearAuthStorage() {
     }
     keysToRemove.forEach((key) => localStorage.removeItem(key));
   } catch {
-    // localStorage might not be available
+    // ignore
   }
 }
 
@@ -65,12 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Only listen to auth state changes - this is the single source of truth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth event:', event);
-
-        if (!session?.user) {
+        if (event === 'SIGNED_OUT' || !session?.user) {
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -78,19 +76,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // We have a session - fetch profile
+        // We have a user session
         setUser(session.user);
-        const p = await fetchProfile(session.user.id);
+
+        // Try to fetch profile - retry once if fails
+        let p = await fetchProfile(session.user.id);
+        if (!p) {
+          // Wait 1s and retry (might be network lag)
+          await new Promise(r => setTimeout(r, 1000));
+          p = await fetchProfile(session.user.id);
+        }
 
         if (p) {
           setProfile(p);
         } else {
-          // Session exists but no profile - broken state
-          console.warn('No profile found, clearing session');
-          setUser(null);
-          setProfile(null);
-          clearAuthStorage();
-          supabase.auth.signOut().catch(() => {});
+          // Still no profile - keep user logged in but without profile
+          // Don't sign out - the user successfully authenticated
+          console.warn('Profile not found, user will have limited access');
         }
 
         setLoading(false);
@@ -99,30 +101,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Trigger initial session check
-    // This will fire onAuthStateChange with INITIAL_SESSION event
-    supabase.auth.getSession().then(({ error }) => {
-      if (error) {
-        console.error('getSession error:', error);
-        clearAuthStorage();
-        setLoading(false);
-        initDone.current = true;
-      }
-    }).catch(() => {
-      clearAuthStorage();
+    supabase.auth.getSession().catch((err) => {
+      console.error('getSession error:', err);
       setLoading(false);
       initDone.current = true;
     });
 
-    // Safety: if nothing happens in 6 seconds, stop loading
+    // Safety timeout - 15 seconds for slow mobile networks
     const safetyTimer = setTimeout(() => {
       if (!initDone.current) {
-        console.warn('Auth safety timeout');
-        clearAuthStorage();
-        setUser(null);
-        setProfile(null);
+        console.warn('Auth safety timeout - stopping loading');
         setLoading(false);
+        initDone.current = true;
       }
-    }, 6000);
+    }, 15000);
 
     return () => {
       clearTimeout(safetyTimer);
@@ -133,7 +125,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // onAuthStateChange will handle the rest
   };
 
   const signOut = async () => {

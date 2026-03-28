@@ -99,7 +99,8 @@ export default function ProfilePage() {
     return (
       <div className="p-4">
         <div className="bg-yellow-50 text-yellow-700 p-4 rounded-lg text-sm">
-          请先登录
+          正在加载用户信息，如长时间无响应请
+          <button onClick={() => window.location.href = '/?reset'} className="underline ml-1">点此刷新</button>
         </div>
       </div>
     );
