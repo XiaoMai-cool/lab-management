@@ -7,8 +7,6 @@ import {
   Layers,
   Calendar,
   Receipt,
-  FileText,
-  FlaskConical,
   Lock,
   LogOut,
   ChevronRight,
@@ -33,7 +31,6 @@ const MODULE_LABELS: Record<string, string> = {
   supplies: '物资管理',
   chemicals: '化学品管理',
   duty: '值日排班',
-  meetings: '组会管理',
   reimbursements: '报销管理',
   documents: '文档管理',
 };
@@ -108,7 +105,7 @@ export default function ProfilePage() {
 
   const quickLinks = [
     {
-      label: '我的预约',
+      label: '我的申领',
       icon: Calendar,
       path: '/supplies/my-reservations',
       color: 'text-blue-600 bg-blue-50',
@@ -120,28 +117,16 @@ export default function ProfilePage() {
       color: 'text-cyan-600 bg-cyan-50',
     },
     {
+      label: '我的采购',
+      icon: Receipt,
+      path: '/purchase-approvals',
+      color: 'text-purple-600 bg-purple-50',
+    },
+    {
       label: '我的报销',
       icon: Receipt,
       path: '/reimbursements',
       color: 'text-green-600 bg-green-50',
-    },
-    {
-      label: '我的汇报',
-      icon: FileText,
-      path: '/meetings/report',
-      color: 'text-purple-600 bg-purple-50',
-    },
-    {
-      label: '试剂台账',
-      icon: FlaskConical,
-      path: '/reagents/my-ledger',
-      color: 'text-orange-600 bg-orange-50',
-    },
-    {
-      label: '药品使用登记',
-      icon: FlaskConical,
-      path: '/chemicals/log',
-      color: 'text-pink-600 bg-pink-50',
     },
   ];
 

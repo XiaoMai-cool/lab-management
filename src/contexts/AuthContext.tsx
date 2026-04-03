@@ -10,8 +10,14 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isManager: boolean;
+  isTeacher: boolean;
   canManageModule: (module: string) => boolean;
+  isSuppliesManager: boolean;
+  isChemicalsManager: boolean;
+  isDutyManager: boolean;
+  isReimbursementApprover: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -139,16 +145,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';
+  const isSuperAdmin = profile?.role === 'super_admin';
   const isManager = profile?.role === 'manager';
+  const isTeacher = profile?.role === 'teacher' || profile?.role === 'admin' || profile?.role === 'super_admin';
 
   const canManageModule = (module: string): boolean => {
     if (isAdmin) return true;
     return profile?.managed_modules?.includes(module) ?? false;
   };
 
+  const isSuppliesManager = canManageModule('supplies');
+  const isChemicalsManager = canManageModule('chemicals');
+  const isDutyManager = canManageModule('duty');
+  // 报销审批：李健楠（admin角色）+ 大导（super_admin）
+  const isReimbursementApprover = isAdmin;
+
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, signIn, signOut, isAdmin, isManager, canManageModule }}
+      value={{
+        user, profile, loading, signIn, signOut,
+        isAdmin, isSuperAdmin, isManager, isTeacher,
+        canManageModule, isSuppliesManager, isChemicalsManager, isDutyManager, isReimbursementApprover,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
+import SubNav from '../../components/SubNav';
+import type { SubNavItem } from '../../components/SubNav';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
@@ -19,6 +21,18 @@ const GHS_LABELS: Record<string, { name: string; color: string; bg: string; icon
   GHS08: { name: '健康危害', color: 'text-red-800', bg: 'bg-red-50 border-red-200', icon: '🫁' },
   GHS09: { name: '环境危害', color: 'text-green-800', bg: 'bg-green-100 border-green-300', icon: '🌿' },
 };
+
+const REAGENT_SUB_NAV: SubNavItem[] = [
+  { to: '/reagents', label: '药品总览', exact: true },
+  { to: '/reagents/purchase', label: '申购药品' },
+  { to: '/reagents/suppliers', label: '供应商', managerModule: 'chemicals' },
+  { to: '/reagents/warnings', label: '药品预警', managerModule: 'chemicals' },
+];
+
+interface ActiveWarning {
+  chemical_id: string;
+  status: 'pending' | 'ordered';
+}
 
 interface Chemical {
   id: string;
@@ -61,10 +75,10 @@ const CODE_PREFIXES = [
 
 export default function ReagentList() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isAdmin, canManageModule } = useAuth();
+  const { user, isAdmin, canManageModule } = useAuth();
   const canManage = isAdmin || canManageModule('chemicals');
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
+  const [activeWarnings, setActiveWarnings] = useState<ActiveWarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,17 +92,50 @@ export default function ReagentList() {
   async function fetchChemicals() {
     try {
       setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('chemicals')
-        .select('*, supplier:suppliers(name)')
-        .order('batch_number');
+      const [chemRes, warnRes] = await Promise.all([
+        supabase
+          .from('chemicals')
+          .select('*, supplier:suppliers(name)')
+          .order('batch_number'),
+        supabase
+          .from('chemical_warnings')
+          .select('chemical_id, status')
+          .in('status', ['pending', 'ordered']),
+      ]);
 
-      if (fetchError) throw fetchError;
-      setChemicals(data || []);
+      if (chemRes.error) throw chemRes.error;
+      setChemicals(chemRes.data || []);
+      setActiveWarnings((warnRes.data || []) as ActiveWarning[]);
     } catch (err: any) {
       setError(err.message || '加载药品列表失败');
     } finally {
       setLoading(false);
+    }
+  }
+
+  function getWarningForChemical(chemicalId: string): ActiveWarning | undefined {
+    return activeWarnings.find((w) => w.chemical_id === chemicalId);
+  }
+
+  async function handleReportWarning(e: React.MouseEvent, chemicalId: string) {
+    e.stopPropagation();
+    if (!user) return;
+    const existing = getWarningForChemical(chemicalId);
+    if (existing) {
+      alert(existing.status === 'pending' ? '该药品已有预警记录' : '该药品已下单采购中');
+      return;
+    }
+    try {
+      const { error: insertError } = await supabase.from('chemical_warnings').insert({
+        chemical_id: chemicalId,
+        reported_by: user.id,
+        status: 'pending',
+      });
+      if (insertError) throw insertError;
+      setActiveWarnings((prev) => [...prev, { chemical_id: chemicalId, status: 'pending' }]);
+      alert('预警已上报');
+    } catch (err: any) {
+      alert('上报失败: ' + (err.message || '未知错误'));
     }
   }
 
@@ -159,32 +206,7 @@ export default function ReagentList() {
       />
 
       {/* 功能导航 */}
-      <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
-        {[
-          { to: '/reagents', label: '药品总览', exact: true },
-          { to: '/chemicals/log', label: '使用登记' },
-          { to: '/reagents/purchase', label: '申购药品' },
-          { to: '/reagents/my-ledger', label: '我的台账' },
-          { to: '/chemicals/history', label: '使用记录' },
-        ].map((link) => {
-          const isActive = link.exact
-            ? location.pathname === link.to
-            : location.pathname.startsWith(link.to);
-          return (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {link.label}
-            </Link>
-          );
-        })}
-      </div>
+      <SubNav items={REAGENT_SUB_NAV} />
 
       {/* 搜索栏 */}
       <div className="mt-4">
@@ -299,10 +321,42 @@ export default function ReagentList() {
                   </div>
                 )}
 
-                {/* 底部：分类 + 存放位置 */}
+                {/* 底部：分类 + 存放位置 + 预警 */}
                 <div className="flex items-center justify-between border-t border-gray-100 pt-2 text-[10px] text-gray-400">
-                  <span>{chemical.category || '未分类'}</span>
-                  {chemical.storage_location && <span>{chemical.storage_location}</span>}
+                  <div className="flex items-center gap-2">
+                    <span>{chemical.category || '未分类'}</span>
+                    {(() => {
+                      const w = getWarningForChemical(chemical.id);
+                      if (w) {
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                              w.status === 'pending'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}
+                          >
+                            <span className={`inline-block h-1.5 w-1.5 rounded-full ${
+                              w.status === 'pending' ? 'bg-red-500' : 'bg-yellow-500'
+                            }`} />
+                            {w.status === 'pending' ? '预警中' : '已下单'}
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {chemical.storage_location && <span>{chemical.storage_location}</span>}
+                    {!getWarningForChemical(chemical.id) && (
+                      <button
+                        onClick={(e) => handleReportWarning(e, chemical.id)}
+                        className="rounded border border-red-300 px-1.5 py-0.5 text-[10px] font-medium text-red-500 hover:bg-red-50"
+                      >
+                        预警
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>

@@ -52,6 +52,14 @@ interface Chemical {
   supplier: { id: string; name: string } | null;
 }
 
+interface ActiveWarning {
+  id: string;
+  status: 'pending' | 'ordered';
+  reported_at: string;
+  estimated_delivery_date: string | null;
+  reporter: { name: string } | null;
+}
+
 interface StockMovement {
   id: string;
   movement_type: string;
@@ -78,6 +86,8 @@ export default function ReagentDetail() {
   const [chemical, setChemical] = useState<Chemical | null>(null);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
+  const [activeWarning, setActiveWarning] = useState<ActiveWarning | null>(null);
+  const [warningLoading, setWarningLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'movements' | 'usage'>('movements');
@@ -93,7 +103,7 @@ export default function ReagentDetail() {
   async function fetchAll() {
     try {
       setLoading(true);
-      const [chemRes, movRes, usageRes] = await Promise.all([
+      const [chemRes, movRes, usageRes, warnRes] = await Promise.all([
         supabase
           .from('chemicals')
           .select('*, supplier:suppliers(id, name)')
@@ -109,16 +119,43 @@ export default function ReagentDetail() {
           .select('*, user:profiles(name)')
           .eq('chemical_id', id)
           .order('created_at', { ascending: false }),
+        supabase
+          .from('chemical_warnings')
+          .select('id, status, reported_at, estimated_delivery_date, reporter:profiles!chemical_warnings_reported_by_fkey(name)')
+          .eq('chemical_id', id)
+          .in('status', ['pending', 'ordered'])
+          .order('reported_at', { ascending: false })
+          .limit(1),
       ]);
 
       if (chemRes.error) throw chemRes.error;
       setChemical(chemRes.data);
       setMovements(movRes.data || []);
       setUsageLogs(usageRes.data || []);
+      setActiveWarning((warnRes.data?.[0] as ActiveWarning) || null);
     } catch (err: any) {
       setError(err.message || '加载药品详情失败');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleReportWarning() {
+    if (!id || !user) return;
+    try {
+      setWarningLoading(true);
+      const { data, error: insertError } = await supabase
+        .from('chemical_warnings')
+        .insert({ chemical_id: id, reported_by: user.id, status: 'pending' })
+        .select('id, status, reported_at, estimated_delivery_date')
+        .single();
+      if (insertError) throw insertError;
+      setActiveWarning({ ...data, reporter: null } as ActiveWarning);
+      alert('预警已上报');
+    } catch (err: any) {
+      alert('上报失败: ' + (err.message || '未知错误'));
+    } finally {
+      setWarningLoading(false);
     }
   }
 
@@ -284,6 +321,42 @@ export default function ReagentDetail() {
           </div>
         )}
       </Card>
+
+      {/* 预警状态 */}
+      <div className="mt-4">
+        {activeWarning ? (
+          <div
+            className={`rounded-lg border px-4 py-3 text-sm ${
+              activeWarning.status === 'pending'
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : 'border-yellow-200 bg-yellow-50 text-yellow-700'
+            }`}
+          >
+            {activeWarning.status === 'pending' ? (
+              <span>
+                <span className="inline-block h-2 w-2 rounded-full bg-red-500 mr-1.5" />
+                已有人上报预警（{dayjs(activeWarning.reported_at).format('M月D日')}）
+              </span>
+            ) : (
+              <span>
+                <span className="inline-block h-2 w-2 rounded-full bg-yellow-500 mr-1.5" />
+                已下单
+                {activeWarning.estimated_delivery_date && (
+                  <>（预计{dayjs(activeWarning.estimated_delivery_date).format('M月D日')}送达）</>
+                )}
+              </span>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={handleReportWarning}
+            disabled={warningLoading}
+            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            {warningLoading ? '上报中...' : '上报预警'}
+          </button>
+        )}
+      </div>
 
       {/* 标签页切换 */}
       <div className="mt-6 flex border-b border-gray-200">

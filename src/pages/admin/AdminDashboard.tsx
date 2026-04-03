@@ -10,6 +10,8 @@ import {
   ClipboardCheck,
   Receipt,
   FlaskConical,
+  AlertTriangle,
+  BarChart3,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -96,6 +98,20 @@ const modules: ModuleCard[] = [
     icon: Package,
     path: '/supplies/borrowings',
     color: 'bg-teal-50 text-teal-600',
+  },
+  {
+    title: '药品预警',
+    description: '查看药品预警与到货状态',
+    icon: AlertTriangle,
+    path: '/reagents/warnings',
+    color: 'bg-red-50 text-red-600',
+  },
+  {
+    title: '报销统计',
+    description: '查看报销数据统计',
+    icon: BarChart3,
+    path: '/reimbursements/stats',
+    color: 'bg-emerald-50 text-emerald-600',
   },
 ];
 

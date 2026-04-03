@@ -32,7 +32,7 @@ const navItems: NavItem[] = [
   { label: '首页', icon: Home, path: '/' },
   { label: '物资', icon: Package, path: '/supplies' },
   { label: '药品', icon: FlaskConical, path: '/reagents' },
-  { label: '制度', icon: FileText, path: '/documents' },
+  { label: '报销', icon: FileText, path: '/reimbursements' },
   { label: '我的', icon: User, path: '/profile' },
   { label: '管理', icon: Settings, path: '/admin', adminOnly: true },
 ];

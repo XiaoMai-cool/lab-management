@@ -21,11 +21,11 @@ import type {
 } from '../lib/types';
 
 const quickActions = [
-  { label: '预约耗材', path: '/supplies/reserve', icon: Package, color: 'bg-blue-50 text-blue-600' },
+  { label: '申领物资', path: '/supplies/reserve', icon: Package, color: 'bg-blue-50 text-blue-600' },
   { label: '借用耗材', path: '/supplies/borrow', icon: Package, color: 'bg-cyan-50 text-cyan-600' },
-  { label: '药品登记', path: '/chemicals/log', icon: FlaskConical, color: 'bg-purple-50 text-purple-600' },
-  { label: '药品申购', path: '/reagents/purchase', icon: FlaskConical, color: 'bg-pink-50 text-pink-600' },
+  { label: '采购审批', path: '/purchase-approvals/new', icon: Receipt, color: 'bg-purple-50 text-purple-600' },
   { label: '报销申请', path: '/reimbursements/new', icon: Receipt, color: 'bg-green-50 text-green-600' },
+  { label: '药品总览', path: '/reagents', icon: FlaskConical, color: 'bg-pink-50 text-pink-600' },
   { label: '值日查询', path: '/duty', icon: CalendarCheck, color: 'bg-orange-50 text-orange-600' },
 ];
 
@@ -77,12 +77,23 @@ function getOfficeDutyThisMonth(): string {
   return OFFICE_DUTY_PEOPLE[((monthDiff % 5) + 5) % 5];
 }
 
+interface ChemicalWarning {
+  id: string;
+  status: string;
+  chemical: { name: string; batch_number: string } | null;
+}
+
 export default function Dashboard() {
   const { user, profile } = useAuth();
+  const isChemicalsManager =
+    profile?.role === 'super_admin' ||
+    profile?.role === 'admin' ||
+    (profile?.role === 'manager' && profile?.managed_modules?.includes('chemicals'));
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<Supply[]>([]);
   const [pendingReservations, setPendingReservations] = useState<SupplyReservation[]>([]);
   const [pendingReimbursements, setPendingReimbursements] = useState<Reimbursement[]>([]);
+  const [chemicalWarnings, setChemicalWarnings] = useState<ChemicalWarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -148,6 +159,22 @@ export default function Dashboard() {
         setPendingReimbursements(reimbursementsRes.data || []);
       } catch (err) {
         console.error('Reimbursements fetch error:', err);
+        hasAnyError = true;
+      }
+    }
+
+    // Fetch chemical warnings (only for chemicals managers)
+    if (isChemicalsManager) {
+      try {
+        const warningsRes = await supabase
+          .from('chemical_warnings')
+          .select('id, status, chemical:chemicals(name, batch_number)')
+          .neq('status', 'arrived')
+          .order('created_at', { ascending: false });
+        if (warningsRes.error) throw warningsRes.error;
+        setChemicalWarnings((warningsRes.data as unknown as ChemicalWarning[]) || []);
+      } catch (err) {
+        console.error('Chemical warnings fetch error:', err);
         hasAnyError = true;
       }
     }
@@ -397,6 +424,51 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
+
+      {/* 药品预警 (chemicals managers only) */}
+      {isChemicalsManager && chemicalWarnings.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <h2 className="text-base font-semibold text-gray-900">药品预警</h2>
+            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+              {chemicalWarnings.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {chemicalWarnings.slice(0, 5).map((w) => (
+              <div
+                key={w.id}
+                className="bg-white rounded-xl border border-gray-200 p-3 flex items-center justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {w.chemical?.name || '未知药品'}
+                  </p>
+                  <p className="text-xs text-gray-500">{w.chemical?.batch_number || '-'}</p>
+                </div>
+                <span
+                  className={`shrink-0 ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    w.status === 'pending'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}
+                >
+                  {w.status === 'pending' ? '预警中' : w.status === 'ordered' ? '已下单' : w.status}
+                </span>
+              </div>
+            ))}
+            {chemicalWarnings.length > 5 && (
+              <Link
+                to="/reagents/warnings"
+                className="block text-center text-sm text-blue-600 hover:text-blue-700 py-2"
+              >
+                查看全部 ({chemicalWarnings.length})
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* 我的待办 */}
       <section>

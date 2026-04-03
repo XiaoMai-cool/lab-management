@@ -1,21 +1,9 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import {
-  CheckCircle,
-  XCircle,
-  Receipt,
-  ExternalLink,
-  FileText,
-  Link2,
-} from 'lucide-react';
+import { CheckCircle, XCircle, ClipboardCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type {
-  Reimbursement,
-  Profile,
-  PurchaseApproval,
-  ReimbursementFile,
-} from '../../lib/types';
+import type { PurchaseApproval, Profile } from '../../lib/types';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -45,24 +33,15 @@ const categoryColors: Record<string, string> = {
   '其他': 'bg-gray-100 text-gray-600',
 };
 
-const fileTypeLabels: Record<string, string> = {
-  screenshot: '购买截图',
-  invoice: '发票',
-  test_report: '检测报告',
-  cert: '资质证书',
-  other: '其他',
-};
-
-interface ReimbursementWithRelations extends Reimbursement {
-  user?: Profile;
-  purchase_approval?: PurchaseApproval;
+interface PurchaseApprovalWithRequester extends PurchaseApproval {
+  requester?: Profile;
 }
 
 type TabFilter = 'pending' | 'reviewed';
 
-export default function ReimbursementReview() {
-  const { profile, isReimbursementApprover } = useAuth();
-  const [list, setList] = useState<ReimbursementWithRelations[]>([]);
+export default function PurchaseApprovalReview() {
+  const { profile, isTeacher, isAdmin } = useAuth();
+  const [list, setList] = useState<PurchaseApprovalWithRequester[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabFilter>('pending');
@@ -70,30 +49,34 @@ export default function ReimbursementReview() {
   // Review modal
   const [showModal, setShowModal] = useState(false);
   const [reviewingItem, setReviewingItem] =
-    useState<ReimbursementWithRelations | null>(null);
+    useState<PurchaseApprovalWithRequester | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchList();
-  }, [tab]);
+    if (profile) fetchApprovals();
+  }, [profile, tab]);
 
-  async function fetchList() {
+  async function fetchApprovals() {
+    if (!profile) return;
     try {
       setLoading(true);
       setError(null);
 
       let query = supabase
-        .from('reimbursements')
-        .select(
-          '*, user:profiles!reimbursements_user_id_fkey(*), purchase_approval:purchase_approvals(*)'
-        )
+        .from('purchase_approvals')
+        .select('*, requester:profiles!purchase_approvals_requester_id_fkey(*)')
         .order('created_at', { ascending: tab === 'pending' });
+
+      // super_admin sees all; others only see their own
+      if (profile.role !== 'super_admin') {
+        query = query.eq('approver_id', profile.id);
+      }
 
       if (tab === 'pending') {
         query = query.eq('status', 'pending');
       } else {
-        query = query.in('status', ['approved', 'rejected', 'completed']);
+        query = query.in('status', ['approved', 'rejected']);
       }
 
       const { data, error: fetchErr } = await query;
@@ -106,7 +89,7 @@ export default function ReimbursementReview() {
     }
   }
 
-  function openReview(item: ReimbursementWithRelations) {
+  function openReview(item: PurchaseApprovalWithRequester) {
     setReviewingItem(item);
     setReviewNote('');
     setShowModal(true);
@@ -122,17 +105,17 @@ export default function ReimbursementReview() {
     try {
       setSubmitting(true);
       const { error: updateErr } = await supabase
-        .from('reimbursements')
+        .from('purchase_approvals')
         .update({
           status: action,
-          reviewer_id: profile.id,
           review_note: reviewNote || null,
           reviewed_at: new Date().toISOString(),
         })
         .eq('id', reviewingItem.id);
+
       if (updateErr) throw updateErr;
       setShowModal(false);
-      fetchList();
+      fetchApprovals();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : '操作失败');
     } finally {
@@ -140,7 +123,7 @@ export default function ReimbursementReview() {
     }
   }
 
-  if (!isReimbursementApprover) {
+  if (!isTeacher && !isAdmin) {
     return (
       <div className="pb-8">
         <div className="px-4 md:px-6 pt-4">
@@ -148,7 +131,7 @@ export default function ReimbursementReview() {
         </div>
         <div className="p-4">
           <div className="bg-yellow-50 text-yellow-700 p-4 rounded-lg text-sm">
-            仅报销审批人可访问此页面
+            仅老师及管理员可访问此页面
           </div>
         </div>
       </div>
@@ -161,7 +144,7 @@ export default function ReimbursementReview() {
         <SubNav items={subNavItems} />
       </div>
       <PageHeader
-        title="报销审批"
+        title="审批采购申请"
         subtitle={
           tab === 'pending'
             ? `${list.length} 条待审批`
@@ -204,16 +187,16 @@ export default function ReimbursementReview() {
           <LoadingSpinner />
         ) : list.length === 0 ? (
           <EmptyState
-            icon={Receipt}
+            icon={ClipboardCheck}
             title={
               tab === 'pending'
-                ? '暂无待审批的报销'
-                : '暂无已处理的报销'
+                ? '暂无待审批的采购申请'
+                : '暂无已处理的采购申请'
             }
             description={
               tab === 'pending'
-                ? '所有报销申请已处理完毕'
-                : '还没有处理过报销申请'
+                ? '所有采购申请已处理完毕'
+                : '还没有处理过采购申请'
             }
           />
         ) : (
@@ -223,7 +206,7 @@ export default function ReimbursementReview() {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <h3 className="text-sm font-semibold text-gray-900 truncate">
                           {item.title}
                         </h3>
@@ -231,117 +214,54 @@ export default function ReimbursementReview() {
                           status={item.status}
                           type="reimbursement"
                         />
-                        {item.category && (
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                              categoryColors[item.category] ??
-                              'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {item.category}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        申请人：{item.user?.name ?? '未知'} |{' '}
-                        {dayjs(item.created_at).format('YYYY-MM-DD')}
-                      </p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-900 shrink-0 ml-3">
-                      ¥{item.amount.toFixed(2)}
-                    </p>
-                  </div>
-
-                  {/* 关联采购审批信息 */}
-                  {item.purchase_approval && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Link2 className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="text-xs font-medium text-blue-700">
-                          关联采购审批
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            categoryColors[item.category] ??
+                            'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {item.category}
                         </span>
                       </div>
-                      <p className="text-xs text-blue-600">
-                        {item.purchase_approval.title}
-                        {item.purchase_approval.estimated_amount != null &&
-                          ` | 预计 ¥${item.purchase_approval.estimated_amount.toFixed(2)}`}
+                      <p className="text-xs text-gray-500 mb-1">
+                        申请人：{item.requester?.name ?? '未知'}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
                       </p>
                     </div>
-                  )}
 
-                  {item.description && (
-                    <p className="text-xs text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">
-                      {item.description}
-                    </p>
-                  )}
-
-                  {/* 上传文件列表 */}
-                  {item.file_paths && item.file_paths.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 mb-1.5">
-                        上传凭证（{item.file_paths.length}）
-                      </p>
-                      <div className="space-y-1.5">
-                        {(item.file_paths as ReimbursementFile[]).map(
-                          (file, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
-                            >
-                              <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs text-gray-700 truncate">
-                                  {file.name}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {fileTypeLabels[file.type] ?? file.type}
-                                </p>
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Legacy receipt_urls */}
-                  {(!item.file_paths || item.file_paths.length === 0) &&
-                    item.receipt_urls &&
-                    item.receipt_urls.length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 mb-1.5">
-                          票据附件（{item.receipt_urls.length}）
+                    {item.estimated_amount != null && (
+                      <div className="shrink-0 ml-3 text-right">
+                        <p className="text-lg font-bold text-gray-900">
+                          ¥{item.estimated_amount.toFixed(2)}
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                          {item.receipt_urls.map((url, idx) => (
-                            <a
-                              key={idx}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              附件 {idx + 1}
-                            </a>
-                          ))}
-                        </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* 用途说明 */}
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">
+                      用途说明
+                    </p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {item.purpose}
+                    </p>
+                  </div>
 
                   {/* 审批备注（已处理） */}
                   {tab === 'reviewed' && item.review_note && (
                     <div
                       className={`p-3 rounded-lg ${
-                        item.status === 'approved' || item.status === 'completed'
+                        item.status === 'approved'
                           ? 'bg-green-50'
                           : 'bg-red-50'
                       }`}
                     >
                       <p
                         className={`text-xs ${
-                          item.status === 'approved' ||
-                          item.status === 'completed'
+                          item.status === 'approved'
                             ? 'text-green-700'
                             : 'text-red-700'
                         }`}
@@ -404,79 +324,43 @@ export default function ReimbursementReview() {
       >
         <div className="space-y-4">
           {reviewingItem && (
-            <>
-              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">申请人</span>
-                  <span className="text-sm font-medium">
-                    {reviewingItem.user?.name}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">类别</span>
-                  <span className="text-sm">{reviewingItem.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">金额</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    ¥{reviewingItem.amount.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">申请日期</span>
-                  <span className="text-sm">
-                    {dayjs(reviewingItem.created_at).format('YYYY-MM-DD')}
-                  </span>
-                </div>
+            <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+              <div className="flex justify-between">
+                <span className="text-xs text-gray-500">申请人</span>
+                <span className="text-sm font-medium">
+                  {reviewingItem.requester?.name}
+                </span>
               </div>
-
-              {/* 关联采购审批 */}
-              {reviewingItem.purchase_approval && (
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-xs font-medium text-blue-700 mb-1">
-                    关联采购审批
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    {reviewingItem.purchase_approval.title}
-                    {reviewingItem.purchase_approval.estimated_amount != null &&
-                      ` | 预计 ¥${reviewingItem.purchase_approval.estimated_amount.toFixed(2)}`}
-                    {' | '}
-                    状态：
-                    {reviewingItem.purchase_approval.status === 'approved'
-                      ? '已批准'
-                      : reviewingItem.purchase_approval.status}
-                  </p>
+              <div className="flex justify-between">
+                <span className="text-xs text-gray-500">类别</span>
+                <span className="text-sm">{reviewingItem.category}</span>
+              </div>
+              {reviewingItem.estimated_amount != null && (
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">预计金额</span>
+                  <span className="text-sm font-bold text-gray-900">
+                    ¥{reviewingItem.estimated_amount.toFixed(2)}
+                  </span>
                 </div>
               )}
+              <div className="flex justify-between">
+                <span className="text-xs text-gray-500">申请日期</span>
+                <span className="text-sm">
+                  {dayjs(reviewingItem.created_at).format('YYYY-MM-DD')}
+                </span>
+              </div>
+            </div>
+          )}
 
-              {/* 上传文件 */}
-              {reviewingItem.file_paths &&
-                reviewingItem.file_paths.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1.5">
-                      上传凭证
-                    </p>
-                    <div className="space-y-1">
-                      {(reviewingItem.file_paths as ReimbursementFile[]).map(
-                        (file, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs"
-                          >
-                            <FileText className="w-3.5 h-3.5 text-gray-400" />
-                            <span className="text-gray-700 truncate flex-1">
-                              {file.name}
-                            </span>
-                            <span className="text-gray-400 shrink-0">
-                              {fileTypeLabels[file.type] ?? file.type}
-                            </span>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-            </>
+          {reviewingItem?.purpose && (
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-xs text-gray-500 mb-1 font-medium">
+                用途说明
+              </p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                {reviewingItem.purpose}
+              </p>
+            </div>
           )}
 
           <div>

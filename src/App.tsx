@@ -5,7 +5,6 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/LoadingSpinner'
 
-// 按需加载：只有用户访问某个页面时才下载对应代码
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 
@@ -18,37 +17,30 @@ const SupplyBorrow = lazy(() => import('./pages/supplies/SupplyBorrow'))
 const SupplyReturn = lazy(() => import('./pages/supplies/SupplyReturn'))
 const BorrowingManage = lazy(() => import('./pages/supplies/BorrowingManage'))
 
-// Chemicals
-const ChemicalLog = lazy(() => import('./pages/chemicals/ChemicalLog'))
-const ChemicalHistory = lazy(() => import('./pages/chemicals/ChemicalHistory'))
-const ChemicalPurchaseRequest = lazy(() => import('./pages/chemicals/ChemicalPurchaseRequest'))
-
 // Reagents
 const ReagentList = lazy(() => import('./pages/reagents/ReagentList'))
 const ReagentDetail = lazy(() => import('./pages/reagents/ReagentDetail'))
 const ReagentForm = lazy(() => import('./pages/reagents/ReagentForm'))
 const ReagentPurchaseRequest = lazy(() => import('./pages/reagents/ReagentPurchaseRequest'))
-const ReagentStockMovement = lazy(() => import('./pages/reagents/ReagentStockMovement'))
-const MyReagentLedger = lazy(() => import('./pages/reagents/MyReagentLedger'))
 const SupplierManage = lazy(() => import('./pages/reagents/SupplierManage'))
+const ChemicalWarnings = lazy(() => import('./pages/reagents/ChemicalWarnings'))
 
 // Documents
 const DocumentList = lazy(() => import('./pages/documents/DocumentList'))
 const DocumentView = lazy(() => import('./pages/documents/DocumentView'))
 const DocumentEdit = lazy(() => import('./pages/documents/DocumentEdit'))
 
-// Duty & Equipment
+// Duty
 const DutyRoster = lazy(() => import('./pages/duty/DutyRoster'))
-const EquipmentList = lazy(() => import('./pages/duty/EquipmentList'))
-
-// Meetings
-const MeetingList = lazy(() => import('./pages/meetings/MeetingList'))
-const ProgressReport = lazy(() => import('./pages/meetings/ProgressReport'))
 
 // Reimbursements
 const ReimbursementList = lazy(() => import('./pages/reimbursements/ReimbursementList'))
 const ReimbursementForm = lazy(() => import('./pages/reimbursements/ReimbursementForm'))
 const ReimbursementReview = lazy(() => import('./pages/reimbursements/ReimbursementReview'))
+const ReimbursementStats = lazy(() => import('./pages/reimbursements/ReimbursementStats'))
+const PurchaseApprovalForm = lazy(() => import('./pages/purchase-approvals/PurchaseApprovalForm'))
+const PurchaseApprovalReview = lazy(() => import('./pages/purchase-approvals/PurchaseApprovalReview'))
+const PurchaseApprovalList = lazy(() => import('./pages/purchase-approvals/PurchaseApprovalList'))
 
 // Profile
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'))
@@ -60,24 +52,18 @@ const MemberManage = lazy(() => import('./pages/admin/MemberManage'))
 const SupplyManage = lazy(() => import('./pages/admin/SupplyManage'))
 const DataExport = lazy(() => import('./pages/admin/DataExport'))
 
-function PageLoader() {
-  return <LoadingSpinner />
-}
-
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={<PageLoader />}>
+        <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            {/* Public */}
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected routes with layout */}
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
 
-              {/* Supplies */}
+              {/* 物资/耗材 */}
               <Route path="/supplies" element={<SupplyList />} />
               <Route path="/supplies/reserve" element={<SupplyReserve />} />
               <Route path="/supplies/my-reservations" element={<MyReservations />} />
@@ -86,45 +72,37 @@ export default function App() {
               <Route path="/supplies/my-returns" element={<SupplyReturn />} />
               <Route path="/supplies/borrowings" element={<ProtectedRoute requiredModule="supplies"><BorrowingManage /></ProtectedRoute>} />
 
-              {/* Reagents */}
+              {/* 药品 */}
               <Route path="/reagents" element={<ReagentList />} />
               <Route path="/reagents/new" element={<ProtectedRoute requiredModule="chemicals"><ReagentForm /></ProtectedRoute>} />
               <Route path="/reagents/:id" element={<ReagentDetail />} />
               <Route path="/reagents/:id/edit" element={<ProtectedRoute requiredModule="chemicals"><ReagentForm /></ProtectedRoute>} />
               <Route path="/reagents/purchase" element={<ReagentPurchaseRequest />} />
-              <Route path="/reagents/stock" element={<ProtectedRoute requiredModule="chemicals"><ReagentStockMovement /></ProtectedRoute>} />
-              <Route path="/reagents/my-ledger" element={<MyReagentLedger />} />
               <Route path="/reagents/suppliers" element={<ProtectedRoute requiredModule="chemicals"><SupplierManage /></ProtectedRoute>} />
+              <Route path="/reagents/warnings" element={<ProtectedRoute requiredModule="chemicals"><ChemicalWarnings /></ProtectedRoute>} />
 
-              {/* Chemicals legacy */}
-              <Route path="/chemicals" element={<ReagentList />} />
-              <Route path="/chemicals/log" element={<ChemicalLog />} />
-              <Route path="/chemicals/history" element={<ChemicalHistory />} />
-              <Route path="/chemicals/purchase" element={<ChemicalPurchaseRequest />} />
-
-              {/* Documents */}
+              {/* 制度文档 */}
               <Route path="/documents" element={<DocumentList />} />
               <Route path="/documents/:id" element={<DocumentView />} />
-              <Route path="/documents/new" element={<ProtectedRoute requiredRole="manager"><DocumentEdit /></ProtectedRoute>} />
-              <Route path="/documents/:id/edit" element={<ProtectedRoute requiredRole="manager"><DocumentEdit /></ProtectedRoute>} />
+              <Route path="/documents/new" element={<ProtectedRoute requiredRole="admin"><DocumentEdit /></ProtectedRoute>} />
+              <Route path="/documents/:id/edit" element={<ProtectedRoute requiredRole="admin"><DocumentEdit /></ProtectedRoute>} />
 
-              {/* Duty & Equipment */}
+              {/* 值日 */}
               <Route path="/duty" element={<DutyRoster />} />
-              <Route path="/equipment" element={<EquipmentList />} />
 
-              {/* Meetings */}
-              <Route path="/meetings" element={<MeetingList />} />
-              <Route path="/meetings/report" element={<ProgressReport />} />
-
-              {/* Reimbursements */}
+              {/* 采购审批 + 报销 */}
+              <Route path="/purchase-approvals/new" element={<PurchaseApprovalForm />} />
+              <Route path="/purchase-approvals" element={<PurchaseApprovalList />} />
+              <Route path="/purchase-approvals/review" element={<PurchaseApprovalReview />} />
               <Route path="/reimbursements" element={<ReimbursementList />} />
               <Route path="/reimbursements/new" element={<ReimbursementForm />} />
               <Route path="/reimbursements/review" element={<ProtectedRoute requiredRole="admin"><ReimbursementReview /></ProtectedRoute>} />
+              <Route path="/reimbursements/stats" element={<ReimbursementStats />} />
 
-              {/* Profile */}
+              {/* 个人中心 */}
               <Route path="/profile" element={<ProfilePage />} />
 
-              {/* Admin */}
+              {/* 管理后台 */}
               <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/announcements" element={<ProtectedRoute requiredRole="admin"><AnnouncementManage /></ProtectedRoute>} />
               <Route path="/admin/members" element={<ProtectedRoute requiredModule="members"><MemberManage /></ProtectedRoute>} />

@@ -107,6 +107,12 @@ export default function LoginPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [dutyRosters, setDutyRosters] = useState<DutyInfo[]>([]);
   const [expandedAnnouncement, setExpandedAnnouncement] = useState<string | null>(null);
+  const [chemicalWarnings, setChemicalWarnings] = useState<{
+    id: string;
+    status: string;
+    estimated_delivery_date: string | null;
+    chemical: { name: string; batch_number: string } | null;
+  }[]>([]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -135,6 +141,14 @@ export default function LoginPage() {
 
       if (announcementsRes.data) setAnnouncements(announcementsRes.data);
       if (dutyRes.data) setDutyRosters(dutyRes.data as unknown as DutyInfo[]);
+
+      // Fetch chemical warnings (anon access)
+      const warningsRes = await supabase
+        .from('chemical_warnings')
+        .select('id, status, estimated_delivery_date, chemical:chemicals(name, batch_number)')
+        .in('status', ['pending', 'ordered'])
+        .order('created_at', { ascending: false });
+      if (warningsRes.data) setChemicalWarnings(warningsRes.data as any);
     }
     fetchPublicData();
   }, []);
@@ -238,6 +252,47 @@ export default function LoginPage() {
                 })}
               </div>
             </div>
+
+            {/* 药品预警 */}
+            {chemicalWarnings.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                  <h2 className="text-sm font-bold text-gray-900">药品预警</h2>
+                </div>
+                <div className="space-y-2">
+                  {chemicalWarnings.map((w) => (
+                    <div
+                      key={w.id}
+                      className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {w.chemical?.name || '未知药品'}
+                          </span>
+                          <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                            {w.chemical?.batch_number || '-'}
+                          </span>
+                        </div>
+                        {w.status === 'ordered' && w.estimated_delivery_date && (
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            预计到货: {formatDate(w.estimated_delivery_date)}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`shrink-0 ml-3 text-xs font-medium ${
+                          w.status === 'pending' ? 'text-red-600' : 'text-yellow-600'
+                        }`}
+                      >
+                        {w.status === 'pending' ? '\uD83D\uDD34预警中' : '\uD83D\uDFE1已下单'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Announcements */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
