@@ -29,9 +29,6 @@ const subNavItems = [
   { to: '/reimbursements/new', label: '新建报销' },
   { to: '/purchase-approvals/new', label: '采购审批' },
   { to: '/purchase-approvals', label: '我的采购' },
-  { to: '/purchase-approvals/review', label: '审批采购', teacherOnly: true },
-  { to: '/reimbursements/review', label: '审批报销', adminOnly: true },
-  { to: '/reimbursements/stats', label: '报销统计', managerModule: 'supplies' },
 ];
 
 const categoryColors: Record<string, string> = {

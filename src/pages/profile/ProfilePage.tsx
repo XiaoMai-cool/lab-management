@@ -10,6 +10,16 @@ import {
   Lock,
   LogOut,
   ChevronRight,
+  Settings,
+  Megaphone,
+  Users,
+  Download,
+  ClipboardCheck,
+  Package,
+  AlertTriangle,
+  FlaskConical,
+  CalendarCheck,
+  BarChart,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,8 +45,31 @@ const MODULE_LABELS: Record<string, string> = {
   documents: '文档管理',
 };
 
+function QuickLinkButton({ label, path, icon: Icon, color, navigate }: {
+  label: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  navigate: (path: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => navigate(path)}
+      className="w-full flex items-center gap-3 p-3 -mx-1 rounded-lg hover:bg-gray-50 transition-colors text-left"
+    >
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}>
+        <Icon className="w-4.5 h-4.5" />
+      </div>
+      <span className="flex-1 text-sm font-medium text-gray-700">
+        {label}
+      </span>
+      <ChevronRight className="w-4 h-4 text-gray-400" />
+    </button>
+  );
+}
+
 export default function ProfilePage() {
-  const { profile, signOut, loading: authLoading } = useAuth();
+  const { profile, signOut, loading: authLoading, isAdmin, isTeacher, isSuppliesManager, isChemicalsManager, isDutyManager, isReimbursementApprover } = useAuth();
   const navigate = useNavigate();
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -212,6 +245,58 @@ export default function ProfilePage() {
             ))}
           </div>
         </Card>
+
+        {/* 管理功能 - only show if user has management permissions */}
+        {(isAdmin || isTeacher || isSuppliesManager || isChemicalsManager || isDutyManager || isReimbursementApprover) && (
+          <Card title="管理功能">
+            <div className="space-y-1">
+              {/* Admin-only */}
+              {isAdmin && (
+                <>
+                  <QuickLinkButton label="系统管理" path="/admin" icon={Settings} color="text-gray-600 bg-gray-50" navigate={navigate} />
+                  <QuickLinkButton label="公告管理" path="/admin/announcements" icon={Megaphone} color="text-orange-600 bg-orange-50" navigate={navigate} />
+                  <QuickLinkButton label="人员管理" path="/admin/members" icon={Users} color="text-indigo-600 bg-indigo-50" navigate={navigate} />
+                  <QuickLinkButton label="数据导出" path="/admin/export" icon={Download} color="text-gray-600 bg-gray-50" navigate={navigate} />
+                </>
+              )}
+
+              {/* Supplies manager */}
+              {isSuppliesManager && (
+                <>
+                  <QuickLinkButton label="耗材审批" path="/supplies/review" icon={ClipboardCheck} color="text-blue-600 bg-blue-50" navigate={navigate} />
+                  <QuickLinkButton label="耗材管理" path="/admin/supplies" icon={Package} color="text-blue-600 bg-blue-50" navigate={navigate} />
+                  <QuickLinkButton label="借用管理" path="/supplies/borrowings" icon={Package} color="text-cyan-600 bg-cyan-50" navigate={navigate} />
+                  <QuickLinkButton label="报销统计(非药品)" path="/reimbursements/stats" icon={BarChart} color="text-emerald-600 bg-emerald-50" navigate={navigate} />
+                </>
+              )}
+
+              {/* Chemicals manager */}
+              {isChemicalsManager && (
+                <>
+                  <QuickLinkButton label="药品预警" path="/reagents/warnings" icon={AlertTriangle} color="text-red-600 bg-red-50" navigate={navigate} />
+                  <QuickLinkButton label="药品管理" path="/reagents/new" icon={FlaskConical} color="text-purple-600 bg-purple-50" navigate={navigate} />
+                  <QuickLinkButton label="供应商管理" path="/reagents/suppliers" icon={FlaskConical} color="text-purple-600 bg-purple-50" navigate={navigate} />
+                  <QuickLinkButton label="报销统计(药品)" path="/reimbursements/stats" icon={BarChart} color="text-emerald-600 bg-emerald-50" navigate={navigate} />
+                </>
+              )}
+
+              {/* Teacher - approval functions */}
+              {isTeacher && (
+                <QuickLinkButton label="审批采购" path="/purchase-approvals/review" icon={ClipboardCheck} color="text-purple-600 bg-purple-50" navigate={navigate} />
+              )}
+
+              {/* Reimbursement approver */}
+              {isReimbursementApprover && (
+                <QuickLinkButton label="审批报销" path="/reimbursements/review" icon={Receipt} color="text-green-600 bg-green-50" navigate={navigate} />
+              )}
+
+              {/* Duty manager */}
+              {isDutyManager && (
+                <QuickLinkButton label="值日管理" path="/duty" icon={CalendarCheck} color="text-orange-600 bg-orange-50" navigate={navigate} />
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* 操作 */}
         <Card>

@@ -34,7 +34,6 @@ const navItems: NavItem[] = [
   { label: '药品', icon: FlaskConical, path: '/reagents' },
   { label: '报销', icon: FileText, path: '/reimbursements' },
   { label: '我的', icon: User, path: '/profile' },
-  { label: '管理', icon: Settings, path: '/admin', adminOnly: true },
 ];
 
 export default function Layout() {

@@ -25,8 +25,6 @@ const GHS_LABELS: Record<string, { name: string; color: string; bg: string; icon
 const REAGENT_SUB_NAV: SubNavItem[] = [
   { to: '/reagents', label: '药品总览', exact: true },
   { to: '/reagents/purchase', label: '申购药品' },
-  { to: '/reagents/suppliers', label: '供应商', managerModule: 'chemicals' },
-  { to: '/reagents/warnings', label: '药品预警', managerModule: 'chemicals' },
 ];
 
 interface ActiveWarning {

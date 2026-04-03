@@ -135,10 +135,10 @@ export default function SupplyList() {
       <div className="px-4 md:px-6 mt-2">
         <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
           {[
-            { to: '/supplies', label: '库存总览', exact: true },
-            { to: '/supplies/reserve', label: '预约领取' },
+            { to: '/supplies', label: '物资总览', exact: true },
+            { to: '/supplies/reserve', label: '申领物资' },
+            { to: '/supplies/my-reservations', label: '我的申领' },
             { to: '/supplies/borrow', label: '借用耗材' },
-            { to: '/supplies/my-reservations', label: '我的预约' },
             { to: '/supplies/my-returns', label: '我的借用' },
           ].map((link) => {
             const isActive = link.exact
