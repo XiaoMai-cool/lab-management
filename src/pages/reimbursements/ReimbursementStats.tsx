@@ -162,23 +162,19 @@ export default function ReimbursementStats() {
     return Array.from(map.entries()).sort((a, b) => b[1].amount - a[1].amount);
   }, [filtered]);
 
-  function exportCSV() {
-    const header = '申请人,标题,类别,金额,日期,状态,物资登记人\n';
-    const rows = filtered
-      .map(
-        (r) =>
-          `${r.user?.name ?? ''},${r.title},${r.category},${r.amount.toFixed(2)},${dayjs(r.created_at).format('YYYY-MM-DD')},${r.status},${getRouter(r.category)}`
-      )
-      .join('\n');
-    const blob = new Blob(['\uFEFF' + header + rows], {
-      type: 'text/csv;charset=utf-8;',
+  function exportExcel() {
+    const rows = filtered.map((r) => ({
+      '申请人': r.user?.name ?? '',
+      '标题': r.title,
+      '类别': r.category,
+      '金额': r.amount,
+      '日期': dayjs(r.created_at).format('YYYY-MM-DD'),
+      '状态': r.status,
+      '物资登记人': getRouter(r.category),
+    }));
+    import('../../lib/exportExcel').then(({ downloadExcel }) => {
+      downloadExcel(rows, `报销统计_${dateFrom}_${dateTo}`, '报销统计');
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `报销统计_${dateFrom}_${dateTo}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
   }
 
   if (!hasAccess) {
@@ -206,12 +202,12 @@ export default function ReimbursementStats() {
         subtitle="已批准报销的统计与物资登记分配"
         action={
           <button
-            onClick={exportCSV}
+            onClick={exportExcel}
             disabled={filtered.length === 0}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
           >
             <Download className="w-4 h-4" />
-            导出 CSV
+            导出 Excel
           </button>
         }
       />

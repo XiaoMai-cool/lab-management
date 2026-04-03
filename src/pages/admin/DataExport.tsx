@@ -9,40 +9,8 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { downloadExcel } from '../../lib/exportExcel';
 import PageHeader from '../../components/PageHeader';
-
-function downloadCSV(data: Record<string, unknown>[], filename: string) {
-  if (data.length === 0) return;
-
-  const headers = Object.keys(data[0]);
-  const csvRows: string[] = [];
-
-  // BOM for UTF-8
-  csvRows.push(headers.join(','));
-
-  for (const row of data) {
-    const values = headers.map((h) => {
-      const val = row[h];
-      const str = val === null || val === undefined ? '' : String(val);
-      // Escape quotes and wrap in quotes if contains comma/newline/quote
-      if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    });
-    csvRows.push(values.join(','));
-  }
-
-  const csvContent = '\uFEFF' + csvRows.join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
 
 interface ExportCard {
@@ -117,7 +85,7 @@ export default function DataExport() {
             '分类': (s.category as Record<string, unknown>)?.name ?? '',
             '更新时间': s.updated_at,
           }));
-          downloadCSV(rows, '耗材库存');
+          downloadExcel(rows, '耗材库存');
           break;
         }
 
@@ -137,7 +105,7 @@ export default function DataExport() {
             '申请时间': r.created_at,
             '审批备注': r.review_note ?? '',
           }));
-          downloadCSV(rows, '预约记录');
+          downloadExcel(rows, '预约记录');
           break;
         }
 
@@ -155,7 +123,7 @@ export default function DataExport() {
             '用途': l.purpose,
             '使用时间': l.used_at,
           }));
-          downloadCSV(rows, '危化品使用记录');
+          downloadExcel(rows, '危化品使用记录');
           break;
         }
 
@@ -174,7 +142,7 @@ export default function DataExport() {
             '申请时间': r.created_at,
             '审批备注': r.review_note ?? '',
           }));
-          downloadCSV(rows, '报销记录');
+          downloadExcel(rows, '报销记录');
           break;
         }
 
@@ -194,7 +162,7 @@ export default function DataExport() {
             '备注': p.notes ?? '',
             '登记时间': p.created_at,
           }));
-          downloadCSV(rows, '购买登记');
+          downloadExcel(rows, '购买登记');
           break;
         }
       }
@@ -210,7 +178,7 @@ export default function DataExport() {
 
   return (
     <div>
-      <PageHeader title="数据导出" subtitle="导出各类数据为 CSV 文件" />
+      <PageHeader title="数据导出" subtitle="导出各类数据为 Excel 文件" />
 
       <div className="px-4 md:px-6 pb-6">
         {error && (
