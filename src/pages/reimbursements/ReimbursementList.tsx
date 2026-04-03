@@ -130,80 +130,75 @@ export default function ReimbursementList() {
   ];
 
   return (
-    <div className="pb-8">
-      <div className="px-4 md:px-6 pt-4">
-        <SubNav items={subNavItems} />
-      </div>
+    <div className="mx-auto max-w-7xl p-4">
       <PageHeader
         title="报销记录"
         subtitle={`共 ${filtered.length} 条，合计 ¥${totalAmount.toFixed(2)}`}
         action={
           <button
             onClick={() => navigate('/reimbursements/new')}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
           >
-            <Plus className="w-4 h-4" />
-            新建报销
+            + 新建报销
           </button>
         }
       />
 
-      <div className="px-4 md:px-6 space-y-3 overflow-hidden">
-        {/* 状态筛选 */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-          <Filter className="w-4 h-4 text-gray-400 shrink-0" />
-          {statusOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-                statusFilter === opt.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+      <SubNav items={subNavItems} />
 
-        {/* 类别筛选 */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-          <span className="text-xs text-gray-400 shrink-0">类别:</span>
+      {/* 状态筛选 */}
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {statusOptions.map((opt) => (
           <button
-            onClick={() => setCategoryFilter('all')}
-            className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-              categoryFilter === 'all'
+            key={opt.value}
+            onClick={() => setStatusFilter(opt.value)}
+            className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+              statusFilter === opt.value
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            全部
+            {opt.label}
           </button>
-          {allCategories.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategoryFilter(c)}
-              className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-                categoryFilter === c
-                  ? 'bg-blue-600 text-white'
-                  : `${categoryColors[c] ?? 'bg-gray-100 text-gray-600'} hover:opacity-80`
-              }`}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+        ))}
+      </div>
+
+      {/* 类别筛选 */}
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setCategoryFilter('all')}
+          className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+            categoryFilter === 'all'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          全部类别
+        </button>
+        {allCategories.map((c) => (
+          <button
+            key={c}
+            onClick={() => setCategoryFilter(c)}
+            className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+              categoryFilter === c
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 space-y-3">
 
         {/* 列表 */}
         {filtered.length === 0 ? (
-          <div className="py-12">
-            <EmptyState
-              icon={Receipt}
-              title="暂无报销记录"
-              description="点击上方「新建报销」提交申请"
-            />
-          </div>
+          <EmptyState
+            icon={Receipt}
+            title="暂无报销记录"
+            description="点击上方「新建报销」提交申请"
+          />
         ) : (
           <div className="space-y-3">
             {filtered.map((item) => (
