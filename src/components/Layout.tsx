@@ -53,7 +53,6 @@ function getManageItems(auth: ReturnType<typeof useAuth>): NavItem[] {
   if (auth.isChemicalsManager) {
     items.push({ label: '药品补货', icon: AlertTriangle, path: '/reagents/warnings' });
     items.push({ label: '药品管理', icon: FlaskConical, path: '/reagents/new' });
-    items.push({ label: '供应商', icon: FlaskConical, path: '/reagents/suppliers' });
   }
 
   if (auth.isTeacher) {

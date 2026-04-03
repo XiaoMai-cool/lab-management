@@ -12,7 +12,6 @@ import dayjs from 'dayjs';
 const SUB_NAV_ITEMS: SubNavItem[] = [
   { to: '/reagents', label: '药品总览', exact: true },
   { to: '/reagents/purchase', label: '申购药品' },
-  { to: '/reagents/suppliers', label: '供应商', managerModule: 'chemicals' },
   { to: '/reagents/warnings', label: '药品补货', managerModule: 'chemicals' },
 ];
 

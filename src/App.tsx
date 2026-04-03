@@ -24,7 +24,7 @@ const ReagentList = lazy(() => import('./pages/reagents/ReagentList'))
 const ReagentDetail = lazy(() => import('./pages/reagents/ReagentDetail'))
 const ReagentForm = lazy(() => import('./pages/reagents/ReagentForm'))
 const ReagentPurchaseRequest = lazy(() => import('./pages/reagents/ReagentPurchaseRequest'))
-const SupplierManage = lazy(() => import('./pages/reagents/SupplierManage'))
+
 const ChemicalWarnings = lazy(() => import('./pages/reagents/ChemicalWarnings'))
 
 // Documents
@@ -82,7 +82,6 @@ export default function App() {
               <Route path="/reagents/:id" element={<ReagentDetail />} />
               <Route path="/reagents/:id/edit" element={<ProtectedRoute requiredModule="chemicals"><ReagentForm /></ProtectedRoute>} />
               <Route path="/reagents/purchase" element={<ReagentPurchaseRequest />} />
-              <Route path="/reagents/suppliers" element={<ProtectedRoute requiredModule="chemicals"><SupplierManage /></ProtectedRoute>} />
               <Route path="/reagents/warnings" element={<ProtectedRoute requiredModule="chemicals"><ChemicalWarnings /></ProtectedRoute>} />
 
               {/* 制度文档 */}
