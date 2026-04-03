@@ -162,7 +162,7 @@ export default function ChemicalWarnings() {
 
   return (
     <div className="mx-auto max-w-7xl p-4">
-      <PageHeader title="药品补货管理" subtitle="处理药品"即将用完"上报" />
+      <PageHeader title="药品补货管理" subtitle="处理药品「即将用完」上报" />
       <SubNav items={SUB_NAV_ITEMS} />
 
       {!hasAny && (
