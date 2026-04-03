@@ -11,7 +11,6 @@ import {
 import { supabase } from '../../lib/supabase';
 import { downloadExcel } from '../../lib/exportExcel';
 import PageHeader from '../../components/PageHeader';
-}
 
 interface ExportCard {
   key: string;

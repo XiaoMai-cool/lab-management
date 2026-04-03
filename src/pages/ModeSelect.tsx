@@ -6,11 +6,10 @@ import { useMode } from '../contexts/ModeContext';
 export default function ModeSelect() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { setMode, setHasChosenMode } = useMode();
+  const { setMode } = useMode();
 
   function choose(mode: 'use' | 'manage') {
     setMode(mode);
-    setHasChosenMode(true);
     navigate('/', { replace: true });
   }
 
