@@ -197,10 +197,14 @@ export default function Layout() {
             {hasManagePermission && (
               <button
                 onClick={toggleMode}
-                className={`px-2 py-1 rounded-md text-[10px] font-bold ${modeColor}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                  mode === 'manage'
+                    ? 'bg-orange-50 text-orange-700 border-orange-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}
               >
-                {mode === 'manage' ? '管理' : '使用'}
-                <ArrowLeftRight className="w-3 h-3 inline ml-0.5" />
+                {mode === 'manage' ? '⚙️ 管理' : '🧪 使用'}
+                <ArrowLeftRight className="w-3.5 h-3.5 inline ml-1" />
               </button>
             )}
             {/* User menu */}
