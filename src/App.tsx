@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
+import { ModeProvider } from './contexts/ModeContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/LoadingSpinner'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
+const ModeSelect = lazy(() => import('./pages/ModeSelect'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 
 // Supplies
@@ -56,9 +58,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ModeProvider>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/mode-select" element={<ProtectedRoute><ModeSelect /></ProtectedRoute>} />
 
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
@@ -113,6 +117,7 @@ export default function App() {
             </Route>
           </Routes>
         </Suspense>
+        </ModeProvider>
       </AuthProvider>
     </BrowserRouter>
   )
