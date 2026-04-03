@@ -13,11 +13,9 @@ import {
   ClipboardCheck,
   BarChart3,
   AlertTriangle,
-  Beaker,
-  ArrowLeftRight,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useMode } from '../contexts/ModeContext';
 
 interface NavItem {
   label: string;
@@ -33,8 +31,8 @@ const ROLE_LABELS: Record<string, string> = {
   student: '学生',
 };
 
-// 使用模式导航
-const useNavItems: NavItem[] = [
+// 底部导航（固定5个，所有人一样）
+const bottomNavItems: NavItem[] = [
   { label: '首页', icon: Home, path: '/' },
   { label: '物资', icon: Package, path: '/supplies' },
   { label: '药品', icon: FlaskConical, path: '/reagents' },
@@ -42,20 +40,20 @@ const useNavItems: NavItem[] = [
   { label: '我的', icon: User, path: '/profile' },
 ];
 
-// 管理模式导航 - 根据权限动态生成
-function getManageNavItems(auth: ReturnType<typeof useAuth>): NavItem[] {
-  const items: NavItem[] = [
-    { label: '总览', icon: Home, path: '/' },
-  ];
+// 管理功能列表（根据权限动态生成）
+function getManageItems(auth: ReturnType<typeof useAuth>): NavItem[] {
+  const items: NavItem[] = [];
 
   if (auth.isSuppliesManager) {
     items.push({ label: '耗材审批', icon: ClipboardCheck, path: '/supplies/review' });
     items.push({ label: '耗材管理', icon: Package, path: '/admin/supplies' });
+    items.push({ label: '借用管理', icon: Package, path: '/supplies/borrowings' });
   }
 
   if (auth.isChemicalsManager) {
     items.push({ label: '药品补货', icon: AlertTriangle, path: '/reagents/warnings' });
     items.push({ label: '药品管理', icon: FlaskConical, path: '/reagents/new' });
+    items.push({ label: '供应商', icon: FlaskConical, path: '/reagents/suppliers' });
   }
 
   if (auth.isTeacher) {
@@ -72,9 +70,9 @@ function getManageNavItems(auth: ReturnType<typeof useAuth>): NavItem[] {
 
   if (auth.isAdmin) {
     items.push({ label: '系统管理', icon: Settings, path: '/admin' });
+    items.push({ label: '公告管理', icon: Bell, path: '/admin/announcements' });
+    items.push({ label: '人员管理', icon: User, path: '/admin/members' });
   }
-
-  items.push({ label: '我的', icon: User, path: '/profile' });
 
   return items;
 }
@@ -84,30 +82,21 @@ export default function Layout() {
   const navigate = useNavigate();
   const auth = useAuth();
   const { profile, signOut } = auth;
-  const { mode, setMode } = useMode();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showManagePanel, setShowManagePanel] = useState(false);
 
-  // 只要不是学生就显示切换按钮（profile 未加载时默认显示，学生登录后隐藏）
   const isStudent = profile?.role === 'student';
   const hasManagePermission = !isStudent;
-  const navItems = mode === 'manage' && hasManagePermission ? getManageNavItems(auth) : useNavItems;
+  const manageItems = hasManagePermission ? getManageItems(auth) : [];
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
 
-  function toggleMode() {
-    const newMode = mode === 'use' ? 'manage' : 'use';
-    setMode(newMode);
-    navigate('/');
-  }
-
   async function handleLogout() {
     try {
       await signOut();
-      localStorage.removeItem('app_mode');
-      localStorage.removeItem('has_chosen_mode');
       navigate('/login', { replace: true });
     } catch {
       localStorage.clear();
@@ -116,34 +105,18 @@ export default function Layout() {
     }
   }
 
-  const modeLabel = mode === 'manage' ? '管理模式' : '使用模式';
-  const modeColor = mode === 'manage' ? 'text-orange-600 bg-orange-50' : 'text-blue-600 bg-blue-50';
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:flex-col md:w-60 bg-white border-r border-gray-200 fixed inset-y-0 left-0 z-30">
-        {/* Sidebar Header */}
         <div className="h-16 flex items-center px-5 border-b border-gray-200 shrink-0">
           <FlaskConical className="w-7 h-7 text-blue-600 mr-2.5" />
-          <span className="text-lg font-bold text-gray-900 tracking-tight">
-            实验室管理
-          </span>
+          <span className="text-lg font-bold text-gray-900 tracking-tight">实验室管理</span>
         </div>
 
-        {/* Mode Indicator (display only, switch in user menu) */}
-        {hasManagePermission && (
-          <div className="px-3 pt-3 pb-1">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${modeColor}`}>
-              {mode === 'manage' ? <Settings className="w-4 h-4" /> : <Beaker className="w-4 h-4" />}
-              {modeLabel}
-            </button>
-          </div>
-        )}
-
-        {/* Sidebar Nav */}
-        <nav className="flex-1 py-2 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+        {/* 使用导航 */}
+        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
+          {bottomNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
@@ -151,9 +124,7 @@ export default function Layout() {
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  active
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -161,6 +132,31 @@ export default function Layout() {
               </button>
             );
           })}
+
+          {/* 管理入口（桌面侧边栏） */}
+          {hasManagePermission && manageItems.length > 0 && (
+            <>
+              <div className="pt-3 pb-1 px-1">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">管理功能</p>
+              </div>
+              {manageItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                      active ? 'bg-orange-50 text-orange-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className={`w-4.5 h-4.5 ${active ? 'text-orange-500' : 'text-gray-400'}`} />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* Sidebar Footer */}
@@ -187,9 +183,21 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             <FlaskConical className="w-6 h-6 text-blue-600" />
             <span className="text-base font-bold text-gray-900">实验室管理</span>
+            {/* 管理按钮 */}
+            {hasManagePermission && manageItems.length > 0 && (
+              <button
+                onClick={() => setShowManagePanel(!showManagePanel)}
+                className={`ml-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                  showManagePanel
+                    ? 'bg-orange-100 text-orange-700 border-orange-300'
+                    : 'bg-orange-50 text-orange-600 border-orange-200'
+                }`}
+              >
+                ⚙ 管理
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
-            {/* User menu */}
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -215,15 +223,6 @@ export default function Layout() {
                       <User className="w-4 h-4 text-gray-400" />
                       个人中心
                     </button>
-                    {hasManagePermission && (
-                      <button
-                        onClick={() => { toggleMode(); setShowUserMenu(false); }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        <ArrowLeftRight className="w-4 h-4 text-gray-400" />
-                        {mode === 'use' ? '切换到管理模式' : '切换到使用模式'}
-                      </button>
-                    )}
                     <button
                       onClick={() => { handleLogout(); setShowUserMenu(false); }}
                       className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -237,6 +236,38 @@ export default function Layout() {
             </div>
           </div>
         </header>
+
+        {/* Mobile 管理面板（从顶部展开） */}
+        {showManagePanel && (
+          <>
+            <div className="md:hidden fixed inset-0 z-30 bg-black/30" onClick={() => setShowManagePanel(false)} />
+            <div className="md:hidden fixed top-14 left-0 right-0 z-30 bg-white border-b border-gray-200 shadow-lg animate-slide-up">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+                <p className="text-sm font-bold text-gray-900">管理功能</p>
+                <button onClick={() => setShowManagePanel(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-1 p-3">
+                {manageItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => { navigate(item.path); setShowManagePanel(false); }}
+                      className="flex flex-col items-center gap-1.5 py-3 rounded-lg hover:bg-orange-50 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                        <Icon className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <span className="text-[11px] font-medium text-gray-700">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Desktop Header */}
         <header className="hidden md:flex sticky top-0 z-20 h-16 bg-white border-b border-gray-200 items-center justify-end px-6">
@@ -273,17 +304,6 @@ export default function Layout() {
                       <User className="w-4 h-4 text-gray-400" />
                       个人中心
                     </button>
-                    {hasManagePermission && (
-                      <button
-                        onClick={() => { toggleMode(); setShowUserMenu(false); }}
-                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2.5 ${
-                          mode === 'use' ? 'text-orange-600' : 'text-blue-600'
-                        }`}
-                      >
-                        <ArrowLeftRight className="w-4 h-4" />
-                        {mode === 'use' ? '切换到管理模式' : '切换到使用模式'}
-                      </button>
-                    )}
                     <div className="border-t border-gray-100 mt-1 pt-1">
                       <button
                         onClick={() => { handleLogout(); setShowUserMenu(false); }}
@@ -306,10 +326,10 @@ export default function Layout() {
         </main>
       </div>
 
-      {/* Mobile Bottom Tab Bar */}
+      {/* Mobile Bottom Tab Bar（固定5个使用功能） */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 safe-area-pb">
         <div className="flex items-center justify-around h-16">
-          {navItems.map((item) => {
+          {bottomNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
