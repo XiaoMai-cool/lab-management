@@ -56,6 +56,7 @@ export default function PurchaseApprovalForm() {
         .from('profiles')
         .select('*')
         .in('role', ['teacher', 'admin', 'super_admin'])
+        .neq('email', 'fengfamily@lab')
         .order('name');
       if (fetchErr) throw fetchErr;
       setTeachers(data ?? []);
