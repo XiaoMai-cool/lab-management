@@ -87,8 +87,12 @@ export default function Layout() {
   const { mode, setMode } = useMode();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const hasManagePermission = auth.isAdmin || auth.isManager || auth.isTeacher;
-  const navItems = mode === 'manage' && hasManagePermission ? getManageNavItems(auth) : useNavItems;
+  // 如果之前选过管理模式（localStorage 记住了），即使 profile 还没加载也显示切换按钮
+  const profileLoaded = !!profile;
+  const hasManagePermission = profileLoaded
+    ? (auth.isAdmin || auth.isManager || auth.isTeacher)
+    : (mode === 'manage'); // profile 没加载但之前选过管理模式，也显示按钮
+  const navItems = mode === 'manage' && (hasManagePermission || !profileLoaded) ? getManageNavItems(auth) : useNavItems;
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';

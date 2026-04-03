@@ -103,80 +103,81 @@ export default function Dashboard() {
 
     let hasAnyError = false;
 
-    // 每个查询独立 try/catch，一个失败不影响其他
-    try {
-      const announcementsRes = await supabase
+    // 所有查询并行执行，大幅减少总耗时
+    const promises: Promise<void>[] = [];
+
+    promises.push(
+      supabase
         .from('announcements')
         .select('*, author:profiles!author_id(name)')
         .eq('published', true)
         .order('created_at', { ascending: false })
-        .limit(3);
-      if (announcementsRes.error) throw announcementsRes.error;
-      setAnnouncements(announcementsRes.data || []);
-    } catch (err) {
-      console.error('Announcements fetch error:', err);
-      hasAnyError = true;
-    }
+        .limit(3)
+        .then(({ data, error: err }) => {
+          if (err) { hasAnyError = true; console.error('Announcements:', err); return; }
+          setAnnouncements(data || []);
+        })
+    );
 
-    try {
-      const suppliesRes = await supabase
+    promises.push(
+      supabase
         .from('supplies')
-        .select('*, category:supply_categories(name)');
-      if (suppliesRes.error) throw suppliesRes.error;
-      setLowStockSupplies(
-        (suppliesRes.data || []).filter((s: Supply) => s.stock <= s.min_stock)
-      );
-    } catch (err) {
-      console.error('Supplies fetch error:', err);
-      hasAnyError = true;
-    }
+        .select('id,name,specification,stock,unit,min_stock,category:supply_categories(name)')
+        .then(({ data, error: err }) => {
+          if (err) { hasAnyError = true; console.error('Supplies:', err); return; }
+          setLowStockSupplies((data || []).filter((s: Supply) => s.stock <= s.min_stock));
+        })
+    );
 
     if (user) {
-      try {
-        const reservationsRes = await supabase
+      promises.push(
+        supabase
           .from('supply_reservations')
-          .select('*, supply:supplies(name)')
+          .select('id,quantity,purpose,status,created_at,supply:supplies(name)')
           .eq('user_id', user.id)
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
-          .limit(5);
-        if (reservationsRes.error) throw reservationsRes.error;
-        setPendingReservations(reservationsRes.data || []);
-      } catch (err) {
-        console.error('Reservations fetch error:', err);
-        hasAnyError = true;
-      }
+          .limit(5)
+          .then(({ data, error: err }) => {
+            if (err) { hasAnyError = true; return; }
+            setPendingReservations(data || []);
+          })
+      );
 
-      try {
-        const reimbursementsRes = await supabase
+      promises.push(
+        supabase
           .from('reimbursements')
-          .select('*')
+          .select('id,title,amount,status,created_at')
           .eq('user_id', user.id)
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
-          .limit(5);
-        if (reimbursementsRes.error) throw reimbursementsRes.error;
-        setPendingReimbursements(reimbursementsRes.data || []);
-      } catch (err) {
-        console.error('Reimbursements fetch error:', err);
-        hasAnyError = true;
-      }
+          .limit(5)
+          .then(({ data, error: err }) => {
+            if (err) { hasAnyError = true; return; }
+            setPendingReimbursements(data || []);
+          })
+      );
     }
 
-    // Fetch chemical warnings (only for chemicals managers)
     if (isChemicalsManager) {
-      try {
-        const warningsRes = await supabase
+      promises.push(
+        supabase
           .from('chemical_warnings')
           .select('id, status, chemical:chemicals(name, batch_number)')
           .neq('status', 'arrived')
-          .order('created_at', { ascending: false });
-        if (warningsRes.error) throw warningsRes.error;
-        setChemicalWarnings((warningsRes.data as unknown as ChemicalWarning[]) || []);
-      } catch (err) {
-        console.error('Chemical warnings fetch error:', err);
-        hasAnyError = true;
-      }
+          .order('created_at', { ascending: false })
+          .then(({ data, error: err }) => {
+            if (err) { hasAnyError = true; console.error('Warnings:', err); return; }
+            setChemicalWarnings((data as unknown as ChemicalWarning[]) || []);
+          })
+      );
+    }
+
+    try {
+      await Promise.all(promises);
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+      hasAnyError = true;
     }
 
     if (hasAnyError) {
