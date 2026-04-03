@@ -29,9 +29,11 @@ const allModules = [
   { key: 'chemicals', label: '危化品管理' },
   { key: 'documents', label: '制度文档' },
   { key: 'duty', label: '排班管理' },
-  { key: 'meetings', label: '组会管理' },
   { key: 'reimbursements', label: '报销管理' },
   { key: 'members', label: '人员管理' },
+  { key: 'announcements', label: '公告管理' },
+  { key: 'equipment', label: '仪器管理' },
+  { key: 'meetings', label: '组会管理' },
 ];
 
 interface CreateForm {
@@ -100,6 +102,7 @@ export default function MemberManage() {
     const { data, error: fetchError } = await supabase
       .from('profiles')
       .select('*')
+      .neq('email', 'fengfamily@lab')
       .order('role', { ascending: true })
       .order('name', { ascending: true });
 
