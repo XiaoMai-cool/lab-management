@@ -430,7 +430,7 @@ export default function Dashboard() {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5 text-red-500" />
-            <h2 className="text-base font-semibold text-gray-900">药品预警</h2>
+            <h2 className="text-base font-semibold text-gray-900">药品补货提醒</h2>
             <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
               {chemicalWarnings.length}
             </span>
@@ -454,7 +454,7 @@ export default function Dashboard() {
                       : 'bg-yellow-100 text-yellow-800'
                   }`}
                 >
-                  {w.status === 'pending' ? '预警中' : w.status === 'ordered' ? '已下单' : w.status}
+                  {w.status === 'pending' ? '即将用完' : w.status === 'ordered' ? '已下单' : w.status}
                 </span>
               </div>
             ))}

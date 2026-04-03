@@ -100,8 +100,8 @@ const modules: ModuleCard[] = [
     color: 'bg-teal-50 text-teal-600',
   },
   {
-    title: '药品预警',
-    description: '查看药品预警与到货状态',
+    title: '药品补货',
+    description: '查看药品补货与到货状态',
     icon: AlertTriangle,
     path: '/reagents/warnings',
     color: 'bg-red-50 text-red-600',

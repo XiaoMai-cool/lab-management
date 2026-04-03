@@ -273,7 +273,7 @@ export default function ProfilePage() {
               {/* Chemicals manager */}
               {isChemicalsManager && (
                 <>
-                  <QuickLinkButton label="药品预警" path="/reagents/warnings" icon={AlertTriangle} color="text-red-600 bg-red-50" navigate={navigate} />
+                  <QuickLinkButton label="药品补货" path="/reagents/warnings" icon={AlertTriangle} color="text-red-600 bg-red-50" navigate={navigate} />
                   <QuickLinkButton label="药品管理" path="/reagents/new" icon={FlaskConical} color="text-purple-600 bg-purple-50" navigate={navigate} />
                   <QuickLinkButton label="供应商管理" path="/reagents/suppliers" icon={FlaskConical} color="text-purple-600 bg-purple-50" navigate={navigate} />
                   <QuickLinkButton label="报销统计(药品)" path="/reimbursements/stats" icon={BarChart} color="text-emerald-600 bg-emerald-50" navigate={navigate} />

@@ -151,7 +151,7 @@ export default function ReagentDetail() {
         .single();
       if (insertError) throw insertError;
       setActiveWarning({ ...data, reporter: null } as ActiveWarning);
-      alert('预警已上报');
+      alert('已上报"即将用完"');
     } catch (err: any) {
       alert('上报失败: ' + (err.message || '未知错误'));
     } finally {
@@ -335,7 +335,7 @@ export default function ReagentDetail() {
             {activeWarning.status === 'pending' ? (
               <span>
                 <span className="inline-block h-2 w-2 rounded-full bg-red-500 mr-1.5" />
-                已有人上报预警（{dayjs(activeWarning.reported_at).format('M月D日')}）
+                已有人即将用完（{dayjs(activeWarning.reported_at).format('M月D日')}）
               </span>
             ) : (
               <span>
@@ -353,7 +353,7 @@ export default function ReagentDetail() {
             disabled={warningLoading}
             className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
-            {warningLoading ? '上报中...' : '上报预警'}
+            {warningLoading ? '提交中...' : '即将用完'}
           </button>
         )}
       </div>

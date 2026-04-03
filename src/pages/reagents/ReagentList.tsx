@@ -120,7 +120,7 @@ export default function ReagentList() {
     if (!user) return;
     const existing = getWarningForChemical(chemicalId);
     if (existing) {
-      alert(existing.status === 'pending' ? '该药品已有预警记录' : '该药品已下单采购中');
+      alert(existing.status === 'pending' ? '该药品已有人上报即将用完' : '该药品已下单采购中');
       return;
     }
     try {
@@ -131,7 +131,7 @@ export default function ReagentList() {
       });
       if (insertError) throw insertError;
       setActiveWarnings((prev) => [...prev, { chemical_id: chemicalId, status: 'pending' }]);
-      alert('预警已上报');
+      alert('已上报"即将用完"');
     } catch (err: any) {
       alert('上报失败: ' + (err.message || '未知错误'));
     }
@@ -337,7 +337,7 @@ export default function ReagentList() {
                             <span className={`inline-block h-1.5 w-1.5 rounded-full ${
                               w.status === 'pending' ? 'bg-red-500' : 'bg-yellow-500'
                             }`} />
-                            {w.status === 'pending' ? '预警中' : '已下单'}
+                            {w.status === 'pending' ? '即将用完' : '已下单'}
                           </span>
                         );
                       }

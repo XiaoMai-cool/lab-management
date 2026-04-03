@@ -13,7 +13,7 @@ const SUB_NAV_ITEMS: SubNavItem[] = [
   { to: '/reagents', label: '药品总览', exact: true },
   { to: '/reagents/purchase', label: '申购药品' },
   { to: '/reagents/suppliers', label: '供应商', managerModule: 'chemicals' },
-  { to: '/reagents/warnings', label: '药品预警', managerModule: 'chemicals' },
+  { to: '/reagents/warnings', label: '药品补货', managerModule: 'chemicals' },
 ];
 
 interface Warning {
@@ -84,7 +84,7 @@ export default function ChemicalWarnings() {
 
       setWarnings(items);
     } catch (err: any) {
-      setError(err.message || '加载预警列表失败');
+      setError(err.message || '加载上报列表失败');
     } finally {
       setLoading(false);
     }
@@ -162,21 +162,21 @@ export default function ChemicalWarnings() {
 
   return (
     <div className="mx-auto max-w-7xl p-4">
-      <PageHeader title="药品预警管理" subtitle="处理药品库存预警" />
+      <PageHeader title="药品补货管理" subtitle="处理药品"即将用完"上报" />
       <SubNav items={SUB_NAV_ITEMS} />
 
       {!hasAny && (
         <div className="mt-8">
-          <EmptyState title="暂无预警记录" />
+          <EmptyState title="暂无上报记录" />
         </div>
       )}
 
-      {/* 预警中 */}
+      {/* 即将用完 */}
       {pending.length > 0 && (
         <section className="mt-4">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
             <span className="inline-block h-3 w-3 rounded-full bg-red-500" />
-            预警中
+            即将用完
             <span className="text-sm font-normal text-gray-500">({pending.length})</span>
           </h2>
           <div className="mt-3 space-y-3">
