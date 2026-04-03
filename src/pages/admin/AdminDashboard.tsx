@@ -52,14 +52,14 @@ const modules: ModuleCard[] = [
     title: '制度文档',
     description: '管理规章制度和文档',
     icon: FileText,
-    path: '/admin/documents',
+    path: '/documents',
     color: 'bg-orange-50 text-orange-600',
   },
   {
     title: '排班管理',
     description: '安排值日和排班',
     icon: CalendarDays,
-    path: '/admin/duty',
+    path: '/duty',
     color: 'bg-teal-50 text-teal-600',
   },
   {

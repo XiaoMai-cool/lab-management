@@ -139,6 +139,16 @@ export interface DutyRoster {
   end_date: string;
 }
 
+export interface Equipment {
+  id: string;
+  name: string;
+  location: string;
+  responsible_user_id: string;
+  responsible_user?: Profile;
+  status: 'normal' | 'maintenance' | 'broken';
+  notes: string | null;
+}
+
 export interface PurchaseApproval {
   id: string;
   requester_id: string;
