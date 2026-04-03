@@ -87,12 +87,10 @@ export default function Layout() {
   const { mode, setMode } = useMode();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // 如果之前选过管理模式（localStorage 记住了），即使 profile 还没加载也显示切换按钮
-  const profileLoaded = !!profile;
-  const hasManagePermission = profileLoaded
-    ? (auth.isAdmin || auth.isManager || auth.isTeacher)
-    : (mode === 'manage'); // profile 没加载但之前选过管理模式，也显示按钮
-  const navItems = mode === 'manage' && (hasManagePermission || !profileLoaded) ? getManageNavItems(auth) : useNavItems;
+  // 只要不是学生就显示切换按钮（profile 未加载时默认显示，学生登录后隐藏）
+  const isStudent = profile?.role === 'student';
+  const hasManagePermission = !isStudent;
+  const navItems = mode === 'manage' && hasManagePermission ? getManageNavItems(auth) : useNavItems;
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
