@@ -32,7 +32,6 @@ const allModules = [
   { key: 'reimbursements', label: '报销管理' },
   { key: 'members', label: '人员管理' },
   { key: 'announcements', label: '公告管理' },
-  { key: 'equipment', label: '仪器管理' },
   { key: 'meetings', label: '组会管理' },
 ];
 

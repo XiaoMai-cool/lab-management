@@ -4,7 +4,7 @@ import isBetween from 'dayjs/plugin/isBetween';
 import { Calendar, Shield, Wrench, Plus, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { DutyRoster as DutyRosterType, Equipment, Profile } from '../../lib/types';
+import type { DutyRoster as DutyRosterType, Profile } from '../../lib/types';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -27,7 +27,6 @@ interface DutyWithUser extends DutyRosterType {
 export default function DutyRoster() {
   const { isAdmin } = useAuth();
   const [dutyList, setDutyList] = useState<DutyWithUser[]>([]);
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -56,17 +55,11 @@ export default function DutyRoster() {
           .from('duty_roster')
           .select('*, user:profiles(*)')
           .order('start_date', { ascending: true }),
-        supabase
-          .from('equipment')
-          .select('*, responsible_user:profiles(*)')
-          .order('name', { ascending: true }),
       ]);
 
       if (dutyRes.error) throw dutyRes.error;
-      if (equipRes.error) throw equipRes.error;
 
       setDutyList(dutyRes.data ?? []);
-      setEquipment(equipRes.data ?? []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
@@ -276,39 +269,6 @@ export default function DutyRoster() {
           )}
         </Card>
 
-        {/* 仪器负责人 */}
-        <Card title="仪器负责人">
-          {equipment.length === 0 ? (
-            <EmptyState
-              icon={Wrench}
-              title="暂无仪器记录"
-              description="管理员可在仪器设备页添加"
-            />
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {equipment.map((eq) => (
-                <div
-                  key={eq.id}
-                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Wrench className="w-4 h-4 text-gray-400 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {eq.name}
-                      </p>
-                      <p className="text-xs text-gray-500">{eq.location}</p>
-                    </div>
-                  </div>
-                  <span className="text-sm text-gray-600 shrink-0 ml-2">
-                    {(eq as unknown as { responsible_user?: Profile })
-                      .responsible_user?.name ?? '未指定'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
       </div>
 
       {/* 编辑排班 Modal */}
