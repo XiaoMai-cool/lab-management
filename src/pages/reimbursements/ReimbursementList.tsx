@@ -148,15 +148,15 @@ export default function ReimbursementList() {
         }
       />
 
-      <div className="px-4 md:px-6 space-y-4">
+      <div className="px-4 md:px-6 space-y-3 overflow-hidden">
         {/* 状态筛选 */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
           <Filter className="w-4 h-4 text-gray-400 shrink-0" />
           {statusOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setStatusFilter(opt.value)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+              className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                 statusFilter === opt.value
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -168,11 +168,11 @@ export default function ReimbursementList() {
         </div>
 
         {/* 类别筛选 */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
           <span className="text-xs text-gray-400 shrink-0">类别:</span>
           <button
             onClick={() => setCategoryFilter('all')}
-            className={`px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+            className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
               categoryFilter === 'all'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -184,7 +184,7 @@ export default function ReimbursementList() {
             <button
               key={c}
               onClick={() => setCategoryFilter(c)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+              className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                 categoryFilter === c
                   ? 'bg-blue-600 text-white'
                   : `${categoryColors[c] ?? 'bg-gray-100 text-gray-600'} hover:opacity-80`
@@ -197,11 +197,13 @@ export default function ReimbursementList() {
 
         {/* 列表 */}
         {filtered.length === 0 ? (
-          <EmptyState
-            icon={Receipt}
-            title="暂无报销记录"
-            description="点击右上角新建报销申请"
-          />
+          <div className="py-12">
+            <EmptyState
+              icon={Receipt}
+              title="暂无报销记录"
+              description="点击上方「新建报销」提交申请"
+            />
+          </div>
         ) : (
           <div className="space-y-3">
             {filtered.map((item) => (
