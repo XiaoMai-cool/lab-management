@@ -131,18 +131,12 @@ export default function Layout() {
           </span>
         </div>
 
-        {/* Mode Indicator + Switcher */}
+        {/* Mode Indicator (display only, switch in user menu) */}
         {hasManagePermission && (
           <div className="px-3 pt-3 pb-1">
-            <button
-              onClick={toggleMode}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${modeColor}`}
-            >
-              <span className="flex items-center gap-2">
-                {mode === 'manage' ? <Settings className="w-4 h-4" /> : <Beaker className="w-4 h-4" />}
-                {modeLabel}
-              </span>
-              <ArrowLeftRight className="w-3.5 h-3.5 opacity-60" />
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${modeColor}`}>
+              {mode === 'manage' ? <Settings className="w-4 h-4" /> : <Beaker className="w-4 h-4" />}
+              {modeLabel}
             </button>
           </div>
         )}
@@ -195,20 +189,6 @@ export default function Layout() {
             <span className="text-base font-bold text-gray-900">实验室管理</span>
           </div>
           <div className="flex items-center gap-1.5">
-            {/* Mode switcher */}
-            {hasManagePermission && (
-              <button
-                onClick={toggleMode}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
-                  mode === 'manage'
-                    ? 'bg-orange-50 text-orange-700 border-orange-200'
-                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                }`}
-              >
-                {mode === 'manage' ? '⚙️ 管理' : '🧪 使用'}
-                <ArrowLeftRight className="w-3.5 h-3.5 inline ml-1" />
-              </button>
-            )}
             {/* User menu */}
             <div className="relative">
               <button
@@ -235,6 +215,15 @@ export default function Layout() {
                       <User className="w-4 h-4 text-gray-400" />
                       个人中心
                     </button>
+                    {hasManagePermission && (
+                      <button
+                        onClick={() => { toggleMode(); setShowUserMenu(false); }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <ArrowLeftRight className="w-4 h-4 text-gray-400" />
+                        {mode === 'use' ? '切换到管理模式' : '切换到使用模式'}
+                      </button>
+                    )}
                     <button
                       onClick={() => { handleLogout(); setShowUserMenu(false); }}
                       className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -284,6 +273,17 @@ export default function Layout() {
                       <User className="w-4 h-4 text-gray-400" />
                       个人中心
                     </button>
+                    {hasManagePermission && (
+                      <button
+                        onClick={() => { toggleMode(); setShowUserMenu(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2.5 ${
+                          mode === 'use' ? 'text-orange-600' : 'text-blue-600'
+                        }`}
+                      >
+                        <ArrowLeftRight className="w-4 h-4" />
+                        {mode === 'use' ? '切换到管理模式' : '切换到使用模式'}
+                      </button>
+                    )}
                     <div className="border-t border-gray-100 mt-1 pt-1">
                       <button
                         onClick={() => { handleLogout(); setShowUserMenu(false); }}
