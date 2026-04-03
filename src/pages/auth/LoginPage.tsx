@@ -116,15 +116,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      // If user has management permissions and hasn't chosen mode yet, show mode select
-      const hasChosen = localStorage.getItem('has_chosen_mode') === 'true';
-      if (!hasChosen && profile && (profile.role !== 'student')) {
-        navigate('/mode-select', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+      navigate('/', { replace: true });
     }
-  }, [user, profile, authLoading, navigate]);
+  }, [user, authLoading, navigate]);
 
   // Fetch public data
   useEffect(() => {
