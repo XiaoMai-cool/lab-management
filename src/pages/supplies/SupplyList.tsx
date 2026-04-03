@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import SubNav from '../../components/SubNav';
 import { Search, Plus, RefreshCw, Package } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -133,32 +134,13 @@ export default function SupplyList() {
 
       {/* 功能导航 */}
       <div className="px-4 md:px-6 mt-2">
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
-          {[
-            { to: '/supplies', label: '物资总览', exact: true },
-            { to: '/supplies/reserve', label: '申领物资' },
-            { to: '/supplies/my-reservations', label: '我的申领' },
-            { to: '/supplies/borrow', label: '借用耗材' },
-            { to: '/supplies/my-returns', label: '我的借用' },
-          ].map((link) => {
-            const isActive = link.exact
-              ? location.pathname === link.to
-              : location.pathname.startsWith(link.to);
-            return (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
+        <SubNav items={[
+          { to: '/supplies', label: '物资总览', exact: true },
+          { to: '/supplies/reserve', label: '申领物资' },
+          { to: '/supplies/my-reservations', label: '我的申领' },
+          { to: '/supplies/borrow', label: '借用耗材' },
+          { to: '/supplies/my-returns', label: '我的借用' },
+        ]} />
       </div>
 
       <div className="px-4 md:px-6 space-y-4">

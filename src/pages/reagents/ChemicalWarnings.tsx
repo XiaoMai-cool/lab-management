@@ -198,7 +198,7 @@ export default function ChemicalWarnings() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {orderingId === w.id ? (
                       <div className="flex items-center gap-2">
                         <input
@@ -221,16 +221,48 @@ export default function ChemicalWarnings() {
                           取消
                         </button>
                       </div>
+                    ) : updatingStockId === w.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="新库存（可选）"
+                          value={stockValue}
+                          onChange={(e) => setStockValue(e.target.value)}
+                          className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm"
+                        />
+                        <button
+                          onClick={() => handleMarkArrived(w.id, w.chemical_id)}
+                          disabled={actionLoading}
+                          className="rounded-md bg-green-600 px-3 py-1 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                          确认送达
+                        </button>
+                        <button
+                          onClick={() => { setUpdatingStockId(null); setStockValue(''); }}
+                          className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+                        >
+                          取消
+                        </button>
+                      </div>
                     ) : (
-                      <button
-                        onClick={() => {
-                          setOrderingId(w.id);
-                          setEstimatedDate(dayjs().add(2, 'day').format('YYYY-MM-DD'));
-                        }}
-                        className="rounded-md bg-yellow-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-yellow-600"
-                      >
-                        已下单
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setOrderingId(w.id);
+                            setEstimatedDate(dayjs().add(2, 'day').format('YYYY-MM-DD'));
+                          }}
+                          className="rounded-md bg-yellow-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-yellow-600"
+                        >
+                          已下单
+                        </button>
+                        <button
+                          onClick={() => { setUpdatingStockId(w.id); setStockValue(''); }}
+                          className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                          已送达
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
