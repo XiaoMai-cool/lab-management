@@ -81,6 +81,14 @@ export default function ReagentForm() {
   const [error, setError] = useState<string | null>(null);
   const [casSuggestion, setCasSuggestion] = useState<any | null>(null);
 
+  // 编号自动生成
+  const [batchPrefix, setBatchPrefix] = useState('');
+  const [generatingBatch, setGeneratingBatch] = useState(false);
+
+  // 药品名称搜索（重复检查）
+  const [nameSuggestions, setNameSuggestions] = useState<{ name: string; specification: string; batch_number: string | null }[]>([]);
+  const [nameSearchTimer, setNameSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
   // 新供应商内联表单
   const [showNewSupplier, setShowNewSupplier] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState('');
@@ -142,6 +150,51 @@ export default function ReagentForm() {
 
   function updateField<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // 名称输入时搜索已有药品
+    if (key === 'name' && typeof value === 'string') {
+      if (nameSearchTimer) clearTimeout(nameSearchTimer);
+      const keyword = (value as string).trim();
+      if (keyword.length < 1) {
+        setNameSuggestions([]);
+        return;
+      }
+      const timer = setTimeout(async () => {
+        const { data } = await supabase
+          .from('chemicals')
+          .select('name, specification, batch_number')
+          .ilike('name', `%${keyword}%`)
+          .limit(5);
+        if (data) setNameSuggestions(data);
+      }, 300);
+      setNameSearchTimer(timer);
+    }
+  }
+
+  async function generateBatchNumber(prefix: string) {
+    if (!prefix.trim()) return;
+    setGeneratingBatch(true);
+    const p = prefix.trim().toUpperCase();
+    setBatchPrefix(p);
+
+    // 查询该前缀下已有编号，找最大数字
+    const { data } = await supabase
+      .from('chemicals')
+      .select('batch_number')
+      .ilike('batch_number', `${p}%`);
+
+    let maxNum = 0;
+    if (data) {
+      data.forEach(row => {
+        const match = row.batch_number?.match(new RegExp(`^${p}(\\d+)$`, 'i'));
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+    }
+
+    updateField('batch_number', `${p}${maxNum + 1}`);
+    setGeneratingBatch(false);
   }
 
   function toggleGhs(value: string) {
@@ -317,6 +370,18 @@ export default function ReagentForm() {
                 placeholder="如: 硝酸"
                 required
               />
+              {nameSuggestions.length > 0 && (
+                <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-sm">
+                  <p className="px-3 py-1.5 text-[10px] text-gray-400 border-b border-gray-100">已有相似药品</p>
+                  {nameSuggestions.map((s, i) => (
+                    <div key={i} className="px-3 py-1.5 text-xs text-gray-600 flex items-center gap-2 border-b border-gray-50 last:border-0">
+                      <span className="font-medium text-gray-900">{s.name}</span>
+                      {s.batch_number && <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[10px] font-bold">{s.batch_number}</span>}
+                      {s.specification && <span className="text-gray-400">{s.specification}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </FormField>
 
             <FormField label="CAS号" hint="如 7697-37-2">
@@ -504,12 +569,37 @@ export default function ReagentForm() {
               />
             </FormField>
 
-            <FormField label="批次号">
+            <FormField label="编号">
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {['A', 'B', 'C', 'D'].map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    disabled={generatingBatch}
+                    onClick={() => generateBatchNumber(p)}
+                    className={`px-3 py-1 rounded-md text-xs font-medium border transition-colors ${
+                      batchPrefix === p
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <input
+                  type="text"
+                  placeholder="自定义前缀"
+                  className="w-20 px-2 py-1 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); generateBatchNumber((e.target as HTMLInputElement).value); } }}
+                  onBlur={e => { if (e.target.value.trim()) generateBatchNumber(e.target.value); }}
+                />
+              </div>
               <input
                 type="text"
                 value={form.batch_number}
                 onChange={(e) => updateField('batch_number', e.target.value)}
                 className="input"
+                placeholder="选择前缀自动生成，或手动输入"
               />
             </FormField>
 
