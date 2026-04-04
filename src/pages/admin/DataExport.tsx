@@ -4,7 +4,6 @@ import {
   ClipboardList,
   FlaskConical,
   Receipt,
-  ShoppingCart,
   Download,
   CheckCircle,
 } from 'lucide-react';
@@ -43,18 +42,11 @@ const exportCards: ExportCard[] = [
     color: 'bg-purple-50 text-purple-600',
   },
   {
-    key: 'reimbursements',
-    title: '导出报销记录',
-    description: '导出所有报销申请记录',
+    key: 'purchases',
+    title: '导出采购记录',
+    description: '导出所有采购申请记录',
     icon: Receipt,
     color: 'bg-amber-50 text-amber-600',
-  },
-  {
-    key: 'purchases',
-    title: '导出购买登记',
-    description: '导出所有购买登记记录',
-    icon: ShoppingCart,
-    color: 'bg-rose-50 text-rose-600',
   },
 ];
 
@@ -126,42 +118,25 @@ export default function DataExport() {
           break;
         }
 
-        case 'reimbursements': {
-          const { data, error: err } = await supabase
-            .from('reimbursements')
-            .select('*, user:profiles!user_id(name)')
-            .order('created_at', { ascending: false });
-          if (err) throw err;
-          const rows = (data ?? []).map((r: Record<string, unknown>) => ({
-            '标题': r.title,
-            '申请人': (r.user as Record<string, unknown>)?.name ?? '',
-            '金额': r.amount,
-            '说明': r.description,
-            '状态': r.status,
-            '申请时间': r.created_at,
-            '审批备注': r.review_note ?? '',
-          }));
-          downloadExcel(rows, '报销记录');
-          break;
-        }
-
         case 'purchases': {
           const { data, error: err } = await supabase
-            .from('purchase_logs')
-            .select('*, user:profiles!user_id(name)')
+            .from('purchases')
+            .select('*, applicant:profiles!purchases_applicant_id_fkey(name), approver:profiles!purchases_approver_id_fkey(name)')
             .order('created_at', { ascending: false });
           if (err) throw err;
           const rows = (data ?? []).map((p: Record<string, unknown>) => ({
-            '物品名称': p.item_name,
-            '规格': p.specification,
-            '数量': p.quantity,
-            '单位': p.unit,
-            '用途': p.purpose,
-            '登记人': (p.user as Record<string, unknown>)?.name ?? '',
-            '备注': p.notes ?? '',
-            '登记时间': p.created_at,
+            '申请人': (p.applicant as Record<string, unknown>)?.name ?? '',
+            '标题': p.title,
+            '类别': p.category,
+            '采购类型': p.purchase_type === 'personal' ? '个人' : '公共',
+            '金额': p.estimated_amount,
+            '审批状态': p.approval_status,
+            '审批人': (p.approver as Record<string, unknown>)?.name ?? '',
+            '报销状态': p.reimbursement_status ?? '',
+            '入库状态': p.skip_registration ? '无需登记' : (p.registration_status as string) === 'registered' ? '已登记' : '未登记',
+            '日期': p.created_at,
           }));
-          downloadExcel(rows, '购买登记');
+          downloadExcel(rows, '采购记录');
           break;
         }
       }
