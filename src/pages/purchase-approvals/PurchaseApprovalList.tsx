@@ -7,7 +7,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { Purchase, ReimbursementFile } from '../../lib/types';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
-import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import SubNav from '../../components/SubNav';
@@ -49,7 +48,7 @@ const SUPPLY_FIELD_LABELS: Record<string, string> = {
   unit: '单位',
 };
 
-type StatusFilter = 'all' | 'active' | 'completed' | 'rejected';
+type StatusFilter = 'all' | 'active' | 'completed' | 'rejected' | 'pending' | 'approved' | 'reimbursing';
 
 function getCompositeStatus(item: Purchase): StatusFilter {
   if (item.approval_status === 'pending') return 'pending';

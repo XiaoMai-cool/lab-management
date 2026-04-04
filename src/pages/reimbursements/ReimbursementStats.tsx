@@ -58,9 +58,9 @@ const groupCategoryMap: Record<GroupTab, PurchaseCategory[] | null> = {
   '其他': ['其他'],
 };
 
-interface PurchaseWithApplicant extends Purchase {
+type PurchaseWithApplicant = Omit<Purchase, 'applicant'> & {
   applicant?: { name: string };
-}
+};
 
 export default function ReimbursementStats() {
   const [list, setList] = useState<PurchaseWithApplicant[]>([]);

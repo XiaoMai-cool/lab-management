@@ -39,10 +39,10 @@ const categoryColors: Record<string, string> = {
   '其他': 'bg-gray-100 text-gray-600',
 };
 
-interface PurchaseWithRelations extends Purchase {
+type PurchaseWithRelations = Omit<Purchase, 'applicant' | 'approver'> & {
   applicant?: { name: string; role: string };
   approver?: { name: string };
-}
+};
 
 type TabFilter = 'pending' | 'reviewed';
 

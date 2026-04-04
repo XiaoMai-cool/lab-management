@@ -36,13 +36,13 @@ function StockIndicator({ stock, minStock }: { stock: number; minStock: number }
 export default function SupplyList() {
   const { isAdmin, canManageModule } = useAuth();
   const [supplies, setSupplies] = useState<Supply[]>([]);
-  const [categories, setCategories] = useState<SupplyCategory[]>([]);
+  const [_categories, setCategories] = useState<SupplyCategory[]>([]);
   const [activeTab, setActiveTab] = useState(CATEGORY_TABS[0].key);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const location = useLocation();
+  useLocation();
   const navigate = useNavigate();
   const canManage = isAdmin || canManageModule('supplies');
 

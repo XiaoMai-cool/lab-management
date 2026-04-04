@@ -9,7 +9,6 @@ import {
   Download,
   ClipboardCheck,
   Receipt,
-  FlaskConical,
   AlertTriangle,
   BarChart3,
 } from 'lucide-react';

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Search, Package, Users, ArrowLeft } from 'lucide-react';
+import { Search, Package, Users } from 'lucide-react';
 import dayjs from 'dayjs';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';

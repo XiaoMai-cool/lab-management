@@ -105,7 +105,7 @@ export default function LoginPage() {
 
   // Public data (no auth required)
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [dutyRosters, setDutyRosters] = useState<DutyInfo[]>([]);
+  const [_dutyRosters, setDutyRosters] = useState<DutyInfo[]>([]);
   const [expandedAnnouncement, setExpandedAnnouncement] = useState<string | null>(null);
   const [chemicalWarnings, setChemicalWarnings] = useState<{
     id: string;

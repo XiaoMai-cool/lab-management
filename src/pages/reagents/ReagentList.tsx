@@ -9,7 +9,7 @@ import type { SubNavItem } from '../../components/SubNav';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
-import { X, ClipboardList, Plus, Trash2, Save, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ClipboardList, Trash2, Save, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 
 // GHS 标签配置
 const GHS_LABELS: Record<string, { name: string; color: string; bg: string; icon: string }> = {

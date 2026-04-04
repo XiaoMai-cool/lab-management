@@ -70,12 +70,12 @@ const defaultFormData: FormData = {
 export default function ReagentForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { } = useAuth();
   const isEdit = Boolean(id);
 
   const [form, setForm] = useState<FormData>(defaultFormData);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [_loading, _setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

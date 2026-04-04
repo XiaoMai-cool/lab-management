@@ -28,7 +28,7 @@ interface Warning {
 }
 
 export default function ChemicalWarnings() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -6,7 +6,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { Profile, PurchaseCategory, PurchaseType, ReimbursementFile } from '../../lib/types';
 import { PURCHASE_CATEGORIES, getDefaultSkipRegistration } from '../../lib/purchaseCategories';
 import PageHeader from '../../components/PageHeader';
-import SubNav from '../../components/SubNav';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
 

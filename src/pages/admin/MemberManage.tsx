@@ -130,7 +130,7 @@ export default function MemberManage() {
     setError(null);
 
     try {
-      const { data, error: rpcError } = await supabase.rpc('create_lab_user', {
+      const { error: rpcError } = await supabase.rpc('create_lab_user', {
         user_email: createForm.email.trim(),
         user_password: createForm.password,
         user_name: createForm.name.trim(),

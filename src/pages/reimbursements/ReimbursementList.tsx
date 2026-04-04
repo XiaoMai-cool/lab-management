@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
-import { Receipt, Plus, Filter, Link2 } from 'lucide-react';
+import { Receipt, Link2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';

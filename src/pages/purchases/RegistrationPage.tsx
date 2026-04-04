@@ -30,9 +30,9 @@ const suppliesCategories: PurchaseCategory[] = [
 ];
 const chemicalsCategories: PurchaseCategory[] = ['试剂药品'];
 
-interface PurchaseWithApplicant extends Purchase {
+type PurchaseWithApplicant = Omit<Purchase, 'applicant'> & {
   applicant?: { name: string };
-}
+};
 
 type TabFilter = 'pending' | 'registered';
 

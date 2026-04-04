@@ -101,7 +101,7 @@ export default function Dashboard() {
     let hasAnyError = false;
 
     // 所有查询并行执行，大幅减少总耗时
-    const promises: Promise<void>[] = [];
+    const promises: PromiseLike<void>[] = [];
 
     promises.push(
       supabase
@@ -122,7 +122,7 @@ export default function Dashboard() {
         .select('id,name,specification,stock,unit,min_stock,category:supply_categories(name)')
         .then(({ data, error: err }) => {
           if (err) { hasAnyError = true; console.error('Supplies:', err); return; }
-          setLowStockSupplies((data || []).filter((s: Supply) => s.stock <= s.min_stock));
+          setLowStockSupplies(((data || []) as unknown as Supply[]).filter((s: Supply) => s.stock <= s.min_stock));
         })
     );
 
@@ -137,7 +137,7 @@ export default function Dashboard() {
           .limit(5)
           .then(({ data, error: err }) => {
             if (err) { hasAnyError = true; return; }
-            setPendingReservations(data || []);
+            setPendingReservations((data || []) as unknown as SupplyReservation[]);
           })
       );
 

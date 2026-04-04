@@ -6,7 +6,6 @@ import {
   FlaskConical,
   FileText,
   User,
-  Settings,
   Bell,
   LogOut,
   ChevronDown,

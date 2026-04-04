@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/Card';
-import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
@@ -136,7 +135,7 @@ export default function ReagentDetail() {
       setChemical(chemRes.data);
       setMovements(movRes.data || []);
       setUsageLogs(usageRes.data || []);
-      setActiveWarning((warnRes.data?.[0] as ActiveWarning) || null);
+      setActiveWarning((warnRes.data?.[0] as unknown as ActiveWarning) || null);
     } catch (err: any) {
       setError(err.message || '加载药品详情失败');
     } finally {

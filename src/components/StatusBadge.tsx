@@ -1,8 +1,11 @@
 type StatusType = 'reservation' | 'reimbursement' | 'chemical_purchase' | 'equipment';
 
-interface StatusBadgeProps {
-  status: string;
+export interface StatusBadgeProps {
+  status?: string;
   type?: StatusType;
+  className?: string;
+  children?: React.ReactNode;
+  variant?: string;
 }
 
 interface StatusConfig {
@@ -49,17 +52,20 @@ const statusMap: Record<string, StatusConfig> = {
   },
 };
 
-export default function StatusBadge({ status, type: _type }: StatusBadgeProps) {
-  const config = statusMap[status] ?? {
-    label: status,
+export default function StatusBadge({ status, type: _type, className: extraClassName, children, variant }: StatusBadgeProps) {
+  const resolvedStatus = status || variant || '';
+  const config = statusMap[resolvedStatus] ?? {
+    label: children || resolvedStatus,
     className: 'bg-gray-50 text-gray-700 ring-gray-600/20',
   };
 
+  const label = children || config.label;
+
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${config.className}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${config.className} ${extraClassName || ''}`}
     >
-      {config.label}
+      {label}
     </span>
   );
 }
