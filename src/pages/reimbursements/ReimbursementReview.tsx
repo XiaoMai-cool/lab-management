@@ -401,6 +401,15 @@ export default function ReimbursementReview() {
                     </span>
                   </div>
                 )}
+                {reviewingItem.estimated_amount != null &&
+                  reviewingItem.actual_amount != null &&
+                  Math.abs(reviewingItem.actual_amount - reviewingItem.estimated_amount) >= 50 && (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700 font-medium">
+                      ⚠ 金额差异: 申请 ¥{reviewingItem.estimated_amount.toFixed(2)} → 报销 ¥{reviewingItem.actual_amount.toFixed(2)}
+                    </p>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-xs text-gray-500">申请日期</span>
                   <span className="text-sm">
