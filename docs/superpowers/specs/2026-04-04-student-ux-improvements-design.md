@@ -52,14 +52,26 @@
 - 已选耗材汇总显示在底部
 - 一次提交所有选中的耗材，老师一次审批
 
-审批记录：一次提交生成一条审批记录，包含多个耗材明细。老师可以整体通过/驳回，也可以逐个调整数量。
+#### 审批方式
+
+一次提交生成一条审批记录，包含多个耗材明细。老师审批时看到完整清单：
+- 默认整体通过/驳回
+- 老师可以删掉个别项（不批准的耗材）
+- 老师可以调整个别项的数量
+- 一键提交审批结果
+- 学生看到结果如"3项申领，2项通过，1项被移除"
 
 #### 用途改为选填
 
 - 非必填
-- 提供快捷标签按钮：「日常实验」「课题实验」「教学用」
-- 点击标签自动填入，也可手动输入自定义内容
-- 快捷标签可在后续根据使用情况调整
+- 提供快捷标签按钮，点击自动填入：
+  - 课题实验
+  - 教学用
+  - 仪器维护
+  - 样品处理
+  - 安全防护
+  - 其他（选择后聚焦到手动输入框）
+- 也可不选标签，直接手动输入自定义内容
 
 #### 归还与报损
 
@@ -73,10 +85,10 @@
 |---------|------|
 | `SupplyReserve.tsx` | 改为多选表单，按分类分组展示耗材，移除「使用后归还」勾选框，用途改选填+快捷标签 |
 | `SupplyBorrow.tsx` | 废弃，功能合并到申领流程 |
-| `SupplyReturn.tsx` | 保留，增加「报损」选项（现有「丢失」改为「报损」，去除追责暗示） |
+| `SupplyReturn.tsx` | 保留，「丢失」改为「报损」，去除追责暗示 |
 | `SupplyList.tsx` | 保留，SubNav 中移除「借用」入口 |
 | `SupplyManage.tsx`（管理端） | 每个耗材增加 `is_returnable` 属性配置 |
-| `ReservationReview.tsx`（管理端） | 适配多耗材审批，支持整体或逐个审批 |
+| `ReservationReview.tsx`（管理端） | 适配多耗材审批，支持整体通过/驳回 + 逐个删除/调整数量 |
 
 ### 数据模型变更
 
@@ -96,8 +108,8 @@ supply_reservation_items:
   reservation_id    -- 关联 supply_reservations
   supply_id         -- 耗材 ID
   quantity          -- 申领数量
-  approved_quantity -- 审批通过数量（老师可调整）
-  status            -- pending / approved / rejected（逐个审批时使用）
+  approved_quantity -- 审批通过数量（老师可调整，null 表示未审批）
+  removed           -- boolean, 老师审批时删除此项则为 true
 ```
 
 `supply_reservations` 表调整：
@@ -108,7 +120,7 @@ supply_reservation_items:
 `supply_borrowings` 表保留用于追踪可归还物品的使用状态：
 - 审批通过后，可归还物品自动创建 borrowing 记录
 - 状态：`borrowed`（使用中）→ `returned`（已归还）/ `damaged`（已报损）
-- 原有 `lost` 状态改为 `damaged`（报损）
+- 原有 `lost` 状态改为 `damaged`（报损），旧数据为测试数据无需迁移
 
 ### 底部导航调整
 
@@ -142,34 +154,26 @@ supply_reservation_items:
 
 #### 已保存清单
 
-- 保存的清单存在用户本地（localStorage）或数据库
+- 保存的清单存在数据库中，跨设备可用
 - 在药品列表页可快捷加载已保存清单
 - 可删除已保存清单
 - 可编辑已保存清单（重命名、增删药品）
 
 #### 数据存储
 
-清单数据使用 localStorage 存储，避免增加后端复杂度：
+新增 `reagent_lists` 表：
 
 ```
-reagent_lists: [
-  {
-    id: string,          -- 唯一标识
-    name: string,        -- 清单名称
-    items: [
-      {
-        chemical_id: string,
-        name: string,
-        batch_number: string,
-        location: string,
-        specification: string,
-      }
-    ],
-    created_at: string,
-    updated_at: string,
-  }
-]
+reagent_lists:
+  id
+  user_id           -- 所属用户
+  name              -- 清单名称
+  items             -- jsonb, 药品列表 [{ chemical_id, name, batch_number, location, specification }]
+  created_at
+  updated_at
 ```
+
+RLS 策略：用户只能读写自己的清单。
 
 ### 2.2 预警交互优化
 
@@ -196,12 +200,14 @@ reagent_lists: [
 
 | 当前页面 | 变更 |
 |---------|------|
-| `ReagentList.tsx` | 增加「加入清单」按钮、浮动清单栏、已保存清单加载入口 |
+| `ReagentList.tsx` | 增加「加入清单」按钮、浮动清单栏、已保存清单加载入口、预警按钮加确认框、已有预警时隐藏按钮、上报人显示撤回按钮 |
 | `ReagentDetail.tsx` | 预警按钮加确认框、上报人显示撤回按钮 |
 
 ### 数据模型变更
 
 `chemical_warnings` 表：无需变更，现有字段已支持（`reported_by` 字段可用于判断上报人）。
+
+新增 `reagent_lists` 表（见上方数据存储）。
 
 ---
 
@@ -210,3 +216,4 @@ reagent_lists: [
 - 耗材库存的自动补货/采购联动
 - 药品用量追踪（记录每次取了多少）
 - 通知系统（预警推送等）
+- 旧数据迁移（现有数据为测试数据）
