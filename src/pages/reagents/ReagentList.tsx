@@ -9,7 +9,7 @@ import type { SubNavItem } from '../../components/SubNav';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
-import { X, ClipboardList, Plus, Trash2, Save, FolderOpen } from 'lucide-react';
+import { X, ClipboardList, Plus, Trash2, Save, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 
 // GHS 标签配置
 const GHS_LABELS: Record<string, { name: string; color: string; bg: string; icon: string }> = {
@@ -26,7 +26,6 @@ const GHS_LABELS: Record<string, { name: string; color: string; bg: string; icon
 
 const REAGENT_SUB_NAV: SubNavItem[] = [
   { to: '/reagents', label: '药品总览', exact: true },
-  { to: '/reagents/purchase', label: '申购药品' },
 ];
 
 interface ActiveWarning {
@@ -125,6 +124,7 @@ export default function ReagentList() {
   const [savedLists, setSavedLists] = useState<SavedList[]>([]);
   const [loadingLists, setLoadingLists] = useState(false);
   const [changedItems, setChangedItems] = useState<Set<string>>(new Set());
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
 
   useEffect(() => {
     fetchChemicals();
@@ -429,20 +429,30 @@ export default function ReagentList() {
       </div>
 
       {/* 按药品类型筛选 */}
-      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.value}
-            onClick={() => { setActiveCategory(cat.value); setActiveCodePrefix(''); }}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              activeCategory === cat.value && !activeCodePrefix
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
+      <div className="mt-2">
+        {/* Mobile toggle */}
+        <button
+          onClick={() => setCategoryExpanded(!categoryExpanded)}
+          className="md:hidden flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+        >
+          分类 {activeCategory ? `(${activeCategory})` : ''}
+          {categoryExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+        <div className={`${categoryExpanded ? 'flex' : 'hidden'} md:flex gap-2 overflow-x-auto pb-1 mt-1 md:mt-0`}>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => { setActiveCategory(cat.value); setActiveCodePrefix(''); setCategoryExpanded(false); }}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeCategory === cat.value && !activeCodePrefix
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 药品列表 */}
