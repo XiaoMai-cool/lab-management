@@ -74,15 +74,13 @@
 | 页面 | 变更 |
 |-----|------|
 | `DocumentList.tsx` | 重写为 Tab 页面，Tab 1 显示公告列表（查询 announcements 表），Tab 2 显示文档列表（现有逻辑） |
-| `AnnouncementManage.tsx` | 增加 Tab 2「文档管理」，整合文档的增删改功能。页面标题改为「公告与文档管理」 |
-| `Dashboard.tsx` | 「查看全部」链接改为 `/documents?tab=announcements` |
+| `AnnouncementManage.tsx` | 增加 Tab 2「文档管理」，整合文档增删改。页面标题改为「公告与文档管理」。公告编辑改为跳转独立页面（与文档一致），不用 Modal |
+| `Dashboard.tsx` | 「查看全部」链接改为 `/documents?tab=announcements`。快捷操作「文档资料」改名为「公告与文档」 |
 | `DocumentEdit.tsx` | 保留，用于文档编辑页面（从管理端跳转） |
 | `DocumentView.tsx` | 保留，用于文档详情查看 |
 | 新增：`AnnouncementView.tsx` | 公告详情页（`/announcements/:id`），显示完整内容+附件+返回按钮 |
-| `AnnouncementManage.tsx` | 公告编辑改为跳转独立页面（与文档编辑一致），不用 Modal |
 | `AdminDashboard.tsx` | 「公告管理」+「文档资料」卡片合并为「公告与文档管理」 |
 | `Layout.tsx` | 管理面板「公告管理」改名为「公告与文档管理」 |
-| `Dashboard.tsx` | 快捷操作「文档资料」改名为「公告与文档」 |
 | `ProfilePage.tsx` | 快捷入口「文档资料」改名为「公告与文档」 |
 
 ---
