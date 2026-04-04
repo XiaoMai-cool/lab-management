@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isTeacher = profile?.role === 'teacher' || profile?.role === 'admin' || profile?.role === 'super_admin';
 
   const canManageModule = (module: string): boolean => {
-    if (isAdmin) return true;
+    if (isSuperAdmin) return true; // 只有超级管理员自动拥有所有模块权限
     return profile?.managed_modules?.includes(module) ?? false;
   };
 
@@ -158,7 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isChemicalsManager = canManageModule('chemicals');
   const isDutyManager = canManageModule('duty');
   // 报销审批：李健楠（admin角色）+ 大导（super_admin）
-  const isReimbursementApprover = isAdmin;
+  // 报销审批：超级管理员 + 有 reimbursements 模块权限的人（李健楠）
+  const isReimbursementApprover = isSuperAdmin || (profile?.managed_modules?.includes('reimbursements') ?? false);
 
   return (
     <AuthContext.Provider
