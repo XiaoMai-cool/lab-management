@@ -113,6 +113,7 @@ export default function LoginPage() {
     estimated_delivery_date: string | null;
     chemical: { name: string; batch_number: string } | null;
   }[]>([]);
+  const [dailyNotices, setDailyNotices] = useState<{ id: string; category: string; content: string; sort_order: number }[]>([]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -128,8 +129,9 @@ export default function LoginPage() {
       const [announcementsRes, dutyRes] = await Promise.all([
         supabase
           .from('announcements')
-          .select('id,title,content,priority,created_at')
+          .select('id,title,content,priority,created_at,show_on_login')
           .eq('published', true)
+          .eq('show_on_login', true)
           .order('created_at', { ascending: false })
           .limit(5),
         supabase
@@ -149,6 +151,13 @@ export default function LoginPage() {
         .in('status', ['pending', 'ordered'])
         .order('created_at', { ascending: false });
       if (warningsRes.data) setChemicalWarnings(warningsRes.data as any);
+
+      // Fetch daily notices
+      const noticesRes = await supabase
+        .from('daily_notices')
+        .select('id, category, content, sort_order')
+        .order('sort_order', { ascending: true });
+      if (noticesRes.data) setDailyNotices(noticesRes.data);
     }
     fetchPublicData();
   }, []);
@@ -354,45 +363,51 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Quick Info */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h2 className="text-sm font-bold text-gray-900">日常须知</h2>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">实验室</p>
-                  <ul className="space-y-1.5 text-xs text-gray-600">
-                    <li className="flex items-start gap-2">
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                      <span>耗材每周一 11:00 后统一发放，周一 9:00 后提交的顺延至下周</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                      <span>危化品使用须登记，空瓶集中放在药品柜旁纸箱回收</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                      <span>废弃物严格分类投放，违规两次暂停一周领取资格</span>
-                    </li>
-                  </ul>
+            {/* Quick Info - Daily Notices from DB */}
+            {dailyNotices.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-sm font-bold text-gray-900">日常须知</h2>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">办公室</p>
-                  <ul className="space-y-1.5 text-xs text-gray-600">
-                    <li className="flex items-start gap-2">
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                      <span>值日负责垃圾清运、环境清理及地面拖洗</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                      <span>个人异味物品请及时带离，保持办公环境整洁</span>
-                    </li>
-                  </ul>
+                <div className="space-y-3">
+                  {(() => {
+                    const labNotices = dailyNotices.filter(n => n.category === '实验室');
+                    const officeNotices = dailyNotices.filter(n => n.category === '办公室');
+                    return (
+                      <>
+                        {labNotices.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">实验室</p>
+                            <ul className="space-y-1.5 text-xs text-gray-600">
+                              {labNotices.map(n => (
+                                <li key={n.id} className="flex items-start gap-2">
+                                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                                  <span>{n.content}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {officeNotices.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">办公室</p>
+                            <ul className="space-y-1.5 text-xs text-gray-600">
+                              {officeNotices.map(n => (
+                                <li key={n.id} className="flex items-start gap-2">
+                                  <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                                  <span>{n.content}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right: Login Form */}

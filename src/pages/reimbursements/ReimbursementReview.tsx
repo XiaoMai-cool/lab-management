@@ -59,6 +59,7 @@ export default function ReimbursementReview() {
     useState<PurchaseWithRelations | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [recalling, setRecalling] = useState<string | null>(null);
 
   useEffect(() => {
     fetchList();
@@ -124,6 +125,27 @@ export default function ReimbursementReview() {
       alert(err instanceof Error ? err.message : '操作失败');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleRecallReimbursement(item: PurchaseWithRelations) {
+    if (!confirm('确定要撤回该报销审批吗？报销状态将恢复为待审批。')) return;
+    try {
+      setRecalling(item.id);
+      const { error: updateErr } = await supabase
+        .from('purchases')
+        .update({
+          reimbursement_status: 'pending',
+          reimbursed_at: null,
+          reimbursement_note: null,
+        })
+        .eq('id', item.id);
+      if (updateErr) throw updateErr;
+      fetchList();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '撤回失败');
+    } finally {
+      setRecalling(null);
     }
   }
 
@@ -318,6 +340,17 @@ export default function ReimbursementReview() {
                             <span className="font-medium">审批备注：</span>
                             {item.reimbursement_note}
                           </p>
+                        </div>
+                      )}
+                      {item.reimbursement_status === 'approved' && (
+                        <div className="flex justify-end pt-1">
+                          <button
+                            onClick={() => handleRecallReimbursement(item)}
+                            disabled={recalling === item.id}
+                            className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                          >
+                            {recalling === item.id ? '撤回中...' : '撤回报销'}
+                          </button>
                         </div>
                       )}
                     </div>

@@ -22,6 +22,7 @@ import {
   CalendarCheck,
   BarChart,
   LogIn,
+  FileText,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -158,6 +159,12 @@ export default function ProfilePage() {
       icon: Receipt,
       path: '/reimbursements',
       color: 'text-green-600 bg-green-50',
+    },
+    {
+      label: '制度文档',
+      icon: FileText,
+      path: '/documents',
+      color: 'text-teal-600 bg-teal-50',
     },
   ];
 

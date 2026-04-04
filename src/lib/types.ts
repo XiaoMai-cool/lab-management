@@ -21,6 +21,13 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface AnnouncementAttachment {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -29,6 +36,8 @@ export interface Announcement {
   author_id: string;
   author?: Profile;
   published: boolean;
+  attachments?: AnnouncementAttachment[];
+  show_on_login?: boolean;
   created_at: string;
   updated_at: string;
 }

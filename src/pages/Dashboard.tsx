@@ -10,11 +10,15 @@ import {
   Clock,
   RefreshCw,
   ClipboardList,
+  FileText,
+  ChevronRight,
+  Download,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type {
   Announcement,
+  AnnouncementAttachment,
   Supply,
 
   SupplyReservation,
@@ -25,6 +29,7 @@ const quickActions = [
   { label: '采购申请', path: '/purchase-approvals/new', icon: Receipt, color: 'bg-purple-50 text-purple-600' },
   { label: '药品总览', path: '/reagents', icon: FlaskConical, color: 'bg-pink-50 text-pink-600' },
   { label: '值日查询', path: '/duty', icon: CalendarCheck, color: 'bg-orange-50 text-orange-600' },
+  { label: '制度文档', path: '/documents', icon: FileText, color: 'bg-teal-50 text-teal-600' },
 ];
 
 function formatDate(dateStr: string) {
@@ -82,7 +87,7 @@ interface ChemicalWarning {
 }
 
 export default function Dashboard() {
-  const { user, profile, isSuppliesManager, isChemicalsManager, isTeacher, isReimbursementApprover, isSuperAdmin } = useAuth();
+  const { user, profile, isSuppliesManager, isChemicalsManager, isTeacher, isReimbursementApprover, isSuperAdmin, isAdmin } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<Supply[]>([]);
   const [pendingReservations, setPendingReservations] = useState<SupplyReservation[]>([]);
@@ -94,6 +99,8 @@ export default function Dashboard() {
     purchaseApprovals: number;
     reimbursementsPending: number;
   }>({ supplyReservations: 0, chemicalWarningsPending: 0, purchaseApprovals: 0, reimbursementsPending: 0 });
+  const [todayReturnedCount, setTodayReturnedCount] = useState(0);
+  const [dailyNotices, setDailyNotices] = useState<{ id: string; category: string; content: string; sort_order: number }[]>([]);
   const hasAnyManagerRole = isSuppliesManager || isChemicalsManager || isTeacher || isReimbursementApprover || isSuperAdmin;
 
   const [loading, setLoading] = useState(true);
@@ -231,6 +238,35 @@ export default function Dashboard() {
       );
     }
 
+    // Today's returned items (for supplies manager)
+    if (isSuppliesManager) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      promises.push(
+        supabase
+          .from('supply_borrowings')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'returned')
+          .gte('returned_at', todayStart.toISOString())
+          .then(({ count, error: err }) => {
+            if (err) { hasAnyError = true; return; }
+            setTodayReturnedCount(count ?? 0);
+          })
+      );
+    }
+
+    // Daily notices
+    promises.push(
+      supabase
+        .from('daily_notices')
+        .select('id, category, content, sort_order')
+        .order('sort_order', { ascending: true })
+        .then(({ data, error: err }) => {
+          if (err) { console.error('Daily notices:', err); return; }
+          setDailyNotices(data || []);
+        })
+    );
+
     try {
       await Promise.all(promises);
     } catch (err) {
@@ -332,6 +368,9 @@ export default function Dashboard() {
             if (isReimbursementApprover && pendingTaskCounts.reimbursementsPending > 0) {
               tasks.push({ label: '报销待审批', count: pendingTaskCounts.reimbursementsPending, path: '/reimbursements/review', color: 'bg-blue-50 text-blue-700 border-blue-200' });
             }
+            if (isSuppliesManager && todayReturnedCount > 0) {
+              tasks.push({ label: '物资已归还', count: todayReturnedCount, path: '/supplies/borrowings', color: 'bg-green-50 text-green-700 border-green-200' });
+            }
             if (tasks.length === 0) {
               return (
                 <div className="bg-white rounded-xl border border-gray-200 p-4 text-center text-sm text-gray-400">
@@ -350,7 +389,7 @@ export default function Dashboard() {
                     <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-current/10 text-xs font-bold">
                       {t.count}
                     </span>
-                    <span>{t.count}条{t.label}</span>
+                    <span>{t.path === '/supplies/borrowings' ? `今日${t.count}项${t.label}` : `${t.count}条${t.label}`}</span>
                   </Link>
                 ))}
               </div>
@@ -364,6 +403,9 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 mb-3">
           <Megaphone className="w-5 h-5 text-blue-600" />
           <h2 className="text-base font-semibold text-gray-900">公告栏</h2>
+          <Link to="/documents" className="ml-auto text-sm text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
+            查看全部 <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
         {announcements.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
@@ -400,6 +442,27 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-600 mt-1.5 line-clamp-2 whitespace-pre-line">
                   {a.content}
                 </p>
+                {/* Announcement attachments */}
+                {a.attachments && (a.attachments as AnnouncementAttachment[]).length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {(a.attachments as AnnouncementAttachment[]).map((att, idx) =>
+                      att.type?.startsWith('image/') ? (
+                        <img key={idx} src={att.url} alt={att.name} className="max-w-full max-h-48 rounded-lg border border-gray-200" />
+                      ) : (
+                        <a
+                          key={idx}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-md"
+                        >
+                          <Download className="w-3 h-3" />
+                          {att.name}
+                        </a>
+                      )
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                   <span>{(a.author as any)?.name || '未知'}</span>
                   <span>{formatDate(a.created_at)}</span>
@@ -438,8 +501,8 @@ export default function Dashboard() {
 
       {/* 库存预警 & 本周值日 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 库存预警 */}
-        <section>
+        {/* 库存预警 (managers/admins only) */}
+        {(isSuppliesManager || isChemicalsManager || isAdmin) && <section>
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
             <h2 className="text-base font-semibold text-gray-900">库存预警</h2>
@@ -487,7 +550,7 @@ export default function Dashboard() {
               )}
             </div>
           )}
-        </section>
+        </section>}
 
         {/* 本周值日 */}
         <section>
@@ -531,6 +594,52 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
+
+      {/* 日常须知 */}
+      {dailyNotices.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <h2 className="text-base font-semibold text-gray-900">日常须知</h2>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            {(() => {
+              const labNotices = dailyNotices.filter(n => n.category === '实验室');
+              const officeNotices = dailyNotices.filter(n => n.category === '办公室');
+              return (
+                <>
+                  {labNotices.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">实验室</p>
+                      <ul className="space-y-1.5 text-xs text-gray-600">
+                        {labNotices.map(n => (
+                          <li key={n.id} className="flex items-start gap-2">
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                            <span>{n.content}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {officeNotices.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">办公室</p>
+                      <ul className="space-y-1.5 text-xs text-gray-600">
+                        {officeNotices.map(n => (
+                          <li key={n.id} className="flex items-start gap-2">
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                            <span>{n.content}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </section>
+      )}
 
       {/* 药品预警 (chemicals managers only) */}
       {isChemicalsManager && chemicalWarnings.length > 0 && (

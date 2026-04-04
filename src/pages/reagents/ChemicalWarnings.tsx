@@ -135,6 +135,23 @@ export default function ChemicalWarnings() {
     }
   }
 
+  async function handleRecallArrived(warningId: string) {
+    if (!confirm('确定要撤回送达状态吗？该记录将恢复为已下单状态。')) return;
+    try {
+      setActionLoading(true);
+      const { error: updateError } = await supabase
+        .from('chemical_warnings')
+        .update({ status: 'ordered', arrived_at: null })
+        .eq('id', warningId);
+      if (updateError) throw updateError;
+      await fetchWarnings();
+    } catch (err: any) {
+      alert('撤回失败: ' + (err.message || '未知错误'));
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   const pending = warnings.filter((w) => w.status === 'pending');
   const ordered = warnings.filter((w) => w.status === 'ordered');
   const arrived = warnings.filter(
@@ -377,9 +394,18 @@ export default function ChemicalWarnings() {
                       {w.arrived_at && <span>送达: {dayjs(w.arrived_at).format('YYYY-MM-DD HH:mm')}</span>}
                     </div>
                   </div>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                    已完成
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                      已完成
+                    </span>
+                    <button
+                      onClick={() => handleRecallArrived(w.id)}
+                      disabled={actionLoading}
+                      className="rounded-md px-2.5 py-1 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                    >
+                      撤回送达
+                    </button>
+                  </div>
                 </div>
               </Card>
             ))}

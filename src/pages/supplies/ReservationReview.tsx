@@ -68,6 +68,41 @@ export default function ReservationReview() {
     fetchReservations();
   }, [canReview, tab]);
 
+  async function handleRecallApproval(reservation: SupplyReservation) {
+    if (!confirm('确定要撤回该预约审批吗？审批状态将恢复为待审批，已扣减的库存将被恢复。')) return;
+    setProcessingId(reservation.id);
+    setActionError(null);
+    try {
+      // Restore stock
+      const supply = reservation.supply as any;
+      if (supply) {
+        const restoredStock = supply.stock + reservation.quantity;
+        const { error: stockError } = await supabase
+          .from('supplies')
+          .update({ stock: restoredStock, updated_at: new Date().toISOString() })
+          .eq('id', supply.id);
+        if (stockError) throw stockError;
+      }
+
+      // Reset reservation status
+      const { error: updateError } = await supabase
+        .from('supply_reservations')
+        .update({
+          status: 'pending',
+          reviewed_at: null,
+          review_note: null,
+        })
+        .eq('id', reservation.id);
+      if (updateError) throw updateError;
+
+      fetchReservations();
+    } catch (err: any) {
+      setActionError(err.message || '撤回失败');
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   async function handleEditStatus(reservation: SupplyReservation, newStatus: string) {
     if (!user) return;
     setProcessingId(reservation.id);
@@ -397,6 +432,15 @@ export default function ReservationReview() {
                       </div>
                     ) : (
                       <>
+                        {reservation.status === 'approved' && (
+                          <button
+                            onClick={() => handleRecallApproval(reservation)}
+                            disabled={processingId === reservation.id}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                          >
+                            撤回审批
+                          </button>
+                        )}
                         <button
                           onClick={() => { setEditingItem(reservation); setEditStatus(reservation.status); }}
                           className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"

@@ -169,6 +169,44 @@ export default function BorrowingManage() {
     }
   }
 
+  // Undo return action
+  async function handleUndoReturn(record: BorrowingRecord) {
+    if (!confirm('确定要撤销该归还记录吗？物品状态将恢复为借用中，库存将相应减少。')) return;
+    setActionLoading(record.id);
+    try {
+      // Update borrowing status back to borrowed
+      const { error: updateError } = await supabase
+        .from('supply_borrowings')
+        .update({
+          status: 'borrowed',
+          returned_at: null,
+        })
+        .eq('id', record.id);
+      if (updateError) throw updateError;
+
+      // Decrease stock (return had added it back)
+      const newStock = Math.max(0, record.supply.stock - record.quantity);
+      const { error: stockError } = await supabase
+        .from('supplies')
+        .update({ stock: newStock })
+        .eq('id', record.supply_id);
+      if (stockError) throw stockError;
+
+      // Update local state
+      setBorrowings((prev) =>
+        prev.map((b) =>
+          b.id === record.id
+            ? { ...b, status: 'borrowed', returned_at: null }
+            : b
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || '撤销归还失败');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   // View user history
   async function viewUserHistory(userId: string, userName: string) {
     setHistoryUser({ id: userId, name: userName });
@@ -342,7 +380,7 @@ export default function BorrowingManage() {
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       状态
                     </th>
-                    {canManage && activeTab === 'borrowed' && (
+                    {canManage && (activeTab === 'borrowed' || activeTab === 'returned') && (
                       <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         操作
                       </th>
@@ -394,6 +432,17 @@ export default function BorrowingManage() {
                             className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                           >
                             {actionLoading === record.id ? '处理中...' : '标记归还'}
+                          </button>
+                        </td>
+                      )}
+                      {canManage && activeTab === 'returned' && (
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleUndoReturn(record)}
+                            disabled={actionLoading === record.id}
+                            className="px-3 py-1 text-orange-700 bg-orange-50 rounded-lg text-xs font-medium hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          >
+                            {actionLoading === record.id ? '处理中...' : '撤销归还'}
                           </button>
                         </td>
                       )}
@@ -451,6 +500,15 @@ export default function BorrowingManage() {
                         className="shrink-0 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
                         {actionLoading === record.id ? '...' : '标记归还'}
+                      </button>
+                    )}
+                    {canManage && activeTab === 'returned' && (
+                      <button
+                        onClick={() => handleUndoReturn(record)}
+                        disabled={actionLoading === record.id}
+                        className="shrink-0 px-3 py-1.5 text-orange-700 bg-orange-50 rounded-lg text-xs font-medium hover:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        {actionLoading === record.id ? '...' : '撤销归还'}
                       </button>
                     )}
                   </div>
