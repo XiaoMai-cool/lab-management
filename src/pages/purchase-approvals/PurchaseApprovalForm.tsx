@@ -83,7 +83,7 @@ export default function PurchaseApprovalForm() {
       const { data: teacherData } = await supabase
         .from('profiles')
         .select('*')
-        .in('role', ['teacher', 'admin', 'super_admin'])
+        .in('role', ['teacher', 'manager', 'admin', 'super_admin'])
         .neq('email', 'fengfamily@lab')
         .order('name');
 

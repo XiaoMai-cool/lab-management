@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin';
   const isSuperAdmin = profile?.role === 'super_admin';
   const isManager = profile?.role === 'manager';
-  const isTeacher = profile?.role === 'teacher' || profile?.role === 'admin' || profile?.role === 'super_admin';
+  const isTeacher = profile?.role === 'teacher' || profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'super_admin';
 
   const canManageModule = (module: string): boolean => {
     if (isSuperAdmin) return true; // 只有超级管理员自动拥有所有模块权限
