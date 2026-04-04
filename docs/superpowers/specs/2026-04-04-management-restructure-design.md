@@ -28,7 +28,7 @@
 | 分组 | 颜色 | 包含功能 | 可见角色 |
 |-----|------|---------|---------|
 | 采购审批（独立入口） | 绿色 | 审批学生采购申请 | 教师（isTeacher） |
-| 报销管理 | 黄色 | 报销审批、报销统计 | 报销审批人（isReimbursementApprover）。注：报销统计当前对耗材/药品专人也可见，合并后统计页面的权限保持不变，但在分组中仅对报销审批人显示此分组 |
+| 报销管理 | 黄色 | 报销审批、报销统计 | 报销审批人（isReimbursementApprover）、耗材专人（isSuppliesManager）、药品专人（isChemicalsManager）。注：耗材/药品专人在此分组中只看到「报销统计」，看不到「报销审批」 |
 | 耗材管理 | 蓝色 | 申领审批、库存管理、借用管理 | 耗材专人（isSuppliesManager） |
 | 药品管理 | 紫色 | 药品库存、补货管理 | 药品专人（isChemicalsManager） |
 | 系统管理 | 灰色 | 公告管理、人员管理、数据导出 | 管理员（isAdmin） |
@@ -89,6 +89,18 @@ interface ManageConfig {
 - 报销审批人审批报销
 - 学生全程只看到「审批」和「报销」两个阶段，不涉及入库
 
+#### 教师（小老师）视角
+
+- 审批学生的采购申请（待审批 → 已批准/已驳回）
+- 审批后记录**持续可见**，能看到后续报销状态（未报销/已报销）
+- 可查看自己名下所有学生的采购记录历史，方便溯源
+- 学生之间数据隔离（学生只能看到自己的记录），但小老师能看到分配给自己的所有学生记录
+
+#### 老师自行采购
+
+- 老师（教师角色）提交采购申请时，**自动跳过审批环节**，记录直接进入「已批准」状态
+- 报销流程正常走李健楠审批，与学生一致
+
 #### 管理员视角
 
 审批通过后，报销和入库是两个独立环节，不强制先后顺序：
@@ -113,10 +125,11 @@ purchases:
   attachments         -- 申请附件
 
   # 审批阶段
-  approver_id         -- 审批教师
+  approver_id         -- 审批教师（老师自行采购时为自己的 ID）
   approval_status     -- pending / approved / rejected
   approval_note       -- 审批备注
   approved_at         -- 审批时间
+  auto_approved       -- boolean, 老师自行采购时为 true
 
   # 报销阶段
   actual_amount       -- 实际金额
@@ -141,22 +154,68 @@ purchases:
 - `category = '个人药品'` → 药品专人（宋艳芳）
 - 其他类别 → 耗材专人（王子寒）
 
+### 报销统计页面增强
+
+报销统计只在「报销管理」分组中出现一次，页面内通过 Tab 切换类别：
+
+**Tab 设计**：`全部` / `非药品` / `药品`
+
+**Tab 可见权限**：
+- 报销审批人 / 超管：全部三个 Tab
+- 耗材专人：全部三个 Tab
+- 药品专人：全部三个 Tab
+
+注：所有有权限的角色看到的数据范围相同（全量），Tab 仅用于方便筛选查看，不做权限隔离。
+
+**筛选功能增强**：
+- 按姓名筛选
+- 按时间范围筛选
+- 按金额筛选（支持 500 元以上等阈值筛选）
+- 按类别筛选（已有）
+
 ### 页面变更
 
 | 当前页面 | 变更 |
 |---------|------|
-| `PurchaseApprovalForm.tsx` | 改为统一的采购申请表单 |
-| `PurchaseApprovalList.tsx` | 改为学生的采购记录列表，显示完整流程线 |
-| `PurchaseApprovalReview.tsx` | 保留，教师审批采购 |
+| `PurchaseApprovalForm.tsx` | 改为统一的采购申请表单。老师提交时自动跳过审批 |
+| `PurchaseApprovalList.tsx` | 改为学生/老师的采购记录列表，显示完整流程线（审批→报销） |
+| `PurchaseApprovalReview.tsx` | 保留教师审批功能，增加已审批记录的后续状态展示（报销状态） |
 | `ReimbursementForm.tsx` | 改为在已批准的采购记录上补充报销信息 |
 | `ReimbursementList.tsx` | 合并到采购记录列表 |
 | `ReimbursementReview.tsx` | 保留，报销审批人审批报销 |
-| `ReimbursementStats.tsx` | 保留，基于新数据结构调整 |
+| `ReimbursementStats.tsx` | 增加 Tab 切换（全部/非药品/药品）+ 增强筛选（姓名、时间、金额） |
 | 新增：入库登记页面 | 管理员查看待登记物资，标记已登记 |
 
 ### 底部导航调整
 
 当前底部导航「报销」Tab 改为「采购」，路由指向统一的采购记录列表。学生在这里完成从申请到报销的全部操作。
+
+---
+
+## 三、安全加固
+
+### 现状
+
+- 报销记录：后端 RLS 严格隔离 ✅
+- 采购审批、物资申领：RLS 策略为 `SELECT ... USING (true)`，所有登录用户可读全部记录，仅靠前端过滤 ⚠️
+
+### 改进
+
+为 `purchases` 表（合并后）设置严格的 RLS 策略：
+
+```sql
+CREATE POLICY "purchases_select" ON purchases
+  FOR SELECT TO authenticated USING (
+    applicant_id = auth.uid()          -- 申请人看自己的
+    OR approver_id = auth.uid()        -- 审批教师看分配给自己的
+    OR manages_module('reimbursements') -- 报销审批人
+    OR manages_module('supplies')       -- 耗材专人（入库）
+    OR manages_module('chemicals')      -- 药品专人（入库）
+    OR is_admin_or_above()             -- 管理员
+  );
+```
+
+同时补齐 `supply_reservations` 表的 RLS 策略。
 
 ---
 
