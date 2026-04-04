@@ -49,7 +49,7 @@ const SUPPLY_FIELD_LABELS: Record<string, string> = {
   unit: '单位',
 };
 
-type StatusFilter = 'all' | 'pending' | 'approved' | 'reimbursing' | 'completed' | 'rejected';
+type StatusFilter = 'all' | 'active' | 'completed' | 'rejected';
 
 function getCompositeStatus(item: Purchase): StatusFilter {
   if (item.approval_status === 'pending') return 'pending';
@@ -202,14 +202,26 @@ export default function PurchaseApprovalList() {
 
   const filtered = useMemo(() => {
     if (statusFilter === 'all') return list;
-    return list.filter((item) => getCompositeStatus(item) === statusFilter);
+    return list.filter((item) => {
+      switch (statusFilter) {
+        case 'active':
+          return (
+            item.approval_status === 'pending' ||
+            (item.approval_status === 'approved' && item.reimbursement_status !== 'approved')
+          );
+        case 'completed':
+          return item.reimbursement_status === 'approved';
+        case 'rejected':
+          return item.approval_status === 'rejected' || item.reimbursement_status === 'rejected';
+        default:
+          return true;
+      }
+    });
   }, [list, statusFilter]);
 
   const filterOptions: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: '全部' },
-    { value: 'pending', label: '待审批' },
-    { value: 'approved', label: '已批准' },
-    { value: 'reimbursing', label: '报销中' },
+    { value: 'active', label: '进行中' },
     { value: 'completed', label: '已完成' },
     { value: 'rejected', label: '已拒绝' },
   ];
