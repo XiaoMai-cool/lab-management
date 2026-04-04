@@ -55,6 +55,7 @@ interface Chemical {
 interface ActiveWarning {
   id: string;
   status: 'pending' | 'ordered';
+  reported_by: string;
   reported_at: string;
   estimated_delivery_date: string | null;
   reporter: { name: string } | null;
@@ -93,6 +94,9 @@ export default function ReagentDetail() {
   const [activeTab, setActiveTab] = useState<'movements' | 'usage'>('movements');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showWarningConfirm, setShowWarningConfirm] = useState(false);
+  const [showRecallConfirm, setShowRecallConfirm] = useState(false);
+  const [recallSubmitting, setRecallSubmitting] = useState(false);
 
   const isAdmin = isAdminRole || isChemicalsManager;
 
@@ -121,7 +125,7 @@ export default function ReagentDetail() {
           .order('created_at', { ascending: false }),
         supabase
           .from('chemical_warnings')
-          .select('id, status, reported_at, estimated_delivery_date, reporter:profiles!chemical_warnings_reported_by_fkey(name)')
+          .select('id, status, reported_by, reported_at, estimated_delivery_date, reporter:profiles!chemical_warnings_reported_by_fkey(name)')
           .eq('chemical_id', id)
           .in('status', ['pending', 'ordered'])
           .order('reported_at', { ascending: false })
@@ -140,22 +144,40 @@ export default function ReagentDetail() {
     }
   }
 
-  async function handleReportWarning() {
+  async function confirmReportWarning() {
     if (!id || !user) return;
     try {
       setWarningLoading(true);
       const { data, error: insertError } = await supabase
         .from('chemical_warnings')
         .insert({ chemical_id: id, reported_by: user.id, status: 'pending' })
-        .select('id, status, reported_at, estimated_delivery_date')
+        .select('id, status, reported_by, reported_at, estimated_delivery_date')
         .single();
       if (insertError) throw insertError;
       setActiveWarning({ ...data, reporter: null } as ActiveWarning);
-      alert('已上报"即将用完"');
+      setShowWarningConfirm(false);
     } catch (err: any) {
       alert('上报失败: ' + (err.message || '未知错误'));
     } finally {
       setWarningLoading(false);
+    }
+  }
+
+  async function confirmRecallWarning() {
+    if (!activeWarning) return;
+    try {
+      setRecallSubmitting(true);
+      const { error: delError } = await supabase
+        .from('chemical_warnings')
+        .delete()
+        .eq('id', activeWarning.id);
+      if (delError) throw delError;
+      setActiveWarning(null);
+      setShowRecallConfirm(false);
+    } catch (err: any) {
+      alert('撤回失败: ' + (err.message || '未知错误'));
+    } finally {
+      setRecallSubmitting(false);
     }
   }
 
@@ -332,28 +354,39 @@ export default function ReagentDetail() {
                 : 'border-yellow-200 bg-yellow-50 text-yellow-700'
             }`}
           >
-            {activeWarning.status === 'pending' ? (
-              <span>
-                <span className="inline-block h-2 w-2 rounded-full bg-red-500 mr-1.5" />
-                已有人即将用完（{dayjs(activeWarning.reported_at).format('M月D日')}）
-              </span>
-            ) : (
-              <span>
-                <span className="inline-block h-2 w-2 rounded-full bg-yellow-500 mr-1.5" />
-                已下单
-                {activeWarning.estimated_delivery_date && (
-                  <>（预计{dayjs(activeWarning.estimated_delivery_date).format('M月D日')}送达）</>
-                )}
-              </span>
-            )}
+            <div className="flex items-center justify-between">
+              {activeWarning.status === 'pending' ? (
+                <span>
+                  <span className="inline-block h-2 w-2 rounded-full bg-red-500 mr-1.5" />
+                  已有人即将用完（{dayjs(activeWarning.reported_at).format('M月D日')}）
+                </span>
+              ) : (
+                <span>
+                  <span className="inline-block h-2 w-2 rounded-full bg-yellow-500 mr-1.5" />
+                  已下单
+                  {activeWarning.estimated_delivery_date && (
+                    <>（预计{dayjs(activeWarning.estimated_delivery_date).format('M月D日')}送达）</>
+                  )}
+                </span>
+              )}
+              {/* 撤回按钮：仅上报者本人且状态为 pending 时显示 */}
+              {user && activeWarning.reported_by === user.id && activeWarning.status === 'pending' && (
+                <button
+                  onClick={() => setShowRecallConfirm(true)}
+                  className="rounded-lg border border-orange-300 px-3 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50"
+                >
+                  撤回
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <button
-            onClick={handleReportWarning}
+            onClick={() => setShowWarningConfirm(true)}
             disabled={warningLoading}
             className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
-            {warningLoading ? '提交中...' : '即将用完'}
+            即将用完
           </button>
         )}
       </div>
@@ -464,6 +497,58 @@ export default function ReagentDetail() {
             className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
           >
             {deleting ? '删除中...' : '确认删除'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* 预警确认弹窗 */}
+      <Modal
+        open={showWarningConfirm}
+        onClose={() => setShowWarningConfirm(false)}
+        title="确认上报预警"
+      >
+        <p className="text-sm text-gray-600">
+          确认上报「{chemical.name}」即将用完？上报后所有人将看到「即将用完」标签
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            onClick={() => setShowWarningConfirm(false)}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            取消
+          </button>
+          <button
+            onClick={confirmReportWarning}
+            disabled={warningLoading}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {warningLoading ? '提交中...' : '确认上报'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* 撤回确认弹窗 */}
+      <Modal
+        open={showRecallConfirm}
+        onClose={() => setShowRecallConfirm(false)}
+        title="撤回预警"
+      >
+        <p className="text-sm text-gray-600">
+          确认撤回「{chemical.name}」的即将用完预警？
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            onClick={() => setShowRecallConfirm(false)}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            取消
+          </button>
+          <button
+            onClick={confirmRecallWarning}
+            disabled={recallSubmitting}
+            className="rounded-lg bg-orange-600 px-4 py-2 text-sm text-white hover:bg-orange-700 disabled:opacity-50"
+          >
+            {recallSubmitting ? '撤回中...' : '确认撤回'}
           </button>
         </div>
       </Modal>
