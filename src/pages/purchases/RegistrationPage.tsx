@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { Package, CheckCircle } from 'lucide-react';
+import { Package, CheckCircle, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Purchase, PurchaseCategory } from '../../lib/types';
@@ -117,6 +117,27 @@ export default function RegistrationPage() {
     }
   }
 
+  async function handleUnregister(id: string) {
+    if (!confirm('确定要删除该入库登记吗？记录将回到待登记列表。')) return;
+    setProcessingId(id);
+    try {
+      const { error: updateErr } = await supabase
+        .from('purchases')
+        .update({
+          registration_status: null,
+          registered_by: null,
+          registered_at: null,
+        })
+        .eq('id', id);
+      if (updateErr) throw updateErr;
+      fetchList();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '操作失败');
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   if (!hasAccess) {
     return (
       <div className="pb-8">
@@ -178,12 +199,12 @@ export default function RegistrationPage() {
             icon={Package}
             title={
               tab === 'pending'
-                ? '暂无待登记的采购'
+                ? '采购审批通过后，需要入库的物资会出现在这里'
                 : '暂无已登记的采购'
             }
             description={
               tab === 'pending'
-                ? '所有需要入库的采购已处理完毕'
+                ? ''
                 : '还没有登记过采购入库'
             }
           />
@@ -237,12 +258,22 @@ export default function RegistrationPage() {
 
                   {/* Registration info for registered tab */}
                   {tab === 'registered' && item.registered_at && (
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                      <span>
-                        登记时间：
-                        {dayjs(item.registered_at).format('YYYY-MM-DD HH:mm')}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                        <span>
+                          登记时间：
+                          {dayjs(item.registered_at).format('YYYY-MM-DD HH:mm')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleUnregister(item.id)}
+                        disabled={processingId === item.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {processingId === item.id ? '处理中...' : '删除登记'}
+                      </button>
                     </div>
                   )}
 
