@@ -53,6 +53,13 @@
 
 ---
 
+## 管理面板与后台调整
+
+- 管理面板系统管理分组：「公告管理」改名为「公告与文档管理」
+- AdminDashboard：「公告管理」和「文档资料」两张卡片合并为一张「公告与文档管理」
+
+---
+
 ## 导航调整
 
 | 位置 | 当前 | 改为 |
@@ -68,7 +75,7 @@
 | 页面 | 变更 |
 |-----|------|
 | `DocumentList.tsx` | 重写为 Tab 页面，Tab 1 显示公告列表（查询 announcements 表），Tab 2 显示文档列表（现有逻辑） |
-| `AnnouncementManage.tsx` | 增加 Tab 2「文档管理」，整合文档的增删改功能 |
+| `AnnouncementManage.tsx` | 增加 Tab 2「文档管理」，整合文档的增删改功能。页面标题改为「公告与文档管理」 |
 | `Dashboard.tsx` | 「查看全部」链接改为 `/documents?tab=announcements` |
 | `DocumentEdit.tsx` | 保留，仍用于独立的文档编辑页面（从管理端跳转） |
 | `DocumentView.tsx` | 保留，仍用于文档详情查看 |
