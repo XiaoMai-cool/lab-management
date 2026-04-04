@@ -18,14 +18,11 @@ import type {
   Supply,
 
   SupplyReservation,
-  Reimbursement,
 } from '../lib/types';
 
 const quickActions = [
   { label: '申领物资', path: '/supplies/reserve', icon: Package, color: 'bg-blue-50 text-blue-600' },
-  { label: '借用耗材', path: '/supplies/borrow', icon: Package, color: 'bg-cyan-50 text-cyan-600' },
-  { label: '采购审批', path: '/purchase-approvals/new', icon: Receipt, color: 'bg-purple-50 text-purple-600' },
-  { label: '报销申请', path: '/reimbursements/new', icon: Receipt, color: 'bg-green-50 text-green-600' },
+  { label: '采购申请', path: '/purchase-approvals/new', icon: Receipt, color: 'bg-purple-50 text-purple-600' },
   { label: '药品总览', path: '/reagents', icon: FlaskConical, color: 'bg-pink-50 text-pink-600' },
   { label: '值日查询', path: '/duty', icon: CalendarCheck, color: 'bg-orange-50 text-orange-600' },
 ];
@@ -89,7 +86,7 @@ export default function Dashboard() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<Supply[]>([]);
   const [pendingReservations, setPendingReservations] = useState<SupplyReservation[]>([]);
-  const [pendingReimbursements, setPendingReimbursements] = useState<Reimbursement[]>([]);
+  const [pendingPurchases, setPendingPurchases] = useState<{ id: string; title: string; estimated_amount: number | null; created_at: string }[]>([]);
   const [chemicalWarnings, setChemicalWarnings] = useState<ChemicalWarning[]>([]);
   const [pendingTaskCounts, setPendingTaskCounts] = useState<{
     supplyReservations: number;
@@ -151,15 +148,15 @@ export default function Dashboard() {
 
       promises.push(
         supabase
-          .from('reimbursements')
-          .select('id,title,amount,status,created_at')
-          .eq('user_id', user.id)
-          .eq('status', 'pending')
+          .from('purchases')
+          .select('id,title,estimated_amount,created_at')
+          .eq('applicant_id', user.id)
+          .eq('approval_status', 'pending')
           .order('created_at', { ascending: false })
           .limit(5)
           .then(({ data, error: err }) => {
             if (err) { hasAnyError = true; return; }
-            setPendingReimbursements(data || []);
+            setPendingPurchases(data || []);
           })
       );
     }
@@ -206,13 +203,15 @@ export default function Dashboard() {
     }
 
     if (isTeacher && profile) {
+      const purchaseQuery = supabase
+        .from('purchases')
+        .select('id', { count: 'exact', head: true })
+        .eq('approval_status', 'pending');
+      if (!isSuperAdmin) {
+        purchaseQuery.eq('approver_id', profile.id);
+      }
       promises.push(
-        supabase
-          .from('purchase_approvals')
-          .select('id', { count: 'exact', head: true })
-          .eq('approver_id', profile.id)
-          .eq('status', 'pending')
-          .then(({ count, error: err }) => {
+        purchaseQuery.then(({ count, error: err }) => {
             if (err) { hasAnyError = true; return; }
             setPendingTaskCounts((prev) => ({ ...prev, purchaseApprovals: count ?? 0 }));
           })
@@ -584,7 +583,7 @@ export default function Dashboard() {
           <Clock className="w-5 h-5 text-blue-600" />
           <h2 className="text-base font-semibold text-gray-900">我的待办</h2>
         </div>
-        {pendingReservations.length === 0 && pendingReimbursements.length === 0 ? (
+        {pendingReservations.length === 0 && pendingPurchases.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
             暂无待办事项
           </div>
@@ -611,19 +610,19 @@ export default function Dashboard() {
                 </div>
               </Link>
             ))}
-            {pendingReimbursements.map((r) => (
+            {pendingPurchases.map((r) => (
               <Link
                 key={r.id}
-                to="/reimbursements"
+                to="/purchase-approvals"
                 className="block bg-white rounded-xl border border-gray-200 p-3 hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      报销申请 - {r.title}
+                      采购申请 - {r.title}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      金额: ¥{r.amount.toFixed(2)} | {formatDate(r.created_at)}
+                      {r.estimated_amount ? `预估: ¥${r.estimated_amount}` : ''} {formatDate(r.created_at)}
                     </p>
                   </div>
                   <span className="shrink-0 ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
