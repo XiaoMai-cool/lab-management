@@ -116,7 +116,7 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
       items: [
         { label: '申领审批', icon: ClipboardCheck, path: '/supplies/review' },
         { label: '库存管理', icon: Package, path: '/admin/supplies' },
-        { label: '借用管理', icon: Package, path: '/supplies/borrowings' },
+        { label: '物资追踪', icon: Package, path: '/supplies/borrowings' },
       ],
     });
   }
