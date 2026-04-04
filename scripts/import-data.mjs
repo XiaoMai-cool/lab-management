@@ -1,5 +1,5 @@
 /**
- * 数据导入脚本 - 将现有 Excel 库存数据和制度文档导入 Supabase
+ * 数据导入脚本 - 将现有 Excel 库存数据和文档资料导入 Supabase
  */
 
 const SUPABASE_URL = 'https://lzvhbudvzzigwqysyzha.supabase.co';
@@ -164,9 +164,9 @@ async function main() {
   console.log(`  ${ok ? '✅' : '❌'} 导入 ${allSupplies.length} 条耗材记录\n`);
 
   // ==============================
-  // 2. Import documents (制度文档)
+  // 2. Import documents (文档资料)
   // ==============================
-  console.log('--- 2. 导入制度文档 ---');
+  console.log('--- 2. 导入文档资料 ---');
 
   // Get admin profile ID
   const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.fengyujie@szu.edu.cn&select=id`, {
@@ -330,7 +330,7 @@ async function main() {
   ];
 
   ok = await supabaseInsert(token, 'documents', documents);
-  console.log(`  ${ok ? '✅' : '❌'} 导入 ${documents.length} 篇制度文档\n`);
+  console.log(`  ${ok ? '✅' : '❌'} 导入 ${documents.length} 篇文档资料\n`);
 
   // ==============================
   // 3. Import announcements (公告)

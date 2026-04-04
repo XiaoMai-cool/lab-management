@@ -27,7 +27,7 @@ const roleColors: Record<Role, string> = {
 const allModules = [
   { key: 'supplies', label: '耗材管理' },
   { key: 'chemicals', label: '药品管理' },
-  { key: 'documents', label: '制度文档' },
+  { key: 'documents', label: '文档资料' },
   { key: 'duty', label: '排班管理' },
   { key: 'reimbursements', label: '报销管理' },
   { key: 'members', label: '人员管理' },

@@ -129,7 +129,7 @@
 
 ---
 
-### 3.4 制度文档
+### 3.4 文档资料
 
 - 在线查看所有规章制度
 - 管理员可新增/编辑文档
@@ -220,7 +220,7 @@
 | 使用记录查询 | /reagents/history | 所有人 |
 | 添加/编辑药品 | /reagents/new, /reagents/:id/edit | 药品专人/管理员 |
 | 供应商管理 | /reagents/suppliers | 药品专人/管理员 |
-| 制度文档列表 | /documents | 所有人 |
+| 文档资料列表 | /documents | 所有人 |
 | 文档详情 | /documents/:id | 所有人 |
 | 文档编辑 | /documents/:id/edit | 管理员 |
 | 值日排班 | /duty | 所有人 |

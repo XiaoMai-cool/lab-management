@@ -48,7 +48,7 @@ const modules: ModuleCard[] = [
     color: 'bg-green-50 text-green-600',
   },
   {
-    title: '制度文档',
+    title: '文档资料',
     description: '管理规章制度和文档',
     icon: FileText,
     path: '/documents',

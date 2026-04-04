@@ -86,7 +86,7 @@ export default function App() {
               <Route path="/reagents/purchase" element={<ReagentPurchaseRequest />} />
               <Route path="/reagents/warnings" element={<ProtectedRoute requiredModule="chemicals"><ChemicalWarnings /></ProtectedRoute>} />
 
-              {/* 制度文档 */}
+              {/* 文档资料 */}
               <Route path="/documents" element={<DocumentList />} />
               <Route path="/documents/:id" element={<DocumentView />} />
               <Route path="/documents/new" element={<ProtectedRoute requiredRole="admin"><DocumentEdit /></ProtectedRoute>} />

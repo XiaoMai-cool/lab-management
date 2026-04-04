@@ -160,7 +160,7 @@ export default function ProfilePage() {
       color: 'text-green-600 bg-green-50',
     },
     {
-      label: '制度文档',
+      label: '文档资料',
       icon: FileText,
       path: '/documents',
       color: 'text-teal-600 bg-teal-50',

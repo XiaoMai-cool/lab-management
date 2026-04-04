@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 修复 2 个 Bug，实现 9 个改进/新功能，涵盖药品链接、申领提交、数据导出、采购筛选、入库登记、公告附件+登录页展示、日常须知管理、制度文档入口。
+**Goal:** 修复 2 个 Bug，实现 9 个改进/新功能，涵盖药品链接、申领提交、数据导出、采购筛选、入库登记、公告附件+登录页展示、日常须知管理、文档资料入口。
 
 **Architecture:** 大部分为独立文件修改。公告附件和日常须知需要数据库变更。
 
@@ -182,12 +182,12 @@ CREATE POLICY "dn_modify" ON daily_notices
 
 ---
 
-### Task 11: 制度文档入口
+### Task 11: 文档资料入口
 
 **Files:**
 - Modify: `src/pages/Dashboard.tsx`
 - Modify: `src/pages/profile/ProfilePage.tsx`
 
-- [ ] **Step 1:** Dashboard 快捷操作增加「制度文档」入口，链接到 `/documents`。快捷操作从 4 个变为 5 个。
-- [ ] **Step 2:** 个人中心快捷入口增加「制度文档」，链接到 `/documents`
+- [ ] **Step 1:** Dashboard 快捷操作增加「文档资料」入口，链接到 `/documents`。快捷操作从 4 个变为 5 个。
+- [ ] **Step 2:** 个人中心快捷入口增加「文档资料」，链接到 `/documents`
 - [ ] **Step 3:** 构建验证 + Commit

@@ -49,7 +49,7 @@ create table announcements (
 create index idx_announcements_published on announcements (published, created_at desc);
 create index idx_announcements_author on announcements (author_id);
 
--- 3. documents - 制度文档
+-- 3. documents - 文档资料
 create table documents (
   id uuid primary key default gen_random_uuid(),
   title text not null,

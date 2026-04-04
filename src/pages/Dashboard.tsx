@@ -29,7 +29,7 @@ const quickActions = [
   { label: '采购申请', path: '/purchase-approvals/new', icon: Receipt, color: 'bg-purple-50 text-purple-600' },
   { label: '药品总览', path: '/reagents', icon: FlaskConical, color: 'bg-pink-50 text-pink-600' },
   { label: '值日查询', path: '/duty', icon: CalendarCheck, color: 'bg-orange-50 text-orange-600' },
-  { label: '制度文档', path: '/documents', icon: FileText, color: 'bg-teal-50 text-teal-600' },
+  { label: '文档资料', path: '/documents', icon: FileText, color: 'bg-teal-50 text-teal-600' },
 ];
 
 function formatDate(dateStr: string) {

@@ -74,7 +74,7 @@ export default function DocumentList() {
   return (
     <div>
       <PageHeader
-        title="制度文档"
+        title="文档资料"
         subtitle="实验室管理制度与规范"
         action={
           canManage ? (
@@ -94,7 +94,7 @@ export default function DocumentList() {
           <EmptyState
             icon={FileText}
             title="暂无文档"
-            description="还没有添加任何制度文档"
+            description="还没有添加任何文档资料"
             action={
               canManage ? (
                 <button
