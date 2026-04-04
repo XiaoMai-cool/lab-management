@@ -10,9 +10,7 @@ import SubNav from '../../components/SubNav';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 const subNavItems = [
-  { to: '/reimbursements', label: '报销记录', exact: true },
-  { to: '/reimbursements/new', label: '新建报销' },
-  { to: '/purchase-approvals/new', label: '采购审批' },
+  { to: '/purchase-approvals/new', label: '新建采购' },
   { to: '/purchase-approvals', label: '我的采购' },
 ];
 

@@ -13,9 +13,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import SubNav from '../../components/SubNav';
 
 const subNavItems = [
-  { to: '/reimbursements', label: '报销记录', exact: true },
-  { to: '/reimbursements/new', label: '新建报销' },
-  { to: '/purchase-approvals/new', label: '采购审批' },
+  { to: '/purchase-approvals/new', label: '新建采购' },
   { to: '/purchase-approvals', label: '我的采购' },
 ];
 
@@ -48,6 +46,7 @@ export default function PurchaseApprovalReview() {
   const [reviewNote, setReviewNote] = useState('');
   const [skipRegistration, setSkipRegistration] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [recalling, setRecalling] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) fetchPurchases();
@@ -118,6 +117,33 @@ export default function PurchaseApprovalReview() {
       alert(err instanceof Error ? err.message : '操作失败');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleRecallApproval(item: Purchase) {
+    if (!confirm('确定要撤回该采购审批吗？审批状态将恢复为待审批，关联的报销状态也会被清除。')) return;
+    try {
+      setRecalling(item.id);
+      const updateData: Record<string, unknown> = {
+        approval_status: 'pending',
+        approved_at: null,
+        approval_note: null,
+      };
+      if (item.reimbursement_status) {
+        updateData.reimbursement_status = null;
+        updateData.reimbursed_at = null;
+        updateData.reimbursement_note = null;
+      }
+      const { error: updateErr } = await supabase
+        .from('purchases')
+        .update(updateData)
+        .eq('id', item.id);
+      if (updateErr) throw updateErr;
+      fetchPurchases();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '撤回失败');
+    } finally {
+      setRecalling(null);
     }
   }
 
@@ -306,18 +332,27 @@ export default function PurchaseApprovalReview() {
                         )}
 
                         {item.approval_status === 'approved' && (
-                          <div className="flex items-center gap-3 text-xs">
-                            <span className={`font-medium ${reimbInfo.color}`}>
-                              {reimbInfo.label}
-                            </span>
-                            {regInfo && (
-                              <>
-                                <span className="text-gray-300">|</span>
-                                <span className={`font-medium ${regInfo.color}`}>
-                                  {regInfo.label}
-                                </span>
-                              </>
-                            )}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className={`font-medium ${reimbInfo.color}`}>
+                                {reimbInfo.label}
+                              </span>
+                              {regInfo && (
+                                <>
+                                  <span className="text-gray-300">|</span>
+                                  <span className={`font-medium ${regInfo.color}`}>
+                                    {regInfo.label}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleRecallApproval(item)}
+                              disabled={recalling === item.id}
+                              className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                            >
+                              {recalling === item.id ? '撤回中...' : '撤回审批'}
+                            </button>
                           </div>
                         )}
                       </>
