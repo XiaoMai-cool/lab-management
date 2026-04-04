@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Upload, Send, X, FileText, Image } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircle, Upload, X, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type {
-  PurchaseApproval,
-  ReimbursementCategory,
-  ReimbursementFile,
-} from '../../lib/types';
+import type { Purchase, ReimbursementFile } from '../../lib/types';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import SubNav from '../../components/SubNav';
@@ -20,152 +16,117 @@ const subNavItems = [
   { to: '/purchase-approvals', label: '我的采购' },
 ];
 
-const categories: ReimbursementCategory[] = [
-  '个人药品',
-  '外送检测',
-  '设备配件',
-  '加工定制',
-  '办公打印',
-  '差旅费',
-  '邮寄快递',
-  '其他',
-];
-
 export default function ReimbursementForm() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const approvalIdFromUrl = searchParams.get('approval_id');
+  const purchaseId = searchParams.get('purchase_id');
 
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<ReimbursementCategory>('其他');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [purchaseApprovalId, setPurchaseApprovalId] = useState<string | null>(
-    approvalIdFromUrl
-  );
+  const [purchase, setPurchase] = useState<Purchase | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  // File uploads (placeholder - stores name & size only)
-  const [screenshots, setScreenshots] = useState<ReimbursementFile[]>([]);
-  const [invoices, setInvoices] = useState<ReimbursementFile[]>([]);
-  const [testReports, setTestReports] = useState<ReimbursementFile[]>([]);
-  const [certFiles, setCertFiles] = useState<ReimbursementFile[]>([]);
-
-  // Approved purchase approvals for linking
-  const [approvedApprovals, setApprovedApprovals] = useState<
-    PurchaseApproval[]
-  >([]);
-  const [loadingApprovals, setLoadingApprovals] = useState(true);
+  const [actualAmount, setActualAmount] = useState('');
+  const [files, setFiles] = useState<ReimbursementFile[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      fetchApprovedApprovals();
+    if (profile && purchaseId) {
+      fetchPurchase();
+    } else {
+      setLoading(false);
     }
-  }, [profile]);
+  }, [profile, purchaseId]);
 
-  async function fetchApprovedApprovals() {
-    if (!profile) return;
+  async function fetchPurchase() {
+    if (!profile || !purchaseId) return;
     try {
-      setLoadingApprovals(true);
-
-      // Get approved purchase approvals that don't have a reimbursement yet
-      const { data: approvals, error: fetchErr } = await supabase
-        .from('purchase_approvals')
+      setLoading(true);
+      const { data, error: fetchErr } = await supabase
+        .from('purchases')
         .select('*')
-        .eq('requester_id', profile.id)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false });
+        .eq('id', purchaseId)
+        .eq('applicant_id', profile.id)
+        .eq('approval_status', 'approved')
+        .single();
 
-      if (fetchErr) throw fetchErr;
-
-      // Filter out ones that already have a reimbursement
-      const { data: existingReimb } = await supabase
-        .from('reimbursements')
-        .select('purchase_approval_id')
-        .eq('user_id', profile.id)
-        .not('purchase_approval_id', 'is', null);
-
-      const usedIds = new Set(
-        (existingReimb ?? []).map((r) => r.purchase_approval_id)
-      );
-      const available = (approvals ?? []).filter(
-        (a) => !usedIds.has(a.id)
-      );
-      setApprovedApprovals(available);
-
-      // Pre-fill from URL param
-      if (approvalIdFromUrl) {
-        const target = (approvals ?? []).find(
-          (a) => a.id === approvalIdFromUrl
-        );
-        if (target) {
-          setTitle(target.title);
-          setCategory(target.category);
-          if (target.estimated_amount) {
-            setAmount(String(target.estimated_amount));
-          }
-          setPurchaseApprovalId(target.id);
-        }
+      if (fetchErr || !data) {
+        setNotFound(true);
+        return;
       }
-    } catch (err) {
-      console.error('Failed to fetch approvals:', err);
+
+      setPurchase(data as Purchase);
+      if (data.estimated_amount) {
+        setActualAmount(String(data.estimated_amount));
+      }
+    } catch {
+      setNotFound(true);
     } finally {
-      setLoadingApprovals(false);
+      setLoading(false);
     }
   }
 
-  function handleFileSelect(
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: ReimbursementFile['type'],
-    setter: React.Dispatch<React.SetStateAction<ReimbursementFile[]>>
-  ) {
-    const files = e.target.files;
-    if (!files) return;
-    const newFiles: ReimbursementFile[] = Array.from(files).map((f) => ({
-      name: f.name,
-      url: '', // placeholder - real upload later
-      type,
-      size: f.size,
-    }));
-    setter((prev) => [...prev, ...newFiles]);
-    e.target.value = ''; // reset input
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles) return;
+    setUploadingFiles((prev) => [...prev, ...Array.from(selectedFiles)]);
+    e.target.value = '';
   }
 
-  function removeFile(
-    index: number,
-    setter: React.Dispatch<React.SetStateAction<ReimbursementFile[]>>
-  ) {
-    setter((prev) => prev.filter((_, i) => i !== index));
+  function removeFile(index: number) {
+    setUploadingFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleApprovalChange(id: string) {
-    if (!id) {
-      setPurchaseApprovalId(null);
-      setTitle('');
-      setCategory('其他');
-      return;
+  function removeUploadedFile(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function uploadAllFiles(): Promise<ReimbursementFile[]> {
+    if (!profile) return [];
+    const uploaded: ReimbursementFile[] = [...files];
+
+    for (const file of uploadingFiles) {
+      const ext = file.name.split('.').pop() ?? 'bin';
+      const timestamp = Date.now();
+      const path = `reimbursements/${profile.id}/${timestamp}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('attachments')
+        .upload(path, file);
+
+      if (uploadErr) throw new Error(`上传文件 ${file.name} 失败: ${uploadErr.message}`);
+
+      const { data: urlData } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(path);
+
+      uploaded.push({
+        name: file.name,
+        url: urlData.publicUrl,
+        type: 'other',
+        size: file.size,
+      });
     }
-    setPurchaseApprovalId(id);
-    const target = approvedApprovals.find((a) => a.id === id);
-    if (target) {
-      setTitle(target.title);
-      setCategory(target.category);
-      if (target.estimated_amount) {
-        setAmount(String(target.estimated_amount));
-      }
-    }
+
+    return uploaded;
   }
 
   async function handleSubmit() {
-    if (!profile || !title || !amount || !purchaseApprovalId) return;
+    if (!profile || !purchase) return;
 
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = parseFloat(actualAmount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('请输入有效的金额');
+      setError('请输入有效的实际金额');
       return;
     }
 
@@ -173,28 +134,18 @@ export default function ReimbursementForm() {
       setSubmitting(true);
       setError(null);
 
-      const allFiles: ReimbursementFile[] = [
-        ...screenshots,
-        ...invoices,
-        ...testReports,
-        ...certFiles,
-      ];
+      const allFiles = await uploadAllFiles();
 
-      const { error: insertErr } = await supabase
-        .from('reimbursements')
-        .insert({
-          user_id: profile.id,
-          title,
-          amount: parsedAmount,
-          description,
-          category,
-          purchase_approval_id: purchaseApprovalId,
-          receipt_urls: allFiles.map((f) => f.name),
-          file_paths: allFiles,
-          status: 'pending',
-        });
+      const { error: updateErr } = await supabase
+        .from('purchases')
+        .update({
+          actual_amount: parsedAmount,
+          receipt_attachments: allFiles,
+          reimbursement_status: 'pending',
+        })
+        .eq('id', purchase.id);
 
-      if (insertErr) throw insertErr;
+      if (updateErr) throw updateErr;
       setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '提交失败');
@@ -203,10 +154,63 @@ export default function ReimbursementForm() {
     }
   }
 
-  function formatFileSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  // No purchase_id in URL
+  if (!purchaseId) {
+    return (
+      <div className="pb-8">
+        <div className="px-4 md:px-6 pt-4">
+          <SubNav items={subNavItems} />
+        </div>
+        <PageHeader title="报销申请" subtitle="提交采购报销" />
+        <div className="px-4 md:px-6">
+          <Card>
+            <div className="text-center py-8 space-y-4">
+              <FileText className="w-12 h-12 text-gray-300 mx-auto" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                请从采购列表发起报销
+              </h3>
+              <p className="text-sm text-gray-500">
+                前往「我的采购」页面，在已批准的采购记录上点击「去报销」
+              </p>
+              <button
+                onClick={() => navigate('/purchase-approvals')}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                前往我的采购
+              </button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) return <LoadingSpinner />;
+
+  if (notFound) {
+    return (
+      <div className="pb-8">
+        <div className="px-4 md:px-6 pt-4">
+          <SubNav items={subNavItems} />
+        </div>
+        <PageHeader title="报销申请" subtitle="未找到记录" />
+        <div className="px-4 md:px-6">
+          <Card>
+            <div className="text-center py-8 space-y-4">
+              <p className="text-sm text-gray-500">
+                未找到对应的已批准采购记录，可能已报销或被删除
+              </p>
+              <button
+                onClick={() => navigate('/purchase-approvals')}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                返回我的采购
+              </button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (success) {
@@ -220,19 +224,19 @@ export default function ReimbursementForm() {
           <Card>
             <div className="text-center py-8 space-y-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <Send className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">
                 报销申请已提交
               </h3>
               <p className="text-sm text-gray-500">
-                请等待审批人审核，审核通过后将进入物资登记流程
+                请等待审批人审核
               </p>
               <button
-                onClick={() => navigate('/reimbursements')}
+                onClick={() => navigate('/purchase-approvals')}
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                查看报销记录
+                返回我的采购
               </button>
             </div>
           </Card>
@@ -246,7 +250,7 @@ export default function ReimbursementForm() {
       <div className="px-4 md:px-6 pt-4">
         <SubNav items={subNavItems} />
       </div>
-      <PageHeader title="报销申请" subtitle="填写报销信息并上传凭证" />
+      <PageHeader title="报销申请" subtitle="上传凭证并提交报销" />
 
       <div className="px-4 md:px-6">
         {error && (
@@ -255,283 +259,149 @@ export default function ReimbursementForm() {
           </div>
         )}
 
-        {loadingApprovals ? (
-          <LoadingSpinner />
-        ) : (
-          <div className="space-y-4">
+        <div className="space-y-4">
+          {/* 采购信息摘要 */}
+          {purchase && (
             <Card>
-              <div className="space-y-4">
-                {/* 关联采购审批（必选） */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    关联采购审批 <span className="text-red-500">*</span>
-                  </label>
-                  {approvedApprovals.length === 0 ? (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
-                      <p>请先提交采购审批并获批准后再报销</p>
-                      <Link
-                        to="/purchase-approvals/new"
-                        className="inline-block mt-2 text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        前往提交采购审批 &rarr;
-                      </Link>
-                    </div>
-                  ) : (
-                    <>
-                      <select
-                        value={purchaseApprovalId ?? ''}
-                        onChange={(e) => handleApprovalChange(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                      >
-                        <option value="">请选择采购审批</option>
-                        {approvedApprovals.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.title}
-                            {a.estimated_amount
-                              ? ` (¥${a.estimated_amount.toFixed(2)})`
-                              : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-gray-400 mt-1">
-                        选择后将自动填充标题和类别
-                      </p>
-                    </>
-                  )}
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">采购信息</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">标题</span>
+                  <span className="text-sm font-medium text-gray-900">{purchase.title}</span>
                 </div>
-
-                {/* 标题 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    报销标题 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="例如：2月实验耗材采购报销"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">类别</span>
+                  <span className="text-sm text-gray-700">{purchase.category}</span>
                 </div>
-
-                {/* 类别 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    报销类别
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) =>
-                      setCategory(e.target.value as ReimbursementCategory)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 金额 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    金额（¥） <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      ¥
+                {purchase.estimated_amount != null && (
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-500">预估金额</span>
+                    <span className="text-sm font-bold text-gray-900">
+                      ¥{purchase.estimated_amount.toFixed(2)}
                     </span>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
                   </div>
-                </div>
-
-                {/* 明细描述 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    明细描述
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={4}
-                    placeholder={
-                      '请详细列出报销项目，如：\n1. XX试剂 x2 ¥120\n2. XX耗材 x5 ¥85\n...'
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* 上传凭证 */}
-            <Card>
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                上传凭证
-              </h3>
-              <div className="space-y-4">
-                {/* 购买截图 */}
-                <FileUploadSection
-                  label="购买截图"
-                  description="订单截图、付款截图等"
-                  accept="image/*"
-                  files={screenshots}
-                  onSelect={(e) =>
-                    handleFileSelect(e, 'screenshot', setScreenshots)
-                  }
-                  onRemove={(i) => removeFile(i, setScreenshots)}
-                  formatSize={formatFileSize}
-                  icon={<Image className="w-5 h-5 text-gray-400" />}
-                />
-
-                {/* 发票 */}
-                <FileUploadSection
-                  label="发票"
-                  description="电子发票或纸质发票照片"
-                  accept="image/*,.pdf"
-                  files={invoices}
-                  onSelect={(e) =>
-                    handleFileSelect(e, 'invoice', setInvoices)
-                  }
-                  onRemove={(i) => removeFile(i, setInvoices)}
-                  formatSize={formatFileSize}
-                  icon={<FileText className="w-5 h-5 text-gray-400" />}
-                />
-
-                {/* 外送检测额外字段 */}
-                {category === '外送检测' && (
-                  <>
-                    <FileUploadSection
-                      label="检测报告"
-                      description="第三方检测报告文件"
-                      accept="image/*,.pdf"
-                      files={testReports}
-                      onSelect={(e) =>
-                        handleFileSelect(e, 'test_report', setTestReports)
-                      }
-                      onRemove={(i) => removeFile(i, setTestReports)}
-                      formatSize={formatFileSize}
-                      icon={<FileText className="w-5 h-5 text-cyan-400" />}
-                    />
-
-                    <FileUploadSection
-                      label="检测机构资质证书"
-                      description="CMA/CNAS等资质证书"
-                      accept="image/*,.pdf"
-                      files={certFiles}
-                      onSelect={(e) =>
-                        handleFileSelect(e, 'cert', setCertFiles)
-                      }
-                      onRemove={(i) => removeFile(i, setCertFiles)}
-                      formatSize={formatFileSize}
-                      icon={<FileText className="w-5 h-5 text-amber-400" />}
-                    />
-                  </>
                 )}
               </div>
             </Card>
+          )}
 
-            {/* 提交 */}
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || !title || !amount || !purchaseApprovalId}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              <Send className="w-4 h-4" />
-              {submitting ? '提交中...' : '提交报销申请'}
-            </button>
+          {/* 实际金额 */}
+          <Card>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  实际金额（¥） <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                    ¥
+                  </span>
+                  <input
+                    type="number"
+                    value={actualAmount}
+                    onChange={(e) => setActualAmount(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
 
-            <p className="text-xs text-gray-400 text-center pb-4">
-              提交后将自动分配给审批人，请确保信息和凭证准确
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ---- File Upload Sub-component ---- */
-
-interface FileUploadSectionProps {
-  label: string;
-  description: string;
-  accept: string;
-  files: ReimbursementFile[];
-  onSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onRemove: (index: number) => void;
-  formatSize: (bytes: number) => string;
-  icon: React.ReactNode;
-}
-
-function FileUploadSection({
-  label,
-  description,
-  accept,
-  files,
-  onSelect,
-  onRemove,
-  formatSize,
-  icon,
-}: FileUploadSectionProps) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
-      </label>
-      <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
-        <div className="flex items-center gap-3 mb-2">
-          {icon}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500">{description}</p>
-          </div>
-          <label className="shrink-0 cursor-pointer">
-            <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-              <Upload className="w-3.5 h-3.5" />
-              选择文件
-            </span>
-            <input
-              type="file"
-              multiple
-              accept={accept}
-              onChange={onSelect}
-              className="hidden"
-            />
-          </label>
-        </div>
-
-        {files.length > 0 && (
-          <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
-            {files.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-gray-700 truncate">{file.name}</p>
-                  <p className="text-xs text-gray-400">
-                    {formatSize(file.size)}
+          {/* 上传凭证 */}
+          <Card>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              上传凭证
+            </h3>
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
+              <div className="flex items-center gap-3 mb-2">
+                <FileText className="w-5 h-5 text-gray-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500">
+                    购买截图、发票、检测报告等凭证
                   </p>
                 </div>
-                <button
-                  onClick={() => onRemove(index)}
-                  className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+                <label className="shrink-0 cursor-pointer">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    选择文件
+                  </span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </label>
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Already uploaded files */}
+              {files.length > 0 && (
+                <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
+                  {files.map((file, index) => (
+                    <div
+                      key={`uploaded-${index}`}
+                      className="flex items-center justify-between p-2 bg-green-50 rounded-lg"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-700 truncate">{file.name}</p>
+                        <p className="text-xs text-green-600">已上传</p>
+                      </div>
+                      <button
+                        onClick={() => removeUploadedFile(index)}
+                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Pending upload files */}
+              {uploadingFiles.length > 0 && (
+                <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
+                  {uploadingFiles.map((file, index) => (
+                    <div
+                      key={`pending-${index}`}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-700 truncate">{file.name}</p>
+                        <p className="text-xs text-gray-400">
+                          {formatFileSize(file.size)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* 提交 */}
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !actualAmount}
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            {submitting ? '提交中...' : '提交报销申请'}
+          </button>
+
+          <p className="text-xs text-gray-400 text-center pb-4">
+            提交后将进入审批流程，请确保凭证准确完整
+          </p>
+        </div>
       </div>
     </div>
   );
