@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { ClipboardList, Filter, ArrowRight, Pencil } from 'lucide-react';
+import { ClipboardList, Filter, ArrowRight, Pencil, ChevronDown, ChevronUp, ExternalLink, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Purchase } from '../../lib/types';
+import type { Purchase, ReimbursementFile } from '../../lib/types';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -29,6 +29,24 @@ const categoryColors: Record<string, string> = {
   '差旅交通': 'bg-indigo-50 text-indigo-700',
   '邮寄物流': 'bg-teal-50 text-teal-700',
   '其他': 'bg-gray-100 text-gray-600',
+};
+
+const REAGENT_FIELD_LABELS: Record<string, string> = {
+  item_name: '药品名称',
+  cas_number: 'CAS号',
+  specification: '规格',
+  concentration: '浓度',
+  purity: '纯度',
+  manufacturer: '期望厂家',
+  quantity: '数量',
+  unit: '单位',
+};
+
+const SUPPLY_FIELD_LABELS: Record<string, string> = {
+  item_name: '物品名称',
+  specification: '规格型号',
+  quantity: '数量',
+  unit: '单位',
 };
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'reimbursing' | 'completed' | 'rejected';
@@ -80,6 +98,56 @@ function ApprovalStatusLine({ item }: { item: Purchase }) {
   );
 }
 
+function ExtraFieldsDisplay({ extraFields, category }: { extraFields: Record<string, unknown>; category: string }) {
+  if (!extraFields || Object.keys(extraFields).length === 0) return null;
+
+  const labels = category === '试剂药品' ? REAGENT_FIELD_LABELS : SUPPLY_FIELD_LABELS;
+  const entries = Object.entries(extraFields).filter(
+    ([, value]) => value != null && value !== ''
+  );
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-gray-500">详细信息</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {entries.map(([key, value]) => (
+          <div key={key} className="flex justify-between text-xs">
+            <span className="text-gray-400">{labels[key] || key}</span>
+            <span className="text-gray-700 font-medium">{String(value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AttachmentsDisplay({ attachments }: { attachments: ReimbursementFile[] }) {
+  if (!attachments || attachments.length === 0) return null;
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-gray-500">附件（{attachments.length}）</p>
+      <div className="space-y-1">
+        {attachments.map((file, idx) => (
+          <a
+            key={idx}
+            href={file.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs hover:bg-gray-100 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <span className="text-gray-700 truncate flex-1">{file.name}</span>
+            <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PurchaseApprovalList() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -88,6 +156,7 @@ export default function PurchaseApprovalList() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) fetchPurchases();
@@ -193,54 +262,106 @@ export default function PurchaseApprovalList() {
           <div className="space-y-3">
             {filtered.map((item) => {
               const composite = getCompositeStatus(item);
+              const isExpanded = expandedId === item.id;
+              const extraFields = (item.extra_fields ?? {}) as Record<string, unknown>;
+              const hasExtra = Object.keys(extraFields).length > 0;
+              const hasAttachments = item.attachments && item.attachments.length > 0;
+              const hasDescription = item.description && item.description.trim();
+              const isExpandable = hasExtra || hasAttachments || hasDescription;
+
               return (
                 <Card key={item.id}>
                   <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">
-                            {item.title}
-                          </h3>
-                          {item.purchase_type === 'public' && (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
-                              公共
+                    {/* Clickable header */}
+                    <div
+                      className={isExpandable ? 'cursor-pointer' : ''}
+                      onClick={() => {
+                        if (isExpandable) {
+                          setExpandedId(isExpanded ? null : item.id);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <h3 className="text-sm font-semibold text-gray-900 truncate">
+                              {item.title}
+                            </h3>
+                            {item.purchase_type === 'public' && (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                                公共
+                              </span>
+                            )}
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                categoryColors[item.category] ?? 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              {item.category}
                             </span>
-                          )}
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                              categoryColors[item.category] ?? 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {item.category}
-                          </span>
-                        </div>
+                            {isExpandable && (
+                              isExpanded
+                                ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                                : <ChevronDown className="w-4 h-4 text-gray-400" />
+                            )}
+                          </div>
 
-                        <ApprovalStatusLine item={item} />
+                          <ApprovalStatusLine item={item} />
 
-                        <p className="text-xs text-gray-500 mt-1">
-                          审批人：{item.approver?.name ?? '未知'}
-                        </p>
-
-                        <p className="text-xs text-gray-400">
-                          申请时间：{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
-                        </p>
-                      </div>
-
-                      {item.estimated_amount != null && (
-                        <div className="shrink-0 ml-3 text-right">
-                          <p className="text-lg font-bold text-gray-900">
-                            ¥{item.estimated_amount.toFixed(2)}
+                          <p className="text-xs text-gray-500 mt-1">
+                            审批人：{item.approver?.name ?? '未知'}
                           </p>
-                          <p className="text-xs text-gray-400">预计金额</p>
+
+                          <p className="text-xs text-gray-400">
+                            申请时间：{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
+                          </p>
                         </div>
-                      )}
+
+                        {item.estimated_amount != null && (
+                          <div className="shrink-0 ml-3 text-right">
+                            <p className="text-lg font-bold text-gray-900">
+                              ¥{item.estimated_amount.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-gray-400">金额</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* 审批备注 */}
-                    {item.approval_status !== 'pending' && item.approval_note && (
-                      <div className={`p-3 rounded-lg ${item.approval_status === 'approved' ? 'bg-green-50' : 'bg-red-50'}`}>
-                        <p className={`text-xs ${item.approval_status === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
+                    {/* Expanded details */}
+                    {isExpanded && (
+                      <div className="space-y-3 pt-2 border-t border-gray-100">
+                        {hasDescription && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500">描述</p>
+                            <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap">{item.description}</p>
+                          </div>
+                        )}
+
+                        {hasExtra && (
+                          <ExtraFieldsDisplay extraFields={extraFields} category={item.category} />
+                        )}
+
+                        {hasAttachments && (
+                          <AttachmentsDisplay attachments={item.attachments as ReimbursementFile[]} />
+                        )}
+                      </div>
+                    )}
+
+                    {/* 审批备注 - rejection note always visible */}
+                    {item.approval_status === 'rejected' && item.approval_note && (
+                      <div className="p-3 rounded-lg bg-red-50">
+                        <p className="text-xs text-red-600">
+                          <span className="font-medium">拒绝原因：</span>
+                          {item.approval_note}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Approved note (non-rejection) */}
+                    {item.approval_status === 'approved' && item.approval_note && !item.auto_approved && (
+                      <div className="p-3 rounded-lg bg-green-50">
+                        <p className="text-xs text-green-600">
                           <span className="font-medium">审批备注：</span>
                           {item.approval_note}
                         </p>
