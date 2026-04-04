@@ -52,6 +52,7 @@ export default function ReimbursementForm() {
         .eq('id', purchaseId)
         .eq('applicant_id', profile.id)
         .eq('approval_status', 'approved')
+        .or('reimbursement_status.is.null,reimbursement_status.eq.pending')
         .single();
 
       if (fetchErr || !data) {
@@ -288,6 +289,11 @@ export default function ReimbursementForm() {
           {/* 实际金额 */}
           <Card>
             <div className="space-y-4">
+              {purchase?.estimated_amount != null && (
+                <p className="text-sm text-gray-500">
+                  申请金额: <span className="font-medium text-gray-700">¥{purchase.estimated_amount.toFixed(2)}</span>
+                </p>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   实际金额（¥） <span className="text-red-500">*</span>
@@ -331,7 +337,7 @@ export default function ReimbursementForm() {
                   <input
                     type="file"
                     multiple
-                    accept="image/*,.pdf"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                     onChange={handleFileSelect}
                     className="hidden"
                   />
