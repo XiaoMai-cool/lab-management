@@ -9,6 +9,7 @@ import {
   Megaphone,
   Clock,
   RefreshCw,
+  ClipboardList,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -84,16 +85,20 @@ interface ChemicalWarning {
 }
 
 export default function Dashboard() {
-  const { user, profile } = useAuth();
-  const isChemicalsManager =
-    profile?.role === 'super_admin' ||
-    profile?.role === 'admin' ||
-    (profile?.role === 'manager' && profile?.managed_modules?.includes('chemicals'));
+  const { user, profile, isSuppliesManager, isChemicalsManager, isTeacher, isReimbursementApprover, isSuperAdmin } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<Supply[]>([]);
   const [pendingReservations, setPendingReservations] = useState<SupplyReservation[]>([]);
   const [pendingReimbursements, setPendingReimbursements] = useState<Reimbursement[]>([]);
   const [chemicalWarnings, setChemicalWarnings] = useState<ChemicalWarning[]>([]);
+  const [pendingTaskCounts, setPendingTaskCounts] = useState<{
+    supplyReservations: number;
+    chemicalWarningsPending: number;
+    purchaseApprovals: number;
+    reimbursementsPending: number;
+  }>({ supplyReservations: 0, chemicalWarningsPending: 0, purchaseApprovals: 0, reimbursementsPending: 0 });
+  const hasAnyManagerRole = isSuppliesManager || isChemicalsManager || isTeacher || isReimbursementApprover || isSuperAdmin;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -169,6 +174,60 @@ export default function Dashboard() {
           .then(({ data, error: err }) => {
             if (err) { hasAnyError = true; console.error('Warnings:', err); return; }
             setChemicalWarnings((data as unknown as ChemicalWarning[]) || []);
+          })
+      );
+    }
+
+    // 待办事项计数查询
+    if (isSuppliesManager) {
+      promises.push(
+        supabase
+          .from('supply_reservations')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .then(({ count, error: err }) => {
+            if (err) { hasAnyError = true; return; }
+            setPendingTaskCounts((prev) => ({ ...prev, supplyReservations: count ?? 0 }));
+          })
+      );
+    }
+
+    if (isChemicalsManager) {
+      promises.push(
+        supabase
+          .from('chemical_warnings')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .then(({ count, error: err }) => {
+            if (err) { hasAnyError = true; return; }
+            setPendingTaskCounts((prev) => ({ ...prev, chemicalWarningsPending: count ?? 0 }));
+          })
+      );
+    }
+
+    if (isTeacher && profile) {
+      promises.push(
+        supabase
+          .from('purchase_approvals')
+          .select('id', { count: 'exact', head: true })
+          .eq('approver_id', profile.id)
+          .eq('status', 'pending')
+          .then(({ count, error: err }) => {
+            if (err) { hasAnyError = true; return; }
+            setPendingTaskCounts((prev) => ({ ...prev, purchaseApprovals: count ?? 0 }));
+          })
+      );
+    }
+
+    if (isReimbursementApprover) {
+      promises.push(
+        supabase
+          .from('reimbursements')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending')
+          .then(({ count, error: err }) => {
+            if (err) { hasAnyError = true; return; }
+            setPendingTaskCounts((prev) => ({ ...prev, reimbursementsPending: count ?? 0 }));
           })
       );
     }
@@ -252,6 +311,54 @@ export default function Dashboard() {
         </h1>
         <p className="text-sm text-gray-500 mt-1">{getToday()}</p>
       </div>
+
+      {/* 待办事项 (managers only) */}
+      {hasAnyManagerRole && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <ClipboardList className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base font-semibold text-gray-900">待办事项</h2>
+          </div>
+          {(() => {
+            const tasks: { label: string; count: number; path: string; color: string }[] = [];
+            if (isSuppliesManager && pendingTaskCounts.supplyReservations > 0) {
+              tasks.push({ label: '耗材申领待审批', count: pendingTaskCounts.supplyReservations, path: '/supplies/review', color: 'bg-red-50 text-red-700 border-red-200' });
+            }
+            if (isChemicalsManager && pendingTaskCounts.chemicalWarningsPending > 0) {
+              tasks.push({ label: '药品补货待处理', count: pendingTaskCounts.chemicalWarningsPending, path: '/reagents/warnings', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' });
+            }
+            if (isTeacher && pendingTaskCounts.purchaseApprovals > 0) {
+              tasks.push({ label: '采购待审批', count: pendingTaskCounts.purchaseApprovals, path: '/purchase-approvals/review', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' });
+            }
+            if (isReimbursementApprover && pendingTaskCounts.reimbursementsPending > 0) {
+              tasks.push({ label: '报销待审批', count: pendingTaskCounts.reimbursementsPending, path: '/reimbursements/review', color: 'bg-blue-50 text-blue-700 border-blue-200' });
+            }
+            if (tasks.length === 0) {
+              return (
+                <div className="bg-white rounded-xl border border-gray-200 p-4 text-center text-sm text-gray-400">
+                  暂无待办
+                </div>
+              );
+            }
+            return (
+              <div className="flex flex-wrap gap-3">
+                {tasks.map((t) => (
+                  <Link
+                    key={t.path}
+                    to={t.path}
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border font-medium text-sm hover:shadow-md transition-shadow ${t.color}`}
+                  >
+                    <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-current/10 text-xs font-bold">
+                      {t.count}
+                    </span>
+                    <span>{t.count}条{t.label}</span>
+                  </Link>
+                ))}
+              </div>
+            );
+          })()}
+        </section>
+      )}
 
       {/* 公告栏 */}
       <section>

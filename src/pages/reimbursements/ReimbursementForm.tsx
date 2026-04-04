@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, Send, X, FileText, Image } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -111,8 +111,8 @@ export default function ReimbursementForm() {
           setPurchaseApprovalId(target.id);
         }
       }
-    } catch {
-      // silent - approvals are optional
+    } catch (err) {
+      console.error('Failed to fetch approvals:', err);
     } finally {
       setLoadingApprovals(false);
     }
@@ -145,6 +145,8 @@ export default function ReimbursementForm() {
   function handleApprovalChange(id: string) {
     if (!id) {
       setPurchaseApprovalId(null);
+      setTitle('');
+      setCategory('其他');
       return;
     }
     setPurchaseApprovalId(id);
@@ -159,7 +161,7 @@ export default function ReimbursementForm() {
   }
 
   async function handleSubmit() {
-    if (!profile || !title || !amount) return;
+    if (!profile || !title || !amount || !purchaseApprovalId) return;
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -186,7 +188,7 @@ export default function ReimbursementForm() {
           amount: parsedAmount,
           description,
           category,
-          purchase_approval_id: purchaseApprovalId || null,
+          purchase_approval_id: purchaseApprovalId,
           receipt_urls: allFiles.map((f) => f.name),
           file_paths: allFiles,
           status: 'pending',
@@ -259,32 +261,44 @@ export default function ReimbursementForm() {
           <div className="space-y-4">
             <Card>
               <div className="space-y-4">
-                {/* 关联采购审批 */}
-                {approvedApprovals.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      关联采购审批（可选）
-                    </label>
-                    <select
-                      value={purchaseApprovalId ?? ''}
-                      onChange={(e) => handleApprovalChange(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                    >
-                      <option value="">不关联</option>
-                      {approvedApprovals.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.title}
-                          {a.estimated_amount
-                            ? ` (¥${a.estimated_amount.toFixed(2)})`
-                            : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-400 mt-1">
-                      选择后将自动填充标题和类别
-                    </p>
-                  </div>
-                )}
+                {/* 关联采购审批（必选） */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    关联采购审批 <span className="text-red-500">*</span>
+                  </label>
+                  {approvedApprovals.length === 0 ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+                      <p>请先提交采购审批并获批准后再报销</p>
+                      <Link
+                        to="/purchase-approvals/new"
+                        className="inline-block mt-2 text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        前往提交采购审批 &rarr;
+                      </Link>
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        value={purchaseApprovalId ?? ''}
+                        onChange={(e) => handleApprovalChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <option value="">请选择采购审批</option>
+                        {approvedApprovals.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.title}
+                            {a.estimated_amount
+                              ? ` (¥${a.estimated_amount.toFixed(2)})`
+                              : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-400 mt-1">
+                        选择后将自动填充标题和类别
+                      </p>
+                    </>
+                  )}
+                </div>
 
                 {/* 标题 */}
                 <div>
@@ -429,7 +443,7 @@ export default function ReimbursementForm() {
             {/* 提交 */}
             <button
               onClick={handleSubmit}
-              disabled={submitting || !title || !amount}
+              disabled={submitting || !title || !amount || !purchaseApprovalId}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               <Send className="w-4 h-4" />
