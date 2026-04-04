@@ -231,6 +231,7 @@ export interface Purchase {
   auto_approved: boolean;
 
   skip_registration: boolean;
+  extra_fields: Record<string, unknown>;
 
   actual_amount: number | null;
   receipt_attachments: ReimbursementFile[];
