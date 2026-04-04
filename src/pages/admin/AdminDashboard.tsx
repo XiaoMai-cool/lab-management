@@ -27,8 +27,8 @@ interface ModuleCard {
 
 const modules: ModuleCard[] = [
   {
-    title: '公告管理',
-    description: '发布和管理课题组公告',
+    title: '公告与文档管理',
+    description: '发布公告和管理文档资料',
     icon: Megaphone,
     path: '/admin/announcements',
     color: 'bg-blue-50 text-blue-600',
@@ -46,13 +46,6 @@ const modules: ModuleCard[] = [
     icon: Package,
     path: '/admin/supplies',
     color: 'bg-green-50 text-green-600',
-  },
-  {
-    title: '文档资料',
-    description: '管理规章制度和文档',
-    icon: FileText,
-    path: '/documents',
-    color: 'bg-orange-50 text-orange-600',
   },
   {
     title: '排班管理',

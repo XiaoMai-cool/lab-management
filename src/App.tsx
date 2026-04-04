@@ -30,6 +30,7 @@ const ChemicalWarnings = lazy(() => import('./pages/reagents/ChemicalWarnings'))
 const DocumentList = lazy(() => import('./pages/documents/DocumentList'))
 const DocumentView = lazy(() => import('./pages/documents/DocumentView'))
 const DocumentEdit = lazy(() => import('./pages/documents/DocumentEdit'))
+const AnnouncementView = lazy(() => import('./pages/documents/AnnouncementView'))
 
 // Duty
 const DutyRoster = lazy(() => import('./pages/duty/DutyRoster'))
@@ -86,11 +87,12 @@ export default function App() {
               <Route path="/reagents/purchase" element={<ReagentPurchaseRequest />} />
               <Route path="/reagents/warnings" element={<ProtectedRoute requiredModule="chemicals"><ChemicalWarnings /></ProtectedRoute>} />
 
-              {/* 文档资料 */}
+              {/* 文档资料 + 公告 */}
               <Route path="/documents" element={<DocumentList />} />
               <Route path="/documents/:id" element={<DocumentView />} />
               <Route path="/documents/new" element={<ProtectedRoute requiredRole="admin"><DocumentEdit /></ProtectedRoute>} />
               <Route path="/documents/:id/edit" element={<ProtectedRoute requiredRole="admin"><DocumentEdit /></ProtectedRoute>} />
+              <Route path="/announcements/:id" element={<AnnouncementView />} />
 
               {/* 值日 */}
               <Route path="/duty" element={<DutyRoster />} />

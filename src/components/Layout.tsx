@@ -141,7 +141,7 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
     groups.push({
       label: '系统管理', colorScheme: 'gray',
       items: [
-        { label: '公告管理', icon: Bell, path: '/admin/announcements' },
+        { label: '公告与文档管理', icon: Bell, path: '/admin/announcements' },
         { label: '人员管理', icon: User, path: '/admin/members' },
         { label: '数据导出', icon: BarChart3, path: '/admin/export' },
         { label: '日常须知', icon: Bell, path: '/admin/daily-notices' },

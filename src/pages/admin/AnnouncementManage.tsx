@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Megaphone, Upload, X, Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Pencil, Trash2, Megaphone, Upload, X, Download, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Announcement, AnnouncementAttachment } from '../../lib/types';
+import type { Announcement, AnnouncementAttachment, Document as DocType } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 
 type Priority = 'normal' | 'important' | 'urgent';
+type TabKey = 'announcements' | 'documents';
 
 interface AnnouncementForm {
   title: string;
@@ -53,6 +55,10 @@ function formatDate(dateStr: string) {
 
 export default function AnnouncementManage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabKey>('announcements');
+
+  // Announcement state
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +69,12 @@ export default function AnnouncementManage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+
+  // Document state
+  const [documents, setDocuments] = useState<DocType[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [deleteDocConfirmId, setDeleteDocConfirmId] = useState<string | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState(false);
 
   async function fetchAnnouncements() {
     setLoading(true);
@@ -83,8 +95,25 @@ export default function AnnouncementManage() {
     setLoading(false);
   }
 
+  async function fetchDocuments() {
+    setLoadingDocs(true);
+    const { data, error: fetchError } = await supabase
+      .from('documents')
+      .select('*')
+      .order('sort_order')
+      .order('updated_at', { ascending: false });
+
+    if (fetchError) {
+      console.error(fetchError);
+    } else {
+      setDocuments((data as DocType[]) ?? []);
+    }
+    setLoadingDocs(false);
+  }
+
   useEffect(() => {
     fetchAnnouncements();
+    fetchDocuments();
   }, []);
 
   function openCreateModal() {
@@ -231,23 +260,80 @@ export default function AnnouncementManage() {
     }
   }
 
-  if (loading) return <LoadingSpinner />;
+  async function handleDeleteDocument(id: string) {
+    setDeletingDoc(true);
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      setDeleteDocConfirmId(null);
+      fetchDocuments();
+    } catch (err) {
+      console.error('Delete doc failed:', err);
+      setError('删除文档失败，请重试');
+    } finally {
+      setDeletingDoc(false);
+    }
+  }
 
   return (
     <div>
       <PageHeader
-        title="公告管理"
-        subtitle="管理课题组公告信息"
+        title="公告与文档管理"
+        subtitle="管理课题组公告和文档资料"
         action={
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            新建公告
-          </button>
+          activeTab === 'announcements' ? (
+            <button
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              新建公告
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/documents/new')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              添加文档
+            </button>
+          )
         }
       />
+
+      {/* Tabs */}
+      <div className="px-4 md:px-6 mb-4">
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab('announcements')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'announcements'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Megaphone className="w-4 h-4" />
+            公告管理
+          </button>
+          <button
+            onClick={() => setActiveTab('documents')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'documents'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            文档管理
+          </button>
+        </div>
+      </div>
 
       <div className="px-4 md:px-6 pb-6">
         {error && (
@@ -256,98 +342,162 @@ export default function AnnouncementManage() {
           </div>
         )}
 
-        {announcements.length === 0 ? (
-          <EmptyState
-            icon={Megaphone}
-            title="暂无公告"
-            description="点击右上角按钮创建第一条公告"
-          />
-        ) : (
-          <div className="space-y-3">
-            {announcements.map((a) => (
-              <div
-                key={a.id}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-gray-900 truncate">
-                        {a.title}
-                      </h3>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priorityColors[a.priority]}`}
-                      >
-                        {priorityLabels[a.priority]}
-                      </span>
-                      {a.published ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          已发布
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                          未发布
-                        </span>
-                      )}
-                      {a.show_on_login && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                          登录页
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">
-                      {a.content}
-                    </p>
-                    {/* Inline attachments */}
-                    {a.attachments && (a.attachments as AnnouncementAttachment[]).length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {(a.attachments as AnnouncementAttachment[]).map((att, idx) =>
-                          att.type?.startsWith('image/') ? (
-                            <img key={idx} src={att.url} alt={att.name} className="max-h-24 rounded border border-gray-200" />
+        {/* Announcements Tab */}
+        {activeTab === 'announcements' && (
+          <>
+            {loading ? (
+              <LoadingSpinner />
+            ) : announcements.length === 0 ? (
+              <EmptyState
+                icon={Megaphone}
+                title="暂无公告"
+                description="点击右上角按钮创建第一条公告"
+              />
+            ) : (
+              <div className="space-y-3">
+                {announcements.map((a) => (
+                  <div
+                    key={a.id}
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-semibold text-gray-900 truncate">
+                            {a.title}
+                          </h3>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priorityColors[a.priority]}`}
+                          >
+                            {priorityLabels[a.priority]}
+                          </span>
+                          {a.published ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              已发布
+                            </span>
                           ) : (
-                            <a
-                              key={idx}
-                              href={att.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-md"
-                            >
-                              <Download className="w-3 h-3" />
-                              {att.name}
-                            </a>
-                          )
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                              未发布
+                            </span>
+                          )}
+                          {a.show_on_login && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              登录页
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">
+                          {a.content}
+                        </p>
+                        {/* Inline attachments */}
+                        {a.attachments && (a.attachments as AnnouncementAttachment[]).length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(a.attachments as AnnouncementAttachment[]).map((att, idx) =>
+                              att.type?.startsWith('image/') ? (
+                                <img key={idx} src={att.url} alt={att.name} className="max-h-24 rounded border border-gray-200" />
+                              ) : (
+                                <a
+                                  key={idx}
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-md"
+                                >
+                                  <Download className="w-3 h-3" />
+                                  {att.name}
+                                </a>
+                              )
+                            )}
+                          </div>
                         )}
+                        <p className="text-xs text-gray-400 mt-2">
+                          {formatDate(a.created_at)}
+                        </p>
                       </div>
-                    )}
-                    <p className="text-xs text-gray-400 mt-2">
-                      {formatDate(a.created_at)}
-                    </p>
-                  </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => openEditModal(a)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                      title="编辑"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirmId(a.id)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                      title="删除"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => openEditModal(a)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="编辑"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(a.id)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
+        )}
+
+        {/* Documents Tab */}
+        {activeTab === 'documents' && (
+          <>
+            {loadingDocs ? (
+              <LoadingSpinner />
+            ) : documents.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title="暂无文档"
+                description="点击右上角按钮添加第一篇文档"
+              />
+            ) : (
+              <div className="space-y-3">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-gray-900 truncate">
+                            {doc.title}
+                          </h3>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            {doc.category || '未分类'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          更新于 {formatDate(doc.updated_at)}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => navigate(`/documents/${doc.id}/edit`)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="编辑"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteDocConfirmId(doc.id)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Announcement Modal */}
       <Modal
         open={modalOpen}
         onClose={closeModal}
@@ -534,7 +684,7 @@ export default function AnnouncementManage() {
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Announcement Confirmation Modal */}
       <Modal
         open={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
@@ -559,6 +709,34 @@ export default function AnnouncementManage() {
       >
         <p className="text-sm text-gray-600">
           确定要删除这条公告吗？此操作不可撤销。
+        </p>
+      </Modal>
+
+      {/* Delete Document Confirmation Modal */}
+      <Modal
+        open={!!deleteDocConfirmId}
+        onClose={() => setDeleteDocConfirmId(null)}
+        title="确认删除文档"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setDeleteDocConfirmId(null)}
+              className="flex-1 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={() => deleteDocConfirmId && handleDeleteDocument(deleteDocConfirmId)}
+              disabled={deletingDoc}
+              className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+            >
+              {deletingDoc ? '删除中...' : '确认删除'}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-600">
+          确定要删除这篇文档吗？此操作不可撤销。
         </p>
       </Modal>
     </div>

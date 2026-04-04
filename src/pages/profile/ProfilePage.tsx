@@ -160,7 +160,7 @@ export default function ProfilePage() {
       color: 'text-green-600 bg-green-50',
     },
     {
-      label: '文档资料',
+      label: '公告与文档',
       icon: FileText,
       path: '/documents',
       color: 'text-teal-600 bg-teal-50',
@@ -321,7 +321,7 @@ export default function ProfilePage() {
                     <span className="text-xs font-semibold text-gray-600">系统管理</span>
                   </div>
                   <QuickLinkButton label="系统管理" path="/admin" icon={Settings} color="text-gray-600 bg-gray-50" navigate={navigate} />
-                  <QuickLinkButton label="公告管理" path="/admin/announcements" icon={Megaphone} color="text-gray-600 bg-gray-50" navigate={navigate} />
+                  <QuickLinkButton label="公告与文档管理" path="/admin/announcements" icon={Megaphone} color="text-gray-600 bg-gray-50" navigate={navigate} />
                   <QuickLinkButton label="人员管理" path="/admin/members" icon={Users} color="text-gray-600 bg-gray-50" navigate={navigate} />
                   <QuickLinkButton label="数据导出" path="/admin/export" icon={Download} color="text-gray-600 bg-gray-50" navigate={navigate} />
                 </>

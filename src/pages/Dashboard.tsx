@@ -29,7 +29,7 @@ const quickActions = [
   { label: '采购申请', path: '/purchase-approvals/new', icon: Receipt, color: 'bg-purple-50 text-purple-600' },
   { label: '药品总览', path: '/reagents', icon: FlaskConical, color: 'bg-pink-50 text-pink-600' },
   { label: '值日查询', path: '/duty', icon: CalendarCheck, color: 'bg-orange-50 text-orange-600' },
-  { label: '文档资料', path: '/documents', icon: FileText, color: 'bg-teal-50 text-teal-600' },
+  { label: '公告与文档', path: '/documents', icon: FileText, color: 'bg-teal-50 text-teal-600' },
 ];
 
 function formatDate(dateStr: string) {
@@ -422,7 +422,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 mb-3">
           <Megaphone className="w-5 h-5 text-blue-600" />
           <h2 className="text-base font-semibold text-gray-900">公告栏</h2>
-          <Link to="/documents" className="ml-auto text-sm text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
+          <Link to="/documents?tab=announcements" className="ml-auto text-sm text-blue-600 hover:text-blue-700 flex items-center gap-0.5">
             查看全部 <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
