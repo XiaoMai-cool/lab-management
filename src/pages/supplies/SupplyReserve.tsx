@@ -452,7 +452,7 @@ export default function SupplyReserve() {
 
       {/* Sticky bottom summary */}
       {selectedCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
           <div className="max-w-2xl mx-auto px-4 py-3">
             {/* Selected items list */}
             <div className="flex flex-wrap gap-1.5 mb-3">
