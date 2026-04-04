@@ -126,7 +126,7 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
     groups.push({
       label: '药品管理', colorScheme: 'purple',
       items: [
-        { label: '药品库存', icon: FlaskConical, path: '/reagents/new' },
+        { label: '药品库存', icon: FlaskConical, path: '/reagents' },
         { label: '补货管理', icon: AlertTriangle, path: '/reagents/warnings' },
         { label: '入库登记', icon: FlaskConical, path: '/purchases/registration' },
       ],
