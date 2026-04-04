@@ -84,12 +84,13 @@
 | 当前页面 | 变更 |
 |---------|------|
 | `SupplyReserve.tsx` | 改为多选表单，按分类分组展示耗材，移除「使用后归还」勾选框，用途改选填+快捷标签 |
-| `SupplyBorrow.tsx` | 废弃，删除页面和路由 |
+| `SupplyBorrow.tsx` | 废弃，删除页面文件和 App.tsx 中的路由定义 |
 | `SupplyReturn.tsx` | 保留，「丢失」改为「报损」，去除追责暗示 |
 | `MyReservations.tsx` | 适配多耗材，列表显示摘要（如"手套、烧杯等3项"），点进去看完整明细 |
 | `SupplyList.tsx` | 保留，SubNav 中移除「借用」入口 |
 | `SupplyManage.tsx`（管理端） | 每个耗材增加 `is_returnable` 属性配置 |
 | `ReservationReview.tsx`（管理端） | 适配多耗材审批，支持整体通过/驳回 + 逐个删除/调整数量 |
+| `BorrowingManage.tsx`（管理端） | 改名为「物资追踪」，`lost` 状态显示改为 `damaged`（报损） |
 
 ### 数据模型变更
 
@@ -123,9 +124,11 @@ supply_reservation_items:
 - 状态：`borrowed`（使用中）→ `returned`（已归还）/ `damaged`（已报损）
 - 原有 `lost` 状态改为 `damaged`（报损），旧数据为测试数据无需迁移
 
-### 底部导航调整
+### 导航调整
 
-「物资」Tab 进入后的 SubNav 移除「借用」入口，保留：物资列表、申领、我的申领、归还。
+- 「物资」Tab 进入后的 SubNav 移除「借用」入口，保留：物资列表、申领、我的申领、归还
+- Dashboard 快捷操作：删除「借用耗材」入口（从5个变为4个：申领物资、采购申请、药品总览、值日查询）
+- 管理面板：耗材管理分组中「借用管理」改名为「物资追踪」
 
 ---
 
