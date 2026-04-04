@@ -601,88 +601,82 @@ export default function ReagentList() {
         </div>
       )}
 
-      {/* 展开的取药清单面板 */}
+      {/* 全屏取药清单 */}
       {checklistExpanded && (
-        <div className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-2xl px-4">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-2xl max-h-[40vh] flex flex-col">
-            {/* 面板头部 */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-blue-600" />
-                <h3 className="text-sm font-semibold text-gray-900">取药清单 ({checklist.length})</h3>
-              </div>
-              <button
-                onClick={() => setChecklistExpanded(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                <X className="h-4 w-4" />
-              </button>
+        <div className="fixed inset-0 z-50 bg-white flex flex-col">
+          {/* 头部 */}
+          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-blue-600" />
+              <h3 className="text-base font-bold text-gray-900">取药清单 ({checklist.length})</h3>
             </div>
+            <button
+              onClick={() => setChecklistExpanded(false)}
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-            {/* 清单内容 */}
-            <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
-              {checklist.map((item) => (
+          {/* 清单内容 - 按编号排序 */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            {[...checklist]
+              .sort((a, b) => (a.batch_number || '').localeCompare(b.batch_number || ''))
+              .map((item) => (
                 <div
                   key={item.chemical_id}
-                  className={`flex items-center justify-between rounded-lg border p-2.5 text-xs ${
+                  className={`flex items-center justify-between rounded-lg border p-3 ${
                     changedItems.has(item.chemical_id)
                       ? 'border-yellow-300 bg-yellow-50'
                       : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-gray-900">{item.name}</span>
-                      {item.batch_number && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold">
-                          {item.batch_number}
-                        </span>
-                      )}
-                      {changedItems.has(item.chemical_id) && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-200 text-yellow-800 font-medium">
-                          信息已变更
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-0.5 flex gap-3 text-gray-500">
-                      {item.location && <span>位置: {item.location}</span>}
-                      {item.specification && <span>规格: {item.specification}</span>}
-                    </div>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {item.batch_number && (
+                      <span className="text-xs px-2 py-1 rounded bg-indigo-100 text-indigo-700 font-bold shrink-0">
+                        {item.batch_number}
+                      </span>
+                    )}
+                    <span className="text-sm font-medium text-gray-900 truncate">{item.name}</span>
+                    {changedItems.has(item.chemical_id) && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-200 text-yellow-800 font-medium shrink-0">
+                        信息已变更
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => removeFromChecklist(item.chemical_id)}
-                    className="ml-2 shrink-0 p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50"
+                    className="ml-2 shrink-0 p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               ))}
-            </div>
+          </div>
 
-            {/* 操作按钮 */}
-            <div className="flex items-center gap-2 border-t border-gray-100 px-4 py-3 shrink-0">
-              <button
-                onClick={clearChecklist}
-                className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-              >
-                <Trash2 className="h-3 w-3" />
-                清空
-              </button>
-              <button
-                onClick={() => { setShowSaveModal(true); setSaveListName(''); }}
-                className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-              >
-                <Save className="h-3 w-3" />
-                保存清单
-              </button>
-              <button
-                onClick={() => { setShowLoadModal(true); fetchSavedLists(); }}
-                className="flex items-center gap-1 rounded-lg border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
-              >
-                <FolderOpen className="h-3 w-3" />
-                加载清单
-              </button>
-            </div>
+          {/* 底部操作栏 */}
+          <div className="flex items-center gap-2 border-t border-gray-200 px-4 py-3 shrink-0 safe-area-pb">
+            <button
+              onClick={clearChecklist}
+              className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              清空
+            </button>
+            <button
+              onClick={() => { setShowSaveModal(true); setSaveListName(''); }}
+              className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <Save className="h-3.5 w-3.5" />
+              保存清单
+            </button>
+            <button
+              onClick={() => { setShowLoadModal(true); fetchSavedLists(); }}
+              className="flex items-center gap-1 rounded-lg border border-blue-300 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              加载清单
+            </button>
           </div>
         </div>
       )}
