@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Upload, X, FileText } from 'lucide-react';
+import { CheckCircle, Upload, X, FileText, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Profile, PurchaseCategory, PurchaseType, ReimbursementFile } from '../../lib/types';
@@ -273,6 +273,13 @@ export default function PurchaseApprovalForm() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
+      <button
+        onClick={() => navigate('/purchase-approvals')}
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-3"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        返回
+      </button>
       <PageHeader title="采购申请" subtitle="提交采购申请，审批通过后进行采购和报销" />
 
       <Card>
