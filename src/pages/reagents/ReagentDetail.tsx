@@ -82,7 +82,7 @@ interface UsageLog {
 export default function ReagentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin: isAdminRole, isChemicalsManager } = useAuth();
   const [chemical, setChemical] = useState<Chemical | null>(null);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
@@ -94,7 +94,7 @@ export default function ReagentDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'chemicals_manager';
+  const isAdmin = isAdminRole || isChemicalsManager;
 
   useEffect(() => {
     if (id) fetchAll();

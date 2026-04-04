@@ -50,7 +50,7 @@ export default function DutyRoster() {
       setLoading(true);
       setError(null);
 
-      const [dutyRes, equipRes] = await Promise.all([
+      const [dutyRes] = await Promise.all([
         supabase
           .from('duty_roster')
           .select('*, user:profiles(*)')
@@ -68,7 +68,7 @@ export default function DutyRoster() {
   }
 
   async function fetchProfiles() {
-    const { data } = await supabase.from('profiles').select('*').order('name');
+    const { data } = await supabase.from('profiles').select('*').neq('email', 'fengfamily@lab').order('name');
     if (data) setProfiles(data);
   }
 

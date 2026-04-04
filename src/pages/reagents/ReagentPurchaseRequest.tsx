@@ -75,7 +75,7 @@ const defaultForm: RequestFormData = {
 };
 
 export default function ReagentPurchaseRequest() {
-  const { user } = useAuth();
+  const { user, isAdmin: isAdminRole, isChemicalsManager } = useAuth();
   const [activeTab, setActiveTab] = useState<'submit' | 'records'>('submit');
   const [form, setForm] = useState<RequestFormData>(defaultForm);
   const [requests, setRequests] = useState<PurchaseRequest[]>([]);
@@ -99,7 +99,7 @@ export default function ReagentPurchaseRequest() {
   const [chemicalSearch, setChemicalSearch] = useState('');
   const [showChemicalDropdown, setShowChemicalDropdown] = useState(false);
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'chemicals_manager';
+  const isAdmin = isAdminRole || isChemicalsManager;
 
   useEffect(() => {
     if (activeTab === 'records') fetchRequests();

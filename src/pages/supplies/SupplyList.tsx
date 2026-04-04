@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SubNav from '../../components/SubNav';
 import { Search, Plus, RefreshCw, Package } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -43,6 +43,7 @@ export default function SupplyList() {
   const [error, setError] = useState<string | null>(null);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const canManage = isAdmin || canManageModule('supplies');
 
   async function fetchSupplies() {
@@ -121,13 +122,13 @@ export default function SupplyList() {
         subtitle="查看和管理实验室耗材库存"
         action={
           canManage ? (
-            <Link
-              to="/supplies/add"
+            <button
+              onClick={() => navigate('/admin/supplies')}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               添加耗材
-            </Link>
+            </button>
           ) : undefined
         }
       />
