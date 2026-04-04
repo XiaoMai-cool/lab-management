@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (event === 'SIGNED_OUT' || !session?.user) {
           setUser(null);
           setProfile(null);
@@ -85,24 +85,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // We have a user session
         setUser(session.user);
 
-        // Try to fetch profile - retry once if fails
-        let p = await fetchProfile(session.user.id);
-        if (!p) {
-          // Wait 1s and retry (might be network lag)
-          await new Promise(r => setTimeout(r, 1000));
-          p = await fetchProfile(session.user.id);
-        }
+        // Fetch profile outside of callback to avoid Supabase deadlock
+        // See: https://github.com/supabase/supabase/issues/41968
+        const userId = session.user.id;
+        setTimeout(async () => {
+          let p = await fetchProfile(userId);
+          if (!p) {
+            await new Promise(r => setTimeout(r, 1000));
+            p = await fetchProfile(userId);
+          }
 
-        if (p) {
-          setProfile(p);
-        } else {
-          // Still no profile - keep user logged in but without profile
-          // Don't sign out - the user successfully authenticated
-          console.warn('Profile not found, user will have limited access');
-        }
+          if (p) {
+            setProfile(p);
+          } else {
+            console.warn('Profile not found, user will have limited access');
+          }
 
-        setLoading(false);
-        initDone.current = true;
+          setLoading(false);
+          initDone.current = true;
+        }, 0);
       },
     );
 
@@ -113,14 +114,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initDone.current = true;
     });
 
-    // Safety timeout - 15 seconds for slow mobile networks
+    // Safety timeout - 10 seconds
     const safetyTimer = setTimeout(() => {
       if (!initDone.current) {
         console.warn('Auth safety timeout - stopping loading');
         setLoading(false);
         initDone.current = true;
       }
-    }, 15000);
+    }, 10000);
 
     return () => {
       clearTimeout(safetyTimer);
