@@ -25,8 +25,7 @@ interface NavItem {
 
 interface ManageGroup {
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  colorScheme: 'green' | 'yellow' | 'blue' | 'purple' | 'gray';
+  colorScheme: 'yellow' | 'blue' | 'purple' | 'gray';
   items: NavItem[];
 }
 
@@ -36,15 +35,6 @@ interface ManageConfig {
 }
 
 const GROUP_COLORS = {
-  green: {
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    iconBg: 'bg-green-100',
-    iconText: 'text-green-600',
-    label: 'text-green-800',
-    activeBg: 'bg-green-50',
-    activeText: 'text-green-700',
-  },
   yellow: {
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
@@ -117,12 +107,12 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
     reimbursementItems.push({ label: '报销统计', icon: BarChart3, path: '/reimbursements/stats' });
   }
   if (reimbursementItems.length > 0) {
-    groups.push({ label: '报销管理', icon: FileText, colorScheme: 'yellow', items: reimbursementItems });
+    groups.push({ label: '报销管理', colorScheme: 'yellow', items: reimbursementItems });
   }
 
   if (auth.isSuppliesManager) {
     groups.push({
-      label: '耗材管理', icon: Package, colorScheme: 'blue',
+      label: '耗材管理', colorScheme: 'blue',
       items: [
         { label: '申领审批', icon: ClipboardCheck, path: '/supplies/review' },
         { label: '库存管理', icon: Package, path: '/admin/supplies' },
@@ -133,7 +123,7 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
 
   if (auth.isChemicalsManager) {
     groups.push({
-      label: '药品管理', icon: FlaskConical, colorScheme: 'purple',
+      label: '药品管理', colorScheme: 'purple',
       items: [
         { label: '药品库存', icon: FlaskConical, path: '/reagents/new' },
         { label: '补货管理', icon: AlertTriangle, path: '/reagents/warnings' },
@@ -143,7 +133,7 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
 
   if (auth.isAdmin) {
     groups.push({
-      label: '系统管理', icon: Settings, colorScheme: 'gray',
+      label: '系统管理', colorScheme: 'gray',
       items: [
         { label: '公告管理', icon: Bell, path: '/admin/announcements' },
         { label: '人员管理', icon: User, path: '/admin/members' },
@@ -370,10 +360,7 @@ export default function Layout() {
                       <div className="w-9 h-9 rounded-lg bg-green-100 flex items-center justify-center">
                         <Icon className="w-5 h-5 text-green-600" />
                       </div>
-                      <div className="text-left">
-                        <div className="text-sm font-semibold text-green-800">{item.label}</div>
-                        <div className="text-[10px] text-green-600">审批学生采购申请</div>
-                      </div>
+                      <span className="text-sm font-semibold text-green-800">{item.label}</span>
                     </button>
                   );
                 })}
