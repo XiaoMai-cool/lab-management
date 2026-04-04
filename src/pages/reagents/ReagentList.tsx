@@ -604,7 +604,7 @@ export default function ReagentList() {
       {/* 展开的取药清单面板 */}
       {checklistExpanded && (
         <div className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-2xl px-4">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-2xl max-h-[60vh] flex flex-col">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-2xl max-h-[40vh] flex flex-col">
             {/* 面板头部 */}
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 shrink-0">
               <div className="flex items-center gap-2">
