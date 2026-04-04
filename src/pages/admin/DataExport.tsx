@@ -235,7 +235,7 @@ export default function DataExport() {
                   ) : (
                     <>
                       <Download className="w-4 h-4" />
-                      下载 CSV
+                      下载 Excel
                     </>
                   )}
                 </button>
