@@ -275,13 +275,6 @@ export default function PurchaseApprovalForm() {
     <div className="max-w-lg mx-auto px-4 py-6">
       <PageHeader title="采购申请" subtitle="提交采购申请，审批通过后进行采购和报销" />
 
-      <div className="px-4 md:px-6 mt-2">
-        <SubNav items={[
-          { to: '/purchase-approvals/new', label: '新建采购' },
-          { to: '/purchase-approvals', label: '我的采购' },
-        ]} />
-      </div>
-
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>

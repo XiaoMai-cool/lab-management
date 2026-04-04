@@ -158,7 +158,6 @@ export default function ReimbursementForm() {
     return (
       <div className="pb-8">
         <div className="px-4 md:px-6 pt-4">
-          <SubNav items={subNavItems} />
         </div>
         <PageHeader title="报销申请" subtitle="提交采购报销" />
         <div className="px-4 md:px-6">
@@ -190,7 +189,6 @@ export default function ReimbursementForm() {
     return (
       <div className="pb-8">
         <div className="px-4 md:px-6 pt-4">
-          <SubNav items={subNavItems} />
         </div>
         <PageHeader title="报销申请" subtitle="未找到记录" />
         <div className="px-4 md:px-6">
@@ -216,7 +214,6 @@ export default function ReimbursementForm() {
     return (
       <div className="pb-8">
         <div className="px-4 md:px-6 pt-4">
-          <SubNav items={subNavItems} />
         </div>
         <PageHeader title="报销申请" subtitle="提交成功" />
         <div className="px-4 md:px-6">
