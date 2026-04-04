@@ -37,8 +37,8 @@ const exportCards: ExportCard[] = [
   },
   {
     key: 'chemicals',
-    title: '导出危化品记录',
-    description: '导出所有危化品使用登记',
+    title: '导出药品记录',
+    description: '导出所有药品信息',
     icon: FlaskConical,
     color: 'bg-purple-50 text-purple-600',
   },
@@ -122,7 +122,7 @@ export default function DataExport() {
             '用途': l.purpose,
             '使用时间': l.used_at,
           }));
-          downloadExcel(rows, '危化品使用记录');
+          downloadExcel(rows, '药品记录');
           break;
         }
 
