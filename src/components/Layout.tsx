@@ -86,7 +86,7 @@ const bottomNavItems: NavItem[] = [
   { label: '首页', icon: Home, path: '/' },
   { label: '物资', icon: Package, path: '/supplies' },
   { label: '药品', icon: FlaskConical, path: '/reagents' },
-  { label: '报销', icon: FileText, path: '/reimbursements' },
+  { label: '采购', icon: FileText, path: '/purchase-approvals' },
   { label: '我的', icon: User, path: '/profile' },
 ];
 
@@ -117,6 +117,7 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
         { label: '申领审批', icon: ClipboardCheck, path: '/supplies/review' },
         { label: '库存管理', icon: Package, path: '/admin/supplies' },
         { label: '物资追踪', icon: Package, path: '/supplies/borrowings' },
+        { label: '入库登记', icon: Package, path: '/purchases/registration' },
       ],
     });
   }
@@ -127,6 +128,7 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
       items: [
         { label: '药品库存', icon: FlaskConical, path: '/reagents/new' },
         { label: '补货管理', icon: AlertTriangle, path: '/reagents/warnings' },
+        { label: '入库登记', icon: FlaskConical, path: '/purchases/registration' },
       ],
     });
   }

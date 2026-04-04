@@ -15,7 +15,6 @@ const SupplyList = lazy(() => import('./pages/supplies/SupplyList'))
 const SupplyReserve = lazy(() => import('./pages/supplies/SupplyReserve'))
 const MyReservations = lazy(() => import('./pages/supplies/MyReservations'))
 const ReservationReview = lazy(() => import('./pages/supplies/ReservationReview'))
-const SupplyBorrow = lazy(() => import('./pages/supplies/SupplyBorrow'))
 const SupplyReturn = lazy(() => import('./pages/supplies/SupplyReturn'))
 const BorrowingManage = lazy(() => import('./pages/supplies/BorrowingManage'))
 
@@ -36,13 +35,15 @@ const DocumentEdit = lazy(() => import('./pages/documents/DocumentEdit'))
 const DutyRoster = lazy(() => import('./pages/duty/DutyRoster'))
 
 // Reimbursements
-const ReimbursementList = lazy(() => import('./pages/reimbursements/ReimbursementList'))
 const ReimbursementForm = lazy(() => import('./pages/reimbursements/ReimbursementForm'))
 const ReimbursementReview = lazy(() => import('./pages/reimbursements/ReimbursementReview'))
 const ReimbursementStats = lazy(() => import('./pages/reimbursements/ReimbursementStats'))
 const PurchaseApprovalForm = lazy(() => import('./pages/purchase-approvals/PurchaseApprovalForm'))
 const PurchaseApprovalReview = lazy(() => import('./pages/purchase-approvals/PurchaseApprovalReview'))
 const PurchaseApprovalList = lazy(() => import('./pages/purchase-approvals/PurchaseApprovalList'))
+
+// Purchases
+const RegistrationPage = lazy(() => import('./pages/purchases/RegistrationPage'))
 
 // Profile
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'))
@@ -72,7 +73,6 @@ export default function App() {
               <Route path="/supplies/reserve" element={<SupplyReserve />} />
               <Route path="/supplies/my-reservations" element={<MyReservations />} />
               <Route path="/supplies/review" element={<ProtectedRoute requiredModule="supplies"><ReservationReview /></ProtectedRoute>} />
-              <Route path="/supplies/borrow" element={<SupplyBorrow />} />
               <Route path="/supplies/my-returns" element={<SupplyReturn />} />
               <Route path="/supplies/borrowings" element={<ProtectedRoute requiredModule="supplies"><BorrowingManage /></ProtectedRoute>} />
 
@@ -97,10 +97,13 @@ export default function App() {
               <Route path="/purchase-approvals/new" element={<PurchaseApprovalForm />} />
               <Route path="/purchase-approvals" element={<PurchaseApprovalList />} />
               <Route path="/purchase-approvals/review" element={<PurchaseApprovalReview />} />
-              <Route path="/reimbursements" element={<ReimbursementList />} />
+              <Route path="/reimbursements" element={<Navigate to="/purchase-approvals" replace />} />
               <Route path="/reimbursements/new" element={<ReimbursementForm />} />
               <Route path="/reimbursements/review" element={<ProtectedRoute requiredRole="admin"><ReimbursementReview /></ProtectedRoute>} />
               <Route path="/reimbursements/stats" element={<ReimbursementStats />} />
+
+              {/* 入库登记 */}
+              <Route path="/purchases/registration" element={<RegistrationPage />} />
 
               {/* 个人中心 */}
               <Route path="/profile" element={<ProfilePage />} />

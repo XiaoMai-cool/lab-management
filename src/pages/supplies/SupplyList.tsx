@@ -139,8 +139,7 @@ export default function SupplyList() {
           { to: '/supplies', label: '物资总览', exact: true },
           { to: '/supplies/reserve', label: '申领物资' },
           { to: '/supplies/my-reservations', label: '我的申领' },
-          { to: '/supplies/borrow', label: '借用耗材' },
-          { to: '/supplies/my-returns', label: '我的借用' },
+          { to: '/supplies/my-returns', label: '归还' },
         ]} />
       </div>
 

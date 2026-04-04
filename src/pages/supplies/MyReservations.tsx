@@ -5,6 +5,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { SupplyReservation } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
 
+interface ReservationItem {
+  id: string;
+  supply_id: string;
+  quantity: number;
+  supply: { name: string; specification: string; unit: string } | null;
+}
+
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'completed';
 
 const STATUS_OPTIONS: { key: StatusFilter; label: string }[] = [
@@ -30,6 +37,7 @@ function formatDateTime(dateStr: string) {
 export default function MyReservations() {
   const { user } = useAuth();
   const [reservations, setReservations] = useState<SupplyReservation[]>([]);
+  const [reservationItems, setReservationItems] = useState<Record<string, ReservationItem[]>>({});
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +62,26 @@ export default function MyReservations() {
       const { data, error: fetchError } = await query;
       if (fetchError) throw fetchError;
       setReservations(data || []);
+
+      // Fetch reservation items for all reservations
+      if (data && data.length > 0) {
+        const ids = data.map((r: any) => r.id);
+        const { data: items } = await supabase
+          .from('supply_reservation_items')
+          .select('id, reservation_id, supply_id, quantity, supply:supplies(name, specification, unit)')
+          .in('reservation_id', ids);
+
+        if (items) {
+          const grouped: Record<string, ReservationItem[]> = {};
+          for (const item of items as any[]) {
+            if (!grouped[item.reservation_id]) grouped[item.reservation_id] = [];
+            grouped[item.reservation_id].push(item);
+          }
+          setReservationItems(grouped);
+        }
+      } else {
+        setReservationItems({});
+      }
     } catch (err: any) {
       setError(err.message || '加载失败');
       console.error(err);
@@ -147,6 +175,21 @@ export default function MyReservations() {
             {reservations.map((reservation) => {
               const supply = reservation.supply as any;
               const statusCfg = STATUS_CONFIG[reservation.status] || STATUS_CONFIG.pending;
+              const items = reservationItems[reservation.id];
+              const hasItems = items && items.length > 0;
+
+              // Build display title
+              let displayTitle: string;
+              if (hasItems) {
+                if (items.length === 1) {
+                  displayTitle = items[0].supply?.name || supply?.name || '未知物资';
+                } else {
+                  const names = items.slice(0, 2).map((i) => i.supply?.name || '未知');
+                  displayTitle = `${names.join('、')}等${items.length}项`;
+                }
+              } else {
+                displayTitle = supply?.name || '未知物资';
+              }
 
               return (
                 <div
@@ -157,7 +200,7 @@ export default function MyReservations() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-sm font-semibold text-gray-900 truncate">
-                          {supply?.name || '未知耗材'}
+                          {displayTitle}
                         </h3>
                         <span
                           className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.bg} ${statusCfg.text}`}
@@ -165,25 +208,40 @@ export default function MyReservations() {
                           {statusCfg.label}
                         </span>
                       </div>
-                      {supply?.specification && (
+                      {/* Show item details for multi-item reservations */}
+                      {hasItems && items.length > 1 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {items.map((item) => (
+                            <span key={item.id} className="text-xs text-gray-500">
+                              {item.supply?.name} x{item.quantity}{item.supply?.unit ? item.supply.unit : ''}
+                              {items.indexOf(item) < items.length - 1 ? ',' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {!hasItems && supply?.specification && (
                         <p className="text-xs text-gray-500">{supply.specification}</p>
                       )}
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-sm font-semibold text-gray-900">
-                        {reservation.quantity}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-0.5">
-                        {supply?.unit || ''}
-                      </span>
-                    </div>
+                    {!hasItems && (
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {reservation.quantity}
+                        </span>
+                        <span className="text-xs text-gray-400 ml-0.5">
+                          {supply?.unit || ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-3 space-y-1.5">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-gray-400">用途:</span>
-                      <span className="text-gray-600">{reservation.purpose}</span>
-                    </div>
+                    {reservation.purpose && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-400">用途:</span>
+                        <span className="text-gray-600">{reservation.purpose}</span>
+                      </div>
+                    )}
                     {reservation.is_returnable && (
                       <div className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">
                         使用后归还

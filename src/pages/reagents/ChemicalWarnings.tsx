@@ -372,8 +372,9 @@ export default function ChemicalWarnings() {
                       )}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-400">
-                      <span>上报: {dayjs(w.reported_at).format('MM-DD')}</span>
-                      {w.arrived_at && <span>送达: {dayjs(w.arrived_at).format('MM-DD')}</span>}
+                      {w.reporter?.name && <span>上报人: {w.reporter.name}</span>}
+                      <span>上报: {dayjs(w.reported_at).format('YYYY-MM-DD')}</span>
+                      {w.arrived_at && <span>送达: {dayjs(w.arrived_at).format('YYYY-MM-DD HH:mm')}</span>}
                     </div>
                   </div>
                   <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">

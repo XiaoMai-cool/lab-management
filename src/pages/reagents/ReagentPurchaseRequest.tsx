@@ -28,7 +28,6 @@ interface PurchaseRequest {
   purity: string | null;
   preferred_manufacturer: string | null;
   purpose: string;
-  urgency: string;
   status: string;
   reviewer_note: string | null;
   supplier_name: string | null;
@@ -58,7 +57,6 @@ interface RequestFormData {
   purity: string;
   preferred_manufacturer: string;
   purpose: string;
-  urgency: string;
 }
 
 const defaultForm: RequestFormData = {
@@ -71,7 +69,6 @@ const defaultForm: RequestFormData = {
   purity: '',
   preferred_manufacturer: '',
   purpose: '',
-  urgency: '普通',
 };
 
 export default function ReagentPurchaseRequest() {
@@ -165,11 +162,6 @@ export default function ReagentPurchaseRequest() {
       setError('请填写药品名称');
       return;
     }
-    if (!form.purpose.trim()) {
-      setError('请填写用途');
-      return;
-    }
-
     try {
       setSubmitting(true);
       setError(null);
@@ -184,8 +176,7 @@ export default function ReagentPurchaseRequest() {
         concentration: form.concentration.trim() || null,
         purity: form.purity.trim() || null,
         preferred_manufacturer: form.preferred_manufacturer.trim() || null,
-        purpose: form.purpose.trim(),
-        urgency: form.urgency,
+        purpose: form.purpose.trim() || null,
         status: 'pending',
       });
 
@@ -452,28 +443,16 @@ export default function ReagentPurchaseRequest() {
 
                 <div className="sm:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-gray-700">
-                    用途 <span className="text-red-500">*</span>
+                    用途
                   </label>
                   <textarea
                     value={form.purpose}
                     onChange={(e) => updateField('purpose', e.target.value)}
                     className="input min-h-[80px]"
                     placeholder="请描述用途和实验需求"
-                    required
                   />
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">紧急程度</label>
-                  <select
-                    value={form.urgency}
-                    onChange={(e) => updateField('urgency', e.target.value)}
-                    className="input"
-                  >
-                    <option value="普通">普通</option>
-                    <option value="紧急">紧急</option>
-                  </select>
-                </div>
               </div>
             </Card>
 
@@ -508,11 +487,6 @@ export default function ReagentPurchaseRequest() {
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className="font-medium text-gray-900">{req.chemical_name}</h4>
                           <StatusBadge variant={statusInfo.variant}>{statusInfo.text}</StatusBadge>
-                          {req.urgency === '紧急' && (
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                              紧急
-                            </span>
-                          )}
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 text-sm text-gray-500">
                           <span>数量: {req.quantity} {req.unit || ''}</span>

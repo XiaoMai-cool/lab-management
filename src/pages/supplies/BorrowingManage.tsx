@@ -9,7 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import Card from '../../components/Card';
 
-type TabKey = 'borrowed' | 'returned' | 'lost';
+type TabKey = 'borrowed' | 'returned' | 'damaged';
 
 interface BorrowingRecord {
   id: string;
@@ -38,7 +38,7 @@ interface BorrowingRecord {
 const TABS: { key: TabKey; label: string; status: string }[] = [
   { key: 'borrowed', label: '借用中', status: 'borrowed' },
   { key: 'returned', label: '已归还', status: 'returned' },
-  { key: 'lost', label: '遗失', status: 'lost' },
+  { key: 'damaged', label: '报损', status: 'damaged' },
 ];
 
 export default function BorrowingManage() {
@@ -194,13 +194,13 @@ export default function BorrowingManage() {
   const statusLabel: Record<string, string> = {
     borrowed: '借用中',
     returned: '已归还',
-    lost: '遗失',
+    damaged: '报损',
   };
 
   const statusClass: Record<string, string> = {
     borrowed: 'bg-blue-50 text-blue-700 ring-blue-600/20',
     returned: 'bg-green-50 text-green-700 ring-green-600/20',
-    lost: 'bg-red-50 text-red-700 ring-red-600/20',
+    damaged: 'bg-red-50 text-red-700 ring-red-600/20',
   };
 
   if (loading) {

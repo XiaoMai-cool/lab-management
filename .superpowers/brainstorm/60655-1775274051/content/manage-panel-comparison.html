@@ -1,0 +1,171 @@
+<h2>手机端管理面板：当前 vs 改进方案</h2>
+<p class="subtitle">对比平铺式和分组式的管理入口布局</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">❌ 当前：平铺所有入口</div>
+    <div class="mockup-body" style="background:#f9fafb; padding:0;">
+      <!-- 模拟手机顶部 -->
+      <div style="background:#fff; padding:10px 14px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:14px; font-weight:700; color:#111;">🧪 实验室管理</span>
+          <span style="font-size:9px; background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding:1px 6px; border-radius:4px; font-weight:700;">⚙ 管理</span>
+        </div>
+        <div style="width:28px; height:28px; border-radius:50%; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-size:11px; color:#1d4ed8; font-weight:600;">王</div>
+      </div>
+      <!-- 管理面板展开 -->
+      <div style="background:#fff; border-bottom:1px solid #e5e7eb; padding:8px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:12px; font-weight:700; color:#111;">管理功能</span>
+          <span style="font-size:16px; color:#9ca3af;">✕</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px;">
+          <!-- 9个平铺入口 -->
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">📋</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">耗材审批</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">📦</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">耗材管理</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">🔄</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">借用管理</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">⚠️</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">药品补货</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">🧪</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">药品管理</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">✅</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">采购审批</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">📄</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">报销审批</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">📊</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">报销统计</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:8px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; display:flex; align-items:center; justify-content:center; font-size:16px;">⚙️</div>
+            <span style="font-size:10px; color:#374151; font-weight:500;">系统管理</span>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px; text-align:center;">
+        <p style="font-size:11px; color:#ef4444; font-weight:600; margin:0;">问题：9个入口平铺，找不到重点</p>
+        <p style="font-size:10px; color:#6b7280; margin:4px 0 0;">同一业务被拆成多个入口，逻辑混乱</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">✅ 改进：按职责分组</div>
+    <div class="mockup-body" style="background:#f9fafb; padding:0;">
+      <!-- 模拟手机顶部 -->
+      <div style="background:#fff; padding:10px 14px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:14px; font-weight:700; color:#111;">🧪 实验室管理</span>
+          <span style="font-size:9px; background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding:1px 6px; border-radius:4px; font-weight:700;">⚙ 管理</span>
+        </div>
+        <div style="width:28px; height:28px; border-radius:50%; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-size:11px; color:#1d4ed8; font-weight:600;">王</div>
+      </div>
+      <!-- 管理面板展开 - 分组式 -->
+      <div style="background:#fff; border-bottom:1px solid #e5e7eb; padding:8px 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span style="font-size:12px; font-weight:700; color:#111;">管理功能</span>
+          <span style="font-size:16px; color:#9ca3af;">✕</span>
+        </div>
+
+        <!-- 采购审批 - 独立入口 -->
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 14px; margin-bottom:8px; display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#dcfce7; display:flex; align-items:center; justify-content:center; font-size:16px;">✅</div>
+          <div>
+            <div style="font-size:12px; font-weight:600; color:#166534;">采购审批</div>
+            <div style="font-size:9px; color:#4ade80;">审批学生采购申请</div>
+          </div>
+          <div style="margin-left:auto; background:#dc2626; color:#fff; font-size:9px; padding:1px 6px; border-radius:10px; font-weight:600;">3</div>
+        </div>
+
+        <!-- 分组卡片 -->
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <!-- 报销管理 -->
+          <div style="background:#fefce8; border:1px solid #fde68a; border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fef9c3; display:flex; align-items:center; justify-content:center; font-size:16px;">💰</div>
+            <div>
+              <div style="font-size:12px; font-weight:600; color:#854d0e;">报销管理</div>
+              <div style="font-size:9px; color:#ca8a04;">报销审批 · 报销统计</div>
+            </div>
+            <div style="margin-left:auto; font-size:14px; color:#ca8a04;">›</div>
+          </div>
+
+          <!-- 耗材管理 -->
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-size:16px;">📦</div>
+            <div>
+              <div style="font-size:12px; font-weight:600; color:#1e40af;">耗材管理</div>
+              <div style="font-size:9px; color:#3b82f6;">库存 · 申领审批 · 借用管理</div>
+            </div>
+            <div style="margin-left:auto; font-size:14px; color:#3b82f6;">›</div>
+          </div>
+
+          <!-- 药品管理 -->
+          <div style="background:#fdf4ff; border:1px solid #e9d5ff; border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#f3e8ff; display:flex; align-items:center; justify-content:center; font-size:16px;">🧪</div>
+            <div>
+              <div style="font-size:12px; font-weight:600; color:#6b21a8;">药品管理</div>
+              <div style="font-size:9px; color:#a855f7;">药品库存 · 补货管理</div>
+            </div>
+            <div style="margin-left:auto; font-size:14px; color:#a855f7;">›</div>
+          </div>
+
+          <!-- 系统管理 -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:16px;">⚙️</div>
+            <div>
+              <div style="font-size:12px; font-weight:600; color:#334155;">系统管理</div>
+              <div style="font-size:9px; color:#94a3b8;">公告 · 人员 · 数据导出</div>
+            </div>
+            <div style="margin-left:auto; font-size:14px; color:#94a3b8;">›</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px; text-align:center;">
+        <p style="font-size:11px; color:#16a34a; font-weight:600; margin:0;">改进：按职责分组，一目了然</p>
+        <p style="font-size:10px; color:#6b7280; margin:4px 0 0;">每人只看到自己负责的入口，子功能收纳其中</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:24px;">交互方式</h3>
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>点击分组 → 展开子功能列表</h3>
+      <p>在管理面板内展开/收起，不跳转页面。适合子功能少（2-3个）的场景。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>点击分组 → 跳转到分组页面</h3>
+      <p>进入一个独立的管理页面，顶部有 Tab 切换子功能。适合子功能多、内容复杂的场景。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>混合模式</h3>
+      <p>子功能少的（如报销：2个）直接展开，子功能多的（如耗材：3个）跳转页面。</p>
+    </div>
+  </div>
+</div>

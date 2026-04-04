@@ -59,6 +59,7 @@ export interface Supply {
   stock: number;
   unit: string;
   min_stock: number;
+  is_returnable: boolean;
   updated_at: string;
 }
 
@@ -87,7 +88,7 @@ export interface SupplyBorrowing {
   user?: Profile;
   quantity: number;
   purpose: string;
-  status: 'borrowed' | 'returned' | 'lost';
+  status: 'borrowed' | 'returned' | 'damaged';
   borrowed_at: string;
   returned_at: string | null;
   notes: string | null;

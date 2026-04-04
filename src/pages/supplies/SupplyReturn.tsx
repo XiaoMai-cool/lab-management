@@ -32,10 +32,10 @@ export default function SupplyReturn() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Lost modal state
-  const [lostModalOpen, setLostModalOpen] = useState(false);
-  const [lostTarget, setLostTarget] = useState<BorrowingRecord | null>(null);
-  const [lostNote, setLostNote] = useState('');
+  // Damaged modal state
+  const [damagedModalOpen, setDamagedModalOpen] = useState(false);
+  const [damagedTarget, setDamagedTarget] = useState<BorrowingRecord | null>(null);
+  const [damagedNote, setDamagedNote] = useState('');
 
   async function fetchBorrowings() {
     if (!user) return;
@@ -99,36 +99,36 @@ export default function SupplyReturn() {
     }
   }
 
-  function openLostModal(record: BorrowingRecord) {
-    setLostTarget(record);
-    setLostNote('');
-    setLostModalOpen(true);
+  function openDamagedModal(record: BorrowingRecord) {
+    setDamagedTarget(record);
+    setDamagedNote('');
+    setDamagedModalOpen(true);
   }
 
-  async function handleMarkLost() {
-    if (!lostTarget) return;
-    setActionLoading(lostTarget.id);
-    setLostModalOpen(false);
+  async function handleMarkDamaged() {
+    if (!damagedTarget) return;
+    setActionLoading(damagedTarget.id);
+    setDamagedModalOpen(false);
 
     try {
       const { error: updateError } = await supabase
         .from('supply_borrowings')
         .update({
-          status: 'lost',
+          status: 'damaged',
           returned_at: new Date().toISOString(),
-          notes: lostNote.trim() || lostTarget.notes,
+          notes: damagedNote.trim() || damagedTarget.notes,
         })
-        .eq('id', lostTarget.id);
+        .eq('id', damagedTarget.id);
 
       if (updateError) throw updateError;
 
-      // Do NOT increase stock for lost items
-      setBorrowings((prev) => prev.filter((b) => b.id !== lostTarget.id));
+      // Do NOT increase stock for damaged items
+      setBorrowings((prev) => prev.filter((b) => b.id !== damagedTarget.id));
     } catch (err: any) {
       setError(err.message || '操作失败');
     } finally {
       setActionLoading(null);
-      setLostTarget(null);
+      setDamagedTarget(null);
     }
   }
 
@@ -205,11 +205,11 @@ export default function SupplyReturn() {
                       {actionLoading === record.id ? '处理中...' : '归还'}
                     </button>
                     <button
-                      onClick={() => openLostModal(record)}
+                      onClick={() => openDamagedModal(record)}
                       disabled={actionLoading === record.id}
                       className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
-                      遗失
+                      报损
                     </button>
                   </div>
                 </div>
@@ -219,24 +219,24 @@ export default function SupplyReturn() {
         )}
       </div>
 
-      {/* Lost Confirmation Modal */}
+      {/* Damaged Confirmation Modal */}
       <Modal
-        open={lostModalOpen}
-        onClose={() => setLostModalOpen(false)}
-        title="标记为遗失"
+        open={damagedModalOpen}
+        onClose={() => setDamagedModalOpen(false)}
+        title="报损登记"
         footer={
           <div className="flex gap-3 justify-end">
             <button
-              onClick={() => setLostModalOpen(false)}
+              onClick={() => setDamagedModalOpen(false)}
               className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
             >
               取消
             </button>
             <button
-              onClick={handleMarkLost}
+              onClick={handleMarkDamaged}
               className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
             >
-              确认遗失
+              确认报损
             </button>
           </div>
         }
@@ -245,28 +245,28 @@ export default function SupplyReturn() {
           <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="text-sm text-amber-800">
-              <p className="font-medium">确定要将此物品标记为遗失吗？</p>
+              <p className="font-medium">确定要将此物品登记为报损吗？</p>
               <p className="mt-1 text-amber-700">
-                标记为遗失后，库存将不会恢复。
+                登记报损后，该物品库存将不会恢复。属于正常损耗范围。
               </p>
             </div>
           </div>
 
-          {lostTarget && (
+          {damagedTarget && (
             <div className="text-sm text-gray-600">
-              <p>物品: <span className="font-medium text-gray-900">{lostTarget.supply.name}</span></p>
-              <p>数量: {lostTarget.quantity} {lostTarget.supply.unit}</p>
+              <p>物品: <span className="font-medium text-gray-900">{damagedTarget.supply.name}</span></p>
+              <p>数量: {damagedTarget.quantity} {damagedTarget.supply.unit}</p>
             </div>
           )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              遗失说明 <span className="text-gray-400 font-normal">(选填)</span>
+              报损说明 <span className="text-gray-400 font-normal">(选填)</span>
             </label>
             <textarea
-              value={lostNote}
-              onChange={(e) => setLostNote(e.target.value)}
-              placeholder="请说明遗失原因或情况..."
+              value={damagedNote}
+              onChange={(e) => setDamagedNote(e.target.value)}
+              placeholder="请说明损坏情况..."
               rows={3}
               className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors resize-none"
             />
