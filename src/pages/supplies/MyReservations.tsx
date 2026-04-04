@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { SupplyReservation } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
+import SubNav from '../../components/SubNav';
 
 interface ReservationItem {
   id: string;
@@ -126,6 +127,15 @@ export default function MyReservations() {
           </button>
         }
       />
+
+      <div className="px-4 md:px-6 mt-2">
+        <SubNav items={[
+          { to: '/supplies', label: '物资总览', exact: true },
+          { to: '/supplies/reserve', label: '申领物资' },
+          { to: '/supplies/my-reservations', label: '我的申领' },
+          { to: '/supplies/my-returns', label: '归还' },
+        ]} />
+      </div>
 
       <div className="px-4 md:px-6 space-y-4">
         {/* Status Filter */}

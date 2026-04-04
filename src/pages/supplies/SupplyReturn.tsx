@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import PageHeader from '../../components/PageHeader';
+import SubNav from '../../components/SubNav';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
@@ -139,6 +140,15 @@ export default function SupplyReturn() {
   return (
     <div>
       <PageHeader title="耗材归还" subtitle="归还已借用的耗材" />
+
+      <div className="px-4 md:px-6 mt-2">
+        <SubNav items={[
+          { to: '/supplies', label: '物资总览', exact: true },
+          { to: '/supplies/reserve', label: '申领物资' },
+          { to: '/supplies/my-reservations', label: '我的申领' },
+          { to: '/supplies/my-returns', label: '归还' },
+        ]} />
+      </div>
 
       <div className="px-4 md:px-6">
         {error && (

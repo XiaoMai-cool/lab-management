@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Supply } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
+import SubNav from '../../components/SubNav';
 
 interface SelectedItem {
   supply: Supply;
@@ -211,6 +212,14 @@ export default function SupplyReserve() {
     return (
       <div>
         <PageHeader title="申领物资" />
+        <div className="px-4 md:px-6 mt-2">
+          <SubNav items={[
+            { to: '/supplies', label: '物资总览', exact: true },
+            { to: '/supplies/reserve', label: '申领物资' },
+            { to: '/supplies/my-reservations', label: '我的申领' },
+            { to: '/supplies/my-returns', label: '归还' },
+          ]} />
+        </div>
         <div className="px-4 md:px-6">
           <div className="max-w-lg mx-auto bg-white rounded-xl border border-gray-200 p-8 text-center">
             <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
@@ -245,6 +254,15 @@ export default function SupplyReserve() {
   return (
     <div className="pb-32">
       <PageHeader title="申领物资" subtitle="选择需要的物资，提交后等待审批" />
+
+      <div className="px-4 md:px-6 mt-2">
+        <SubNav items={[
+          { to: '/supplies', label: '物资总览', exact: true },
+          { to: '/supplies/reserve', label: '申领物资' },
+          { to: '/supplies/my-reservations', label: '我的申领' },
+          { to: '/supplies/my-returns', label: '归还' },
+        ]} />
+      </div>
 
       <div className="px-4 md:px-6">
         <form
