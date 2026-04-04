@@ -195,3 +195,64 @@ export interface PurchaseLog {
   notes: string | null;
   created_at: string;
 }
+
+export type PurchaseCategory =
+  | '试剂药品'
+  | '实验耗材'
+  | '设备配件'
+  | '服装劳保'
+  | '测试加工'
+  | '会议培训'
+  | '出版知产'
+  | '办公用品'
+  | '差旅交通'
+  | '邮寄物流'
+  | '其他';
+
+export type PurchaseType = 'personal' | 'public';
+
+export interface Purchase {
+  id: string;
+  applicant_id: string;
+  applicant?: Profile;
+  title: string;
+  purchase_type: PurchaseType;
+  category: PurchaseCategory;
+  estimated_amount: number | null;
+  description: string;
+  attachments: ReimbursementFile[];
+
+  approver_id: string | null;
+  approver?: Profile;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  approval_note: string | null;
+  approved_at: string | null;
+  auto_approved: boolean;
+
+  skip_registration: boolean;
+
+  actual_amount: number | null;
+  receipt_attachments: ReimbursementFile[];
+  reimbursement_status: 'pending' | 'approved' | 'rejected' | null;
+  reimbursement_reviewer_id: string | null;
+  reimbursement_reviewer?: Profile;
+  reimbursement_note: string | null;
+  reimbursed_at: string | null;
+
+  registration_status: 'registered' | null;
+  registered_by: string | null;
+  registered_at: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudentTeacherAssignment {
+  id: string;
+  student_id: string;
+  student?: Profile;
+  teacher_id: string;
+  teacher?: Profile;
+  created_at: string;
+  updated_at: string;
+}
