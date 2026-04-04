@@ -14,6 +14,7 @@ interface SupplyForm {
   stock: number;
   unit: string;
   min_stock: number;
+  is_returnable: boolean;
 }
 
 const defaultForm: SupplyForm = {
@@ -23,6 +24,7 @@ const defaultForm: SupplyForm = {
   stock: 0,
   unit: '个',
   min_stock: 0,
+  is_returnable: false,
 };
 
 export default function SupplyManage() {
@@ -110,6 +112,7 @@ export default function SupplyManage() {
       stock: supply.stock,
       unit: supply.unit,
       min_stock: supply.min_stock,
+      is_returnable: supply.is_returnable || false,
     });
     setEditingId(supply.id);
     setModalOpen(true);
@@ -133,6 +136,7 @@ export default function SupplyManage() {
         stock: form.stock,
         unit: form.unit.trim(),
         min_stock: form.min_stock,
+        is_returnable: form.is_returnable,
         updated_at: new Date().toISOString(),
       };
 
@@ -262,6 +266,11 @@ export default function SupplyManage() {
                                   <span className="text-sm font-semibold text-gray-900">
                                     {supply.name}
                                   </span>
+                                  {supply.is_returnable && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-600">
+                                      可归还
+                                    </span>
+                                  )}
                                   {supply.stock <= supply.min_stock && (
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
                                       库存不足
@@ -441,11 +450,27 @@ export default function SupplyManage() {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 单位
               </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {['个', '盒', '瓶', '包', '支', '套', '台', '片', '双', '卷', '袋', '桶'].map(u => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => setForm({ ...form, unit: u })}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                      form.unit === u
+                        ? 'bg-blue-50 border-blue-300 text-blue-700'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
               <input
                 type="text"
                 value={form.unit}
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                placeholder="如: 个、盒、瓶"
+                placeholder="或自行输入单位"
                 className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -464,6 +489,22 @@ export default function SupplyManage() {
               }
               className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="is_returnable"
+              checked={form.is_returnable}
+              onChange={(e) => setForm({ ...form, is_returnable: e.target.checked })}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label
+              htmlFor="is_returnable"
+              className="text-sm text-gray-700 cursor-pointer select-none"
+            >
+              可归还物资（借用后需归还）
+            </label>
           </div>
         </div>
       </Modal>
