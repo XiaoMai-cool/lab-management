@@ -43,42 +43,28 @@ function getToday() {
   return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 星期${weekdays[now.getDay()]}`;
 }
 
-// === 值日计算（与登录页保持一致） ===
-const LAB_DUTY_PEOPLE = ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'];
-const LAB_DUTY_REF_MONDAY = new Date(2026, 2, 30);
-const LAB_DUTY_ROTATION_WEEKS = 4;
+import {
+  getLabDutyToday as calcLabDutyToday,
+  getLabWeekSchedule as calcLabWeekSchedule,
+  getOfficeDutyThisMonth as calcOfficeDutyThisMonth,
+  getMonday,
+  type DutyConfig,
+  type DutyOverride,
+} from '../lib/dutyCalculation';
 
-const OFFICE_DUTY_PEOPLE = ['林弋杰', '陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊'];
-const OFFICE_DUTY_REF_YEAR = 2026;
-const OFFICE_DUTY_REF_MONTH = 2; // March
-
-function getLabDutyToday(): string {
-  const now = new Date();
-  const dow = now.getDay();
-  if (dow === 0 || dow === 6) return '今日无值日（周末）';
-  const diffDays = Math.floor((now.getTime() - LAB_DUTY_REF_MONDAY.getTime()) / 86400000);
-  const diffWeeks = Math.floor(diffDays / 7);
-  const rotationCount = Math.floor(diffWeeks / LAB_DUTY_ROTATION_WEEKS);
-  const personIndex = (((dow - 1 - rotationCount) % 5) + 5) % 5;
-  return LAB_DUTY_PEOPLE[personIndex];
-}
-
-function getLabWeekSchedule(): { day: string; name: string }[] {
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - LAB_DUTY_REF_MONDAY.getTime()) / 86400000);
-  const diffWeeks = Math.floor(diffDays / 7);
-  const rotationCount = Math.floor(diffWeeks / LAB_DUTY_ROTATION_WEEKS);
-  return ['周一', '周二', '周三', '周四', '周五'].map((day, i) => ({
-    day,
-    name: LAB_DUTY_PEOPLE[(((i - rotationCount) % 5) + 5) % 5],
-  }));
-}
-
-function getOfficeDutyThisMonth(): string {
-  const now = new Date();
-  const monthDiff = (now.getFullYear() - OFFICE_DUTY_REF_YEAR) * 12 + (now.getMonth() - OFFICE_DUTY_REF_MONTH);
-  return OFFICE_DUTY_PEOPLE[((monthDiff % 5) + 5) % 5];
-}
+// Fallback configs if DB fetch fails
+const FALLBACK_LAB_CONFIG: DutyConfig = {
+  type: 'lab',
+  people: ['陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊', '林弋杰'],
+  rotation_period: 4,
+  ref_date: '2026-03-30',
+};
+const FALLBACK_OFFICE_CONFIG: DutyConfig = {
+  type: 'office',
+  people: ['林弋杰', '陈鸿琳', '麦宏博', '彭鸿昌', '邓岩昊'],
+  rotation_period: 1,
+  ref_date: '2026-03-01',
+};
 
 interface ChemicalWarning {
   id: string;
@@ -101,6 +87,8 @@ export default function Dashboard() {
   }>({ supplyReservations: 0, chemicalWarningsPending: 0, purchaseApprovals: 0, reimbursementsPending: 0 });
   const [todayReturnedCount, setTodayReturnedCount] = useState(0);
   const [dailyNotices, setDailyNotices] = useState<{ id: string; category: string; content: string; sort_order: number }[]>([]);
+  const [dutyConfigs, setDutyConfigs] = useState<DutyConfig[]>([]);
+  const [dutyOverrides, setDutyOverrides] = useState<DutyOverride[]>([]);
   const hasAnyManagerRole = isSuppliesManager || isChemicalsManager || isTeacher || isReimbursementApprover || isSuperAdmin;
 
   const [loading, setLoading] = useState(true);
@@ -255,6 +243,26 @@ export default function Dashboard() {
       );
     }
 
+    // Duty config & overrides
+    promises.push(
+      supabase
+        .from('duty_config')
+        .select('*')
+        .then(({ data, error: err }) => {
+          if (err) { console.error('Duty config:', err); return; }
+          setDutyConfigs((data as DutyConfig[]) || []);
+        })
+    );
+    promises.push(
+      supabase
+        .from('duty_overrides')
+        .select('*')
+        .then(({ data, error: err }) => {
+          if (err) { console.error('Duty overrides:', err); return; }
+          setDutyOverrides((data as DutyOverride[]) || []);
+        })
+    );
+
     // Daily notices
     promises.push(
       supabase
@@ -312,9 +320,20 @@ export default function Dashboard() {
     );
   }
 
-  const labDutyName = getLabDutyToday();
-  const labWeekSchedule = getLabWeekSchedule();
-  const officeDutyName = getOfficeDutyThisMonth();
+  const labConfig = dutyConfigs.find((c) => c.type === 'lab') ?? FALLBACK_LAB_CONFIG;
+  const officeConfig = dutyConfigs.find((c) => c.type === 'office') ?? FALLBACK_OFFICE_CONFIG;
+  const labOverridesOnly = dutyOverrides.filter((o) => o.type === 'lab');
+  const officeOverridesOnly = dutyOverrides.filter((o) => o.type === 'office');
+
+  const labDutyPerson = calcLabDutyToday(labConfig, labOverridesOnly);
+  const labDutyName = labDutyPerson ?? '今日无值日（周末）';
+  const monday = getMonday(new Date());
+  const labWeekNames = calcLabWeekSchedule(labConfig, labOverridesOnly, monday);
+  const labWeekSchedule = ['周一', '周二', '周三', '周四', '周五'].map((day, i) => ({
+    day,
+    name: labWeekNames[i],
+  }));
+  const officeDutyName = calcOfficeDutyThisMonth(officeConfig, officeOverridesOnly);
 
   return (
     <div className="px-4 md:px-6 py-4 md:py-6 space-y-6">

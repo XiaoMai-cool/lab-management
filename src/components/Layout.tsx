@@ -14,6 +14,7 @@ import {
   BarChart3,
   AlertTriangle,
   X,
+  CalendarCheck,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -97,6 +98,10 @@ function getManageConfig(auth: ReturnType<typeof useAuth>): ManageConfig {
 
   if (auth.isTeacher) {
     standalone.push({ label: '采购审批', icon: ClipboardCheck, path: '/purchase-approvals/review' });
+  }
+
+  if (auth.isDutyManager) {
+    standalone.push({ label: '值日管理', icon: CalendarCheck, path: '/admin/duty-manage' });
   }
 
   const reimbursementItems: NavItem[] = [];

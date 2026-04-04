@@ -33,6 +33,7 @@ const DocumentEdit = lazy(() => import('./pages/documents/DocumentEdit'))
 
 // Duty
 const DutyRoster = lazy(() => import('./pages/duty/DutyRoster'))
+const DutyManage = lazy(() => import('./pages/admin/DutyManage'))
 
 // Reimbursements
 const ReimbursementForm = lazy(() => import('./pages/reimbursements/ReimbursementForm'))
@@ -116,6 +117,7 @@ export default function App() {
               <Route path="/admin/supplies" element={<ProtectedRoute requiredModule="supplies"><SupplyManage /></ProtectedRoute>} />
               <Route path="/admin/export" element={<ProtectedRoute requiredRole="admin"><DataExport /></ProtectedRoute>} />
               <Route path="/admin/daily-notices" element={<ProtectedRoute requiredRole="admin"><DailyNoticesManage /></ProtectedRoute>} />
+              <Route path="/admin/duty-manage" element={<ProtectedRoute requiredModule="duty"><DutyManage /></ProtectedRoute>} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
