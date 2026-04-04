@@ -435,7 +435,7 @@ export default function ReagentList() {
           onClick={() => setCategoryExpanded(!categoryExpanded)}
           className="md:hidden flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
         >
-          分类 {activeCategory ? `(${activeCategory})` : ''}
+          药品分类 {activeCategory ? `(${activeCategory})` : ''}
           {categoryExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
         <div className={`${categoryExpanded ? 'flex' : 'hidden'} md:flex gap-2 overflow-x-auto pb-1 mt-1 md:mt-0`}>
