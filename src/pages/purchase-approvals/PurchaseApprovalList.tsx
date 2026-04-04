@@ -43,6 +43,7 @@ export default function PurchaseApprovalList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) fetchApprovals();
@@ -66,6 +67,23 @@ export default function PurchaseApprovalList() {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleWithdraw(id: string) {
+    if (!confirm('确定要撤回该采购申请吗？')) return;
+    setWithdrawingId(id);
+    try {
+      const { error: delError } = await supabase
+        .from('purchase_approvals')
+        .delete()
+        .eq('id', id);
+      if (delError) throw delError;
+      setList((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '撤回失败');
+    } finally {
+      setWithdrawingId(null);
     }
   }
 
@@ -151,8 +169,13 @@ export default function PurchaseApprovalList() {
                       </p>
 
                       <p className="text-xs text-gray-400">
-                        {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
+                        申请时间：{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
                       </p>
+                      {item.status !== 'pending' && item.reviewed_at && (
+                        <p className="text-xs text-gray-400">
+                          审批时间：{dayjs(item.reviewed_at).format('YYYY-MM-DD HH:mm')}
+                        </p>
+                      )}
                     </div>
 
                     {item.estimated_amount != null && (
@@ -180,14 +203,25 @@ export default function PurchaseApprovalList() {
                     </button>
                   )}
 
-                  {/* 已拒绝：显示原因 */}
-                  {item.status === 'rejected' && item.review_note && (
-                    <div className="bg-red-50 p-3 rounded-lg">
-                      <p className="text-xs text-red-600">
-                        <span className="font-medium">拒绝原因：</span>
+                  {/* 审批备注 */}
+                  {item.status !== 'pending' && item.review_note && (
+                    <div className={`p-3 rounded-lg ${item.status === 'approved' ? 'bg-green-50' : 'bg-red-50'}`}>
+                      <p className={`text-xs ${item.status === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="font-medium">审批备注：</span>
                         {item.review_note}
                       </p>
                     </div>
+                  )}
+
+                  {/* 撤回按钮 */}
+                  {item.status === 'pending' && (
+                    <button
+                      onClick={() => handleWithdraw(item.id)}
+                      disabled={withdrawingId === item.id}
+                      className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                    >
+                      {withdrawingId === item.id ? '撤回中...' : '撤回申请'}
+                    </button>
                   )}
                 </div>
               </Card>

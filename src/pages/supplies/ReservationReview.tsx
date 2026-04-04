@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, CheckCircle, XCircle, ClipboardList, ShieldAlert } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, ClipboardList, ShieldAlert, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { SupplyReservation } from '../../lib/types';
@@ -15,11 +15,15 @@ export default function ReservationReview() {
   const navigate = useNavigate();
   const { user, isAdmin, canManageModule } = useAuth();
   const [reservations, setReservations] = useState<SupplyReservation[]>([]);
+  const [reviewedList, setReviewedList] = useState<SupplyReservation[]>([]);
+  const [tab, setTab] = useState<'pending' | 'reviewed'>('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [actionError, setActionError] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<SupplyReservation | null>(null);
+  const [editStatus, setEditStatus] = useState<string>('');
 
   const canReview = isAdmin || canManageModule('supplies');
 
@@ -28,16 +32,29 @@ export default function ReservationReview() {
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('supply_reservations')
-        .select(
-          '*, supply:supplies(id, name, specification, stock, unit, min_stock), user:profiles!user_id(name, email)'
-        )
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
+      if (tab === 'pending') {
+        const { data, error: fetchError } = await supabase
+          .from('supply_reservations')
+          .select(
+            '*, supply:supplies(id, name, specification, stock, unit, min_stock), user:profiles!user_id(name, email)'
+          )
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true });
 
-      if (fetchError) throw fetchError;
-      setReservations(data || []);
+        if (fetchError) throw fetchError;
+        setReservations(data || []);
+      } else {
+        const { data, error: fetchError } = await supabase
+          .from('supply_reservations')
+          .select(
+            '*, supply:supplies(id, name, specification, stock, unit, min_stock), user:profiles!user_id(name, email), reviewer:profiles!supply_reservations_reviewer_id_fkey(name)'
+          )
+          .in('status', ['approved', 'rejected', 'completed'])
+          .order('reviewed_at', { ascending: false });
+
+        if (fetchError) throw fetchError;
+        setReviewedList(data || []);
+      }
     } catch (err: any) {
       setError(err.message || '加载失败');
       console.error(err);
@@ -49,7 +66,48 @@ export default function ReservationReview() {
   useEffect(() => {
     if (!canReview) return;
     fetchReservations();
-  }, [canReview]);
+  }, [canReview, tab]);
+
+  async function handleEditStatus(reservation: SupplyReservation, newStatus: string) {
+    if (!user) return;
+    setProcessingId(reservation.id);
+    setActionError(null);
+    try {
+      const { error: updateError } = await supabase
+        .from('supply_reservations')
+        .update({
+          status: newStatus,
+          reviewer_id: user.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', reservation.id);
+      if (updateError) throw updateError;
+      setEditingItem(null);
+      fetchReservations();
+    } catch (err: any) {
+      setActionError(err.message || '修改失败');
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('确定要删除该预约记录吗？此操作不可恢复。')) return;
+    setProcessingId(id);
+    setActionError(null);
+    try {
+      const { error: delError } = await supabase
+        .from('supply_reservations')
+        .delete()
+        .eq('id', id);
+      if (delError) throw delError;
+      setReviewedList((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: any) {
+      setActionError(err.message || '删除失败');
+    } finally {
+      setProcessingId(null);
+    }
+  }
 
   async function handleApprove(reservation: SupplyReservation) {
     if (!user) return;
@@ -190,6 +248,30 @@ export default function ReservationReview() {
           </div>
         )}
 
+        {/* Tab 切换 */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTab('pending')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              tab === 'pending'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            待审批
+          </button>
+          <button
+            onClick={() => setTab('reviewed')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              tab === 'reviewed'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            已处理
+          </button>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="flex flex-col items-center gap-3">
@@ -207,10 +289,135 @@ export default function ReservationReview() {
               重试
             </button>
           </div>
-        ) : reservations.length === 0 ? (
+        ) : tab === 'pending' && reservations.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-400">暂无待审批的预约</p>
+          </div>
+        ) : tab === 'reviewed' && reviewedList.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <ClipboardList className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">暂无已处理的预约</p>
+          </div>
+        ) : tab === 'reviewed' ? (
+          <div className="space-y-4">
+            {reviewedList.map((reservation) => {
+              const supply = reservation.supply as any;
+              const requester = reservation.user as any;
+              const reviewer = (reservation as any).reviewer;
+              const statusCfg: Record<string, { bg: string; text: string; label: string }> = {
+                approved: { bg: 'bg-green-100', text: 'text-green-800', label: '已批准' },
+                rejected: { bg: 'bg-red-100', text: 'text-red-800', label: '已拒绝' },
+                completed: { bg: 'bg-gray-100', text: 'text-gray-800', label: '已完成' },
+              };
+              const cfg = statusCfg[reservation.status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: reservation.status };
+
+              return (
+                <div key={reservation.id} className="bg-white rounded-xl border border-gray-200 p-4 md:p-5">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        {supply?.name || '未知耗材'}
+                        {supply?.specification && (
+                          <span className="text-gray-400 font-normal ml-1.5">({supply.specification})</span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        申请人: {requester?.name || '未知'}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-xs">
+                    <div>
+                      <p className="text-gray-400">预约数量</p>
+                      <p className="text-sm font-semibold text-gray-900">{reservation.quantity} {supply?.unit || ''}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400">申请时间</p>
+                      <p className="text-sm text-gray-900">{formatDateTime(reservation.created_at)}</p>
+                    </div>
+                    {reviewer?.name && (
+                      <div>
+                        <p className="text-gray-400">审批人</p>
+                        <p className="text-sm text-gray-900">{reviewer.name}</p>
+                      </div>
+                    )}
+                    {reservation.reviewed_at && (
+                      <div>
+                        <p className="text-gray-400">审批时间</p>
+                        <p className="text-sm text-gray-900">{formatDateTime(reservation.reviewed_at)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {reservation.purpose && (
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-400 mb-0.5">用途</p>
+                      <p className="text-sm text-gray-700">{reservation.purpose}</p>
+                    </div>
+                  )}
+
+                  {reservation.review_note && (
+                    <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${reservation.status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+                      <span className="font-medium">审批备注：</span>{reservation.review_note}
+                    </div>
+                  )}
+
+                  {/* 编辑/删除操作 */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    {editingItem?.id === reservation.id ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <select
+                          value={editStatus}
+                          onChange={(e) => setEditStatus(e.target.value)}
+                          className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
+                        >
+                          <option value="approved">已批准</option>
+                          <option value="rejected">已拒绝</option>
+                          <option value="completed">已完成</option>
+                          <option value="pending">待审批</option>
+                        </select>
+                        <button
+                          onClick={() => handleEditStatus(reservation, editStatus)}
+                          disabled={processingId === reservation.id}
+                          className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          确认
+                        </button>
+                        <button
+                          onClick={() => setEditingItem(null)}
+                          className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => { setEditingItem(reservation); setEditStatus(reservation.status); }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          修改状态
+                        </button>
+                        <button
+                          onClick={() => handleDelete(reservation.id)}
+                          disabled={processingId === reservation.id}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          删除
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="space-y-4">

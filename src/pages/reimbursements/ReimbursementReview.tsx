@@ -7,6 +7,8 @@ import {
   ExternalLink,
   FileText,
   Link2,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -71,6 +73,11 @@ export default function ReimbursementReview() {
   const [reviewNote, setReviewNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Edit/delete for reviewed items
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState<string>('');
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchList();
   }, [tab]);
@@ -83,7 +90,7 @@ export default function ReimbursementReview() {
       let query = supabase
         .from('reimbursements')
         .select(
-          '*, user:profiles!reimbursements_user_id_fkey(*), purchase_approval:purchase_approvals(*)'
+          '*, user:profiles!reimbursements_user_id_fkey(*), reviewer:profiles!reimbursements_reviewer_id_fkey(name), purchase_approval:purchase_approvals(*)'
         )
         .order('created_at', { ascending: tab === 'pending' });
 
@@ -134,6 +141,45 @@ export default function ReimbursementReview() {
       alert(err instanceof Error ? err.message : '操作失败');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleEditStatus(id: string, newStatus: string) {
+    if (!profile) return;
+    setProcessingId(id);
+    try {
+      const { error: updateErr } = await supabase
+        .from('reimbursements')
+        .update({
+          status: newStatus,
+          reviewer_id: profile.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      if (updateErr) throw updateErr;
+      setEditingId(null);
+      fetchList();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '修改失败');
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
+  async function handleDeleteReimbursement(id: string) {
+    if (!confirm('确定要删除该报销记录吗？此操作不可恢复。')) return;
+    setProcessingId(id);
+    try {
+      const { error: delErr } = await supabase
+        .from('reimbursements')
+        .delete()
+        .eq('id', id);
+      if (delErr) throw delErr;
+      setList((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '删除失败');
+    } finally {
+      setProcessingId(null);
     }
   }
 
@@ -326,26 +372,87 @@ export default function ReimbursementReview() {
                       </div>
                     )}
 
-                  {/* 审批备注（已处理） */}
-                  {tab === 'reviewed' && item.review_note && (
-                    <div
-                      className={`p-3 rounded-lg ${
-                        item.status === 'approved' || item.status === 'completed'
-                          ? 'bg-green-50'
-                          : 'bg-red-50'
-                      }`}
-                    >
-                      <p
-                        className={`text-xs ${
-                          item.status === 'approved' ||
-                          item.status === 'completed'
-                            ? 'text-green-700'
-                            : 'text-red-700'
-                        }`}
-                      >
-                        <span className="font-medium">审批备注：</span>
-                        {item.review_note}
-                      </p>
+                  {/* 审批信息（已处理） */}
+                  {tab === 'reviewed' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
+                        {(item as any).reviewer?.name && (
+                          <span>审批人：{(item as any).reviewer.name}</span>
+                        )}
+                        {item.reviewed_at && (
+                          <span>审批时间：{dayjs(item.reviewed_at).format('YYYY-MM-DD HH:mm')}</span>
+                        )}
+                      </div>
+                      {item.review_note && (
+                        <div
+                          className={`p-3 rounded-lg ${
+                            item.status === 'approved' || item.status === 'completed'
+                              ? 'bg-green-50'
+                              : 'bg-red-50'
+                          }`}
+                        >
+                          <p
+                            className={`text-xs ${
+                              item.status === 'approved' ||
+                              item.status === 'completed'
+                                ? 'text-green-700'
+                                : 'text-red-700'
+                            }`}
+                          >
+                            <span className="font-medium">审批备注：</span>
+                            {item.review_note}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 修改/删除操作 */}
+                      <div className="flex items-center gap-2 pt-1">
+                        {editingId === item.id ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <select
+                              value={editStatus}
+                              onChange={(e) => setEditStatus(e.target.value)}
+                              className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-white"
+                            >
+                              <option value="approved">已批准</option>
+                              <option value="rejected">已拒绝</option>
+                              <option value="completed">已完成</option>
+                              <option value="pending">待审批</option>
+                            </select>
+                            <button
+                              onClick={() => handleEditStatus(item.id, editStatus)}
+                              disabled={processingId === item.id}
+                              className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              确认
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                            >
+                              取消
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => { setEditingId(item.id); setEditStatus(item.status); }}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              修改状态
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReimbursement(item.id)}
+                              disabled={processingId === item.id}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              删除
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
 

@@ -61,6 +61,7 @@ export default function ReimbursementList() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReimbursements();
@@ -75,7 +76,7 @@ export default function ReimbursementList() {
       let query = supabase
         .from('reimbursements')
         .select(
-          '*, user:profiles!reimbursements_user_id_fkey(*), purchase_approval:purchase_approvals(*)'
+          '*, user:profiles!reimbursements_user_id_fkey(*), reviewer:profiles!reimbursements_reviewer_id_fkey(name), purchase_approval:purchase_approvals(*)'
         )
         .order('created_at', { ascending: false });
 
@@ -91,6 +92,23 @@ export default function ReimbursementList() {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleWithdraw(id: string) {
+    if (!confirm('确定要撤回该报销申请吗？')) return;
+    setWithdrawingId(id);
+    try {
+      const { error: delError } = await supabase
+        .from('reimbursements')
+        .delete()
+        .eq('id', id);
+      if (delError) throw delError;
+      setList((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : '撤回失败');
+    } finally {
+      setWithdrawingId(null);
     }
   }
 
@@ -245,13 +263,39 @@ export default function ReimbursementList() {
                     )}
 
                     <p className="text-xs text-gray-400 mt-1.5">
-                      {dayjs(item.created_at).format('YYYY-MM-DD')}
+                      申请时间：{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
                     </p>
 
-                    {item.review_note && (
-                      <p className="text-xs text-orange-600 mt-1">
-                        审批备注：{item.review_note}
-                      </p>
+                    {item.status !== 'pending' && (
+                      <div className="mt-1.5 space-y-0.5">
+                        {(item as any).reviewer?.name && (
+                          <p className="text-xs text-gray-400">
+                            审批人：{(item as any).reviewer.name}
+                          </p>
+                        )}
+                        {item.reviewed_at && (
+                          <p className="text-xs text-gray-400">
+                            审批时间：{dayjs(item.reviewed_at).format('YYYY-MM-DD HH:mm')}
+                          </p>
+                        )}
+                        {item.review_note && (
+                          <p className="text-xs text-orange-600">
+                            审批备注：{item.review_note}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {item.status === 'pending' && (
+                      <div className="mt-2">
+                        <button
+                          onClick={() => handleWithdraw(item.id)}
+                          disabled={withdrawingId === item.id}
+                          className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                        >
+                          {withdrawingId === item.id ? '撤回中...' : '撤回申请'}
+                        </button>
+                      </div>
                     )}
                   </div>
 

@@ -33,6 +33,7 @@ export default function MyReservations() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   async function fetchReservations() {
     if (!user) return;
@@ -42,7 +43,7 @@ export default function MyReservations() {
     try {
       let query = supabase
         .from('supply_reservations')
-        .select('*, supply:supplies(name, specification, unit)')
+        .select('*, supply:supplies(name, specification, unit), reviewer:profiles!supply_reservations_reviewer_id_fkey(name)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -58,6 +59,23 @@ export default function MyReservations() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleWithdraw(id: string) {
+    if (!confirm('确定要撤回该预约申请吗？')) return;
+    setWithdrawingId(id);
+    try {
+      const { error: delError } = await supabase
+        .from('supply_reservations')
+        .delete()
+        .eq('id', id);
+      if (delError) throw delError;
+      setReservations((prev) => prev.filter((r) => r.id !== id));
+    } catch (err: any) {
+      alert(err.message || '撤回失败');
+    } finally {
+      setWithdrawingId(null);
     }
   }
 
@@ -172,12 +190,39 @@ export default function MyReservations() {
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <span>提交时间: {formatDateTime(reservation.created_at)}</span>
+                      <span>申请时间: {formatDateTime(reservation.created_at)}</span>
                     </div>
-                    {reservation.review_note && reservation.status !== 'pending' && (
-                      <div className="mt-2 px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-600">
-                        <span className="font-medium text-gray-500">审批备注: </span>
-                        {reservation.review_note}
+                    {reservation.status !== 'pending' && (
+                      <div className="mt-2 px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1">
+                        {(reservation as any).reviewer?.name && (
+                          <div>
+                            <span className="font-medium text-gray-500">审批人: </span>
+                            {(reservation as any).reviewer.name}
+                          </div>
+                        )}
+                        {reservation.reviewed_at && (
+                          <div>
+                            <span className="font-medium text-gray-500">审批时间: </span>
+                            {formatDateTime(reservation.reviewed_at)}
+                          </div>
+                        )}
+                        {reservation.review_note && (
+                          <div>
+                            <span className="font-medium text-gray-500">审批备注: </span>
+                            {reservation.review_note}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {reservation.status === 'pending' && (
+                      <div className="mt-2">
+                        <button
+                          onClick={() => handleWithdraw(reservation.id)}
+                          disabled={withdrawingId === reservation.id}
+                          className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                        >
+                          {withdrawingId === reservation.id ? '撤回中...' : '撤回申请'}
+                        </button>
                       </div>
                     )}
                   </div>
