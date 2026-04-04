@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { ClipboardList, Filter, ArrowRight } from 'lucide-react';
+import { ClipboardList, Filter, ArrowRight, Pencil } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { PurchaseApproval, Profile } from '../../lib/types';
+import type { Purchase } from '../../lib/types';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -19,50 +19,96 @@ const subNavItems = [
   { to: '/purchase-approvals', label: '我的采购' },
 ];
 
-interface PurchaseApprovalWithApprover extends PurchaseApproval {
-  approver?: Profile;
-}
-
-type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
-
 const categoryColors: Record<string, string> = {
-  '个人药品': 'bg-purple-50 text-purple-700',
-  '外送检测': 'bg-cyan-50 text-cyan-700',
+  '试剂药品': 'bg-purple-50 text-purple-700',
+  '实验耗材': 'bg-cyan-50 text-cyan-700',
   '设备配件': 'bg-orange-50 text-orange-700',
-  '加工定制': 'bg-pink-50 text-pink-700',
-  '办公打印': 'bg-gray-100 text-gray-700',
-  '差旅费': 'bg-indigo-50 text-indigo-700',
-  '邮寄快递': 'bg-teal-50 text-teal-700',
+  '服装劳保': 'bg-pink-50 text-pink-700',
+  '测试加工': 'bg-teal-50 text-teal-700',
+  '会议培训': 'bg-indigo-50 text-indigo-700',
+  '出版知产': 'bg-rose-50 text-rose-700',
+  '办公用品': 'bg-gray-100 text-gray-700',
+  '差旅交通': 'bg-indigo-50 text-indigo-700',
+  '邮寄物流': 'bg-teal-50 text-teal-700',
   '其他': 'bg-gray-100 text-gray-600',
 };
+
+type StatusFilter = 'all' | 'pending' | 'approved' | 'reimbursing' | 'completed' | 'rejected';
+
+function getCompositeStatus(item: Purchase): StatusFilter {
+  if (item.approval_status === 'pending') return 'pending';
+  if (item.approval_status === 'rejected') return 'rejected';
+  // approved
+  if (!item.reimbursement_status) return 'approved';
+  if (item.reimbursement_status === 'pending') return 'reimbursing';
+  if (item.reimbursement_status === 'approved') return 'completed';
+  // reimbursement rejected => treat as approved (can re-submit)
+  return 'approved';
+}
+
+function ApprovalStatusLine({ item }: { item: Purchase }) {
+  const approvalLabel =
+    item.approval_status === 'pending'
+      ? '待审批'
+      : item.approval_status === 'approved'
+        ? '已通过'
+        : '已拒绝';
+  const approvalColor =
+    item.approval_status === 'pending'
+      ? 'text-yellow-600'
+      : item.approval_status === 'approved'
+        ? 'text-green-600'
+        : 'text-red-600';
+
+  let reimbLabel = '未报销';
+  let reimbColor = 'text-gray-400';
+  if (item.reimbursement_status === 'pending') {
+    reimbLabel = '报销审核中';
+    reimbColor = 'text-yellow-600';
+  } else if (item.reimbursement_status === 'approved') {
+    reimbLabel = '已报销';
+    reimbColor = 'text-green-600';
+  } else if (item.reimbursement_status === 'rejected') {
+    reimbLabel = '报销被拒';
+    reimbColor = 'text-red-600';
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <span className={`font-medium ${approvalColor}`}>{approvalLabel}</span>
+      <span className="text-gray-300">&rarr;</span>
+      <span className={`font-medium ${reimbColor}`}>{reimbLabel}</span>
+    </div>
+  );
+}
 
 export default function PurchaseApprovalList() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const [list, setList] = useState<PurchaseApprovalWithApprover[]>([]);
+  const [list, setList] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (profile) fetchApprovals();
+    if (profile) fetchPurchases();
   }, [profile]);
 
-  async function fetchApprovals() {
+  async function fetchPurchases() {
     if (!profile) return;
     try {
       setLoading(true);
       setError(null);
 
       const { data, error: fetchErr } = await supabase
-        .from('purchase_approvals')
-        .select('*, approver:profiles!purchase_approvals_approver_id_fkey(*)')
-        .eq('requester_id', profile.id)
+        .from('purchases')
+        .select('*, approver:profiles!purchases_approver_id_fkey(name)')
+        .eq('applicant_id', profile.id)
         .order('created_at', { ascending: false });
 
       if (fetchErr) throw fetchErr;
-      setList(data ?? []);
+      setList((data as Purchase[]) ?? []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
@@ -75,7 +121,7 @@ export default function PurchaseApprovalList() {
     setWithdrawingId(id);
     try {
       const { error: delError } = await supabase
-        .from('purchase_approvals')
+        .from('purchases')
         .delete()
         .eq('id', id);
       if (delError) throw delError;
@@ -89,13 +135,15 @@ export default function PurchaseApprovalList() {
 
   const filtered = useMemo(() => {
     if (statusFilter === 'all') return list;
-    return list.filter((item) => item.status === statusFilter);
+    return list.filter((item) => getCompositeStatus(item) === statusFilter);
   }, [list, statusFilter]);
 
   const filterOptions: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: '全部' },
     { value: 'pending', label: '待审批' },
     { value: 'approved', label: '已批准' },
+    { value: 'reimbursing', label: '报销中' },
+    { value: 'completed', label: '已完成' },
     { value: 'rejected', label: '已拒绝' },
   ];
 
@@ -107,7 +155,7 @@ export default function PurchaseApprovalList() {
         <SubNav items={subNavItems} />
       </div>
       <PageHeader
-        title="我的采购申请"
+        title="我的采购"
         subtitle={`共 ${filtered.length} 条`}
       />
 
@@ -140,92 +188,105 @@ export default function PurchaseApprovalList() {
         {filtered.length === 0 ? (
           <EmptyState
             icon={ClipboardList}
-            title="暂无采购申请"
+            title="暂无采购记录"
             description="点击顶部导航新建采购审批申请"
           />
         ) : (
           <div className="space-y-3">
-            {filtered.map((item) => (
-              <Card key={item.id}>
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <h3 className="text-sm font-semibold text-gray-900 truncate">
-                          {item.title}
-                        </h3>
-                        <StatusBadge status={item.status} type="reimbursement" />
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            categoryColors[item.category] ?? 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {item.category}
-                        </span>
+            {filtered.map((item) => {
+              const composite = getCompositeStatus(item);
+              return (
+                <Card key={item.id}>
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <h3 className="text-sm font-semibold text-gray-900 truncate">
+                            {item.title}
+                          </h3>
+                          {item.purchase_type === 'public' && (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                              公共
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              categoryColors[item.category] ?? 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {item.category}
+                          </span>
+                        </div>
+
+                        <ApprovalStatusLine item={item} />
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          审批人：{item.approver?.name ?? '未知'}
+                        </p>
+
+                        <p className="text-xs text-gray-400">
+                          申请时间：{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
+                        </p>
                       </div>
 
-                      <p className="text-xs text-gray-500 mb-1">
-                        审批老师：{item.approver?.name ?? '未知'}
-                      </p>
-
-                      <p className="text-xs text-gray-400">
-                        申请时间：{dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
-                      </p>
-                      {item.status !== 'pending' && item.reviewed_at && (
-                        <p className="text-xs text-gray-400">
-                          审批时间：{dayjs(item.reviewed_at).format('YYYY-MM-DD HH:mm')}
-                        </p>
+                      {item.estimated_amount != null && (
+                        <div className="shrink-0 ml-3 text-right">
+                          <p className="text-lg font-bold text-gray-900">
+                            ¥{item.estimated_amount.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-gray-400">预计金额</p>
+                        </div>
                       )}
                     </div>
 
-                    {item.estimated_amount != null && (
-                      <div className="shrink-0 ml-3 text-right">
-                        <p className="text-lg font-bold text-gray-900">
-                          ¥{item.estimated_amount.toFixed(2)}
+                    {/* 审批备注 */}
+                    {item.approval_status !== 'pending' && item.approval_note && (
+                      <div className={`p-3 rounded-lg ${item.approval_status === 'approved' ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <p className={`text-xs ${item.approval_status === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className="font-medium">审批备注：</span>
+                          {item.approval_note}
                         </p>
-                        <p className="text-xs text-gray-400">预计金额</p>
                       </div>
                     )}
+
+                    {/* Action buttons */}
+                    {composite === 'pending' && (
+                      <button
+                        onClick={() => handleWithdraw(item.id)}
+                        disabled={withdrawingId === item.id}
+                        className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
+                      >
+                        {withdrawingId === item.id ? '撤回中...' : '撤回申请'}
+                      </button>
+                    )}
+
+                    {composite === 'approved' && (
+                      <button
+                        onClick={() =>
+                          navigate(`/reimbursements/new?purchase_id=${item.id}`)
+                        }
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        去报销
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    {composite === 'rejected' && (
+                      <button
+                        onClick={() =>
+                          navigate(`/purchase-approvals/edit/${item.id}`)
+                        }
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        修改
+                      </button>
+                    )}
                   </div>
-
-                  {/* 已批准：去报销按钮 */}
-                  {item.status === 'approved' && (
-                    <button
-                      onClick={() =>
-                        navigate(
-                          `/reimbursements/new?approval_id=${item.id}`
-                        )
-                      }
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      去报销
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  )}
-
-                  {/* 审批备注 */}
-                  {item.status !== 'pending' && item.review_note && (
-                    <div className={`p-3 rounded-lg ${item.status === 'approved' ? 'bg-green-50' : 'bg-red-50'}`}>
-                      <p className={`text-xs ${item.status === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
-                        <span className="font-medium">审批备注：</span>
-                        {item.review_note}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* 撤回按钮 */}
-                  {item.status === 'pending' && (
-                    <button
-                      onClick={() => handleWithdraw(item.id)}
-                      disabled={withdrawingId === item.id}
-                      className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
-                    >
-                      {withdrawingId === item.id ? '撤回中...' : '撤回申请'}
-                    </button>
-                  )}
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
