@@ -1,13 +1,50 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Upload, X, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Profile, PurchaseCategory, PurchaseType } from '../../lib/types';
+import type { Profile, PurchaseCategory, PurchaseType, ReimbursementFile } from '../../lib/types';
 import { PURCHASE_CATEGORIES, getDefaultSkipRegistration } from '../../lib/purchaseCategories';
 import PageHeader from '../../components/PageHeader';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
+
+// Extra fields for 试剂药品
+interface ReagentExtraFields {
+  item_name: string;
+  cas_number: string;
+  specification: string;
+  concentration: string;
+  purity: string;
+  manufacturer: string;
+  quantity: string;
+  unit: string;
+}
+
+// Extra fields for 耗材/设备/服装
+interface SupplyExtraFields {
+  item_name: string;
+  specification: string;
+  quantity: string;
+  unit: string;
+}
+
+const CATEGORIES_WITH_REAGENT_FIELDS: PurchaseCategory[] = ['试剂药品'];
+const CATEGORIES_WITH_SUPPLY_FIELDS: PurchaseCategory[] = ['实验耗材', '设备配件', '服装劳保'];
+
+function hasReagentFields(category: PurchaseCategory) {
+  return CATEGORIES_WITH_REAGENT_FIELDS.includes(category);
+}
+
+function hasSupplyFields(category: PurchaseCategory) {
+  return CATEGORIES_WITH_SUPPLY_FIELDS.includes(category);
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function PurchaseApprovalForm() {
   const navigate = useNavigate();
@@ -18,8 +55,19 @@ export default function PurchaseApprovalForm() {
   const [category, setCategory] = useState<PurchaseCategory>('其他');
   const [estimatedAmount, setEstimatedAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [skipRegistration, setSkipRegistration] = useState(true);
   const [approverId, setApproverId] = useState('');
+
+  // Extra fields
+  const [reagentFields, setReagentFields] = useState<ReagentExtraFields>({
+    item_name: '', cas_number: '', specification: '', concentration: '',
+    purity: '', manufacturer: '', quantity: '', unit: '',
+  });
+  const [supplyFields, setSupplyFields] = useState<SupplyExtraFields>({
+    item_name: '', specification: '', quantity: '', unit: '',
+  });
+
+  // Attachments
+  const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
 
   const [teachers, setTeachers] = useState<Profile[]>([]);
   const [defaultTeacherId, setDefaultTeacherId] = useState<string | null>(null);
@@ -59,9 +107,77 @@ export default function PurchaseApprovalForm() {
     load();
   }, [profile, isTeacher]);
 
+  // Sync supply item_name default from title
   useEffect(() => {
-    setSkipRegistration(getDefaultSkipRegistration(category));
-  }, [category]);
+    if (hasSupplyFields(category) && !supplyFields.item_name) {
+      setSupplyFields(prev => ({ ...prev, item_name: title }));
+    }
+  }, [title, category]);
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles) return;
+    setUploadingFiles(prev => [...prev, ...Array.from(selectedFiles)]);
+    e.target.value = '';
+  }
+
+  function removeFile(index: number) {
+    setUploadingFiles(prev => prev.filter((_, i) => i !== index));
+  }
+
+  async function uploadAllFiles(): Promise<ReimbursementFile[]> {
+    if (!profile) return [];
+    const uploaded: ReimbursementFile[] = [];
+
+    for (const file of uploadingFiles) {
+      const ext = file.name.split('.').pop() ?? 'bin';
+      const timestamp = Date.now();
+      const path = `purchases/${profile.id}/${timestamp}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('attachments')
+        .upload(path, file);
+
+      if (uploadErr) throw new Error(`上传文件 ${file.name} 失败: ${uploadErr.message}`);
+
+      const { data: urlData } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(path);
+
+      uploaded.push({
+        name: file.name,
+        url: urlData.publicUrl,
+        type: 'other',
+        size: file.size,
+      });
+    }
+
+    return uploaded;
+  }
+
+  function buildExtraFields(): Record<string, unknown> {
+    if (hasReagentFields(category)) {
+      return {
+        item_name: reagentFields.item_name || '',
+        cas_number: reagentFields.cas_number || '',
+        specification: reagentFields.specification || '',
+        concentration: reagentFields.concentration || '',
+        purity: reagentFields.purity || '',
+        manufacturer: reagentFields.manufacturer || '',
+        quantity: reagentFields.quantity ? parseFloat(reagentFields.quantity) : null,
+        unit: reagentFields.unit || '',
+      };
+    }
+    if (hasSupplyFields(category)) {
+      return {
+        item_name: supplyFields.item_name || title,
+        specification: supplyFields.specification || '',
+        quantity: supplyFields.quantity ? parseFloat(supplyFields.quantity) : null,
+        unit: supplyFields.unit || '',
+      };
+    }
+    return {};
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,38 +191,61 @@ export default function PurchaseApprovalForm() {
       setError('请选择审批教师');
       return;
     }
+    if (hasReagentFields(category) && !reagentFields.item_name.trim()) {
+      setError('请输入药品名称');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
 
-    const now = new Date().toISOString();
-    const isAutoApproved = isTeacher;
+    try {
+      const now = new Date().toISOString();
+      const isAutoApproved = isTeacher;
+      const skipRegistration = getDefaultSkipRegistration(category);
 
-    const record = {
-      applicant_id: profile.id,
-      title: title.trim(),
-      purchase_type: purchaseType,
-      category,
-      estimated_amount: estimatedAmount ? parseFloat(estimatedAmount) : null,
-      description: description.trim(),
-      skip_registration: skipRegistration,
-      approver_id: isAutoApproved ? profile.id : approverId,
-      approval_status: isAutoApproved ? 'approved' : 'pending',
-      approval_note: isAutoApproved ? '教师自行采购，自动通过' : null,
-      approved_at: isAutoApproved ? now : null,
-      auto_approved: isAutoApproved,
-    };
+      // Upload attachments
+      const attachments = await uploadAllFiles();
 
-    const { error: insertErr } = await supabase.from('purchases').insert(record);
+      // Determine reimbursement_status
+      const parsedAmount = estimatedAmount ? parseFloat(estimatedAmount) : null;
+      const autoReimbursement = attachments.length > 0 && parsedAmount != null;
 
-    if (insertErr) {
-      setError('提交失败：' + insertErr.message);
+      const record: Record<string, unknown> = {
+        applicant_id: profile.id,
+        title: title.trim(),
+        purchase_type: purchaseType,
+        category,
+        estimated_amount: parsedAmount,
+        description: description.trim(),
+        skip_registration: skipRegistration,
+        extra_fields: buildExtraFields(),
+        attachments,
+        approver_id: isAutoApproved ? profile.id : approverId,
+        approval_status: isAutoApproved ? 'approved' : 'pending',
+        approval_note: isAutoApproved ? '教师自行采购，自动通过' : null,
+        approved_at: isAutoApproved ? now : null,
+        auto_approved: isAutoApproved,
+      };
+
+      if (autoReimbursement) {
+        record.reimbursement_status = 'pending';
+      }
+
+      const { error: insertErr } = await supabase.from('purchases').insert(record);
+
+      if (insertErr) {
+        setError('提交失败：' + insertErr.message);
+        setSubmitting(false);
+        return;
+      }
+
+      setSuccess(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '提交失败');
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    setSuccess(true);
-    setSubmitting(false);
   }
 
   if (!profile) return <LoadingSpinner />;
@@ -123,7 +262,7 @@ export default function PurchaseApprovalForm() {
           <button onClick={() => navigate('/purchase-approvals')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
             查看我的采购
           </button>
-          <button onClick={() => { setSuccess(false); setTitle(''); setDescription(''); setEstimatedAmount(''); }} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
+          <button onClick={() => { setSuccess(false); setTitle(''); setDescription(''); setEstimatedAmount(''); setUploadingFiles([]); setReagentFields({ item_name: '', cas_number: '', specification: '', concentration: '', purity: '', manufacturer: '', quantity: '', unit: '' }); setSupplyFields({ item_name: '', specification: '', quantity: '', unit: '' }); }} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
             继续提交
           </button>
         </div>
@@ -190,22 +329,153 @@ export default function PurchaseApprovalForm() {
             </select>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div>
-              <p className="text-sm font-medium text-gray-700">无需入库</p>
-              <p className="text-xs text-gray-500">勾选后不流转给耗材/药品专人登记</p>
+          {/* 试剂药品 extra fields */}
+          {hasReagentFields(category) && (
+            <div className="space-y-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+              <p className="text-xs font-medium text-purple-700">药品详细信息</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">药品名称 *</label>
+                <input
+                  type="text"
+                  value={reagentFields.item_name}
+                  onChange={e => setReagentFields(prev => ({ ...prev, item_name: e.target.value }))}
+                  placeholder="药品名称"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">CAS号</label>
+                  <input
+                    type="text"
+                    value={reagentFields.cas_number}
+                    onChange={e => setReagentFields(prev => ({ ...prev, cas_number: e.target.value }))}
+                    placeholder="选填"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">规格</label>
+                  <input
+                    type="text"
+                    value={reagentFields.specification}
+                    onChange={e => setReagentFields(prev => ({ ...prev, specification: e.target.value }))}
+                    placeholder="选填"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">浓度</label>
+                  <input
+                    type="text"
+                    value={reagentFields.concentration}
+                    onChange={e => setReagentFields(prev => ({ ...prev, concentration: e.target.value }))}
+                    placeholder="选填"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">纯度</label>
+                  <input
+                    type="text"
+                    value={reagentFields.purity}
+                    onChange={e => setReagentFields(prev => ({ ...prev, purity: e.target.value }))}
+                    placeholder="选填"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">期望厂家</label>
+                <input
+                  type="text"
+                  value={reagentFields.manufacturer}
+                  onChange={e => setReagentFields(prev => ({ ...prev, manufacturer: e.target.value }))}
+                  placeholder="选填"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">数量</label>
+                  <input
+                    type="number"
+                    value={reagentFields.quantity}
+                    onChange={e => setReagentFields(prev => ({ ...prev, quantity: e.target.value }))}
+                    placeholder="选填"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">单位</label>
+                  <input
+                    type="text"
+                    value={reagentFields.unit}
+                    onChange={e => setReagentFields(prev => ({ ...prev, unit: e.target.value }))}
+                    placeholder="瓶/盒/支..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setSkipRegistration(!skipRegistration)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${skipRegistration ? 'bg-blue-600' : 'bg-gray-300'}`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${skipRegistration ? 'translate-x-5' : ''}`} />
-            </button>
-          </div>
+          )}
+
+          {/* 耗材/设备/服装 extra fields */}
+          {hasSupplyFields(category) && (
+            <div className="space-y-3 p-3 bg-cyan-50 rounded-lg border border-cyan-100">
+              <p className="text-xs font-medium text-cyan-700">物品详细信息</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">物品名称</label>
+                <input
+                  type="text"
+                  value={supplyFields.item_name}
+                  onChange={e => setSupplyFields(prev => ({ ...prev, item_name: e.target.value }))}
+                  placeholder={title || '选填，默认使用标题'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">规格型号</label>
+                <input
+                  type="text"
+                  value={supplyFields.specification}
+                  onChange={e => setSupplyFields(prev => ({ ...prev, specification: e.target.value }))}
+                  placeholder="选填"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">数量</label>
+                  <input
+                    type="number"
+                    value={supplyFields.quantity}
+                    onChange={e => setSupplyFields(prev => ({ ...prev, quantity: e.target.value }))}
+                    placeholder="选填"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">单位</label>
+                  <input
+                    type="text"
+                    value={supplyFields.unit}
+                    onChange={e => setSupplyFields(prev => ({ ...prev, unit: e.target.value }))}
+                    placeholder="个/包/箱..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">预估金额</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">金额</label>
             <input
               type="number"
               value={estimatedAmount}
@@ -228,6 +498,55 @@ export default function PurchaseApprovalForm() {
             />
           </div>
 
+          {/* 附件上传 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">附件（发票/收据等）</label>
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-gray-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500">支持图片、PDF、Word、Excel</p>
+                </div>
+                <label className="shrink-0 cursor-pointer">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    选择文件
+                  </span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {uploadingFiles.length > 0 && (
+                <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
+                  {uploadingFiles.map((file, index) => (
+                    <div
+                      key={`pending-${index}`}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-700 truncate">{file.name}</p>
+                        <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {!isTeacher && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">审批教师 *</label>
@@ -248,12 +567,6 @@ export default function PurchaseApprovalForm() {
                   ))}
                 </select>
               )}
-            </div>
-          )}
-
-          {isTeacher && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-700">教师提交的采购申请将自动通过审批，无需其他人审批。</p>
             </div>
           )}
 
