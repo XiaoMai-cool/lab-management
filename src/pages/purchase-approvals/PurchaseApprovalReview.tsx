@@ -121,6 +121,10 @@ export default function PurchaseApprovalReview() {
   }
 
   async function handleRecallApproval(item: Purchase) {
+    if (item.reimbursement_status != null) {
+      alert('该采购已进入报销流程，无法撤回审批');
+      return;
+    }
     if (!confirm('确定要撤回该采购审批吗？审批状态将恢复为待审批，关联的报销状态也会被清除。')) return;
     try {
       setRecalling(item.id);

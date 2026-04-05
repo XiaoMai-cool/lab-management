@@ -292,6 +292,8 @@ export default function PurchaseApprovalForm() {
 
       if (autoReimbursement) {
         record.reimbursement_status = 'pending';
+        record.actual_amount = parsedAmount;
+        record.receipt_attachments = attachments;
       }
 
       if (isEditing) {

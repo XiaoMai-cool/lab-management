@@ -426,9 +426,18 @@ export default function PurchaseApprovalList() {
 
                     {composite === 'approved' && (
                       <button
-                        onClick={() =>
-                          navigate(`/reimbursements/new?purchase_id=${item.id}`)
-                        }
+                        onClick={async () => {
+                          // Clear rejected reimbursement status if needed
+                          if (item.reimbursement_status === 'rejected') {
+                            await supabase.from('purchases').update({
+                              reimbursement_status: null,
+                              reimbursement_note: null,
+                              actual_amount: null,
+                              receipt_attachments: [],
+                            }).eq('id', item.id);
+                          }
+                          navigate(`/reimbursements/new?purchase_id=${item.id}`);
+                        }}
                         className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
                       >
                         去报销

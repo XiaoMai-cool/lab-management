@@ -60,7 +60,7 @@ interface TransferForm {
 }
 
 export default function MemberManage() {
-  const { isAdmin, canManageModule } = useAuth();
+  const { isAdmin, isSuperAdmin, canManageModule } = useAuth();
   const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -465,9 +465,11 @@ export default function MemberManage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">角色</label>
             <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })} className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              {Object.entries(roleLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
+              {Object.entries(roleLabels)
+                .filter(([value]) => isSuperAdmin || value !== 'super_admin')
+                .map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
             </select>
           </div>
           <div>
