@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import type { Announcement, AnnouncementAttachment } from '../../lib/types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import RichTextRenderer from '../../components/RichTextRenderer';
 
 const priorityLabels: Record<string, string> = {
   urgent: '紧急',
@@ -117,9 +118,7 @@ export default function AnnouncementView() {
         <div className="border-t border-gray-200 mb-6" />
 
         {/* Content - preserve whitespace */}
-        <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
-          {announcement.content}
-        </div>
+        <RichTextRenderer content={announcement.content} />
 
         {/* Image attachments */}
         {imageAttachments.length > 0 && (
