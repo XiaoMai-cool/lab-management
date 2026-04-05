@@ -56,7 +56,6 @@ const AnnouncementManage = lazy(() => import('./pages/admin/AnnouncementManage')
 const MemberManage = lazy(() => import('./pages/admin/MemberManage'))
 const SupplyManage = lazy(() => import('./pages/admin/SupplyManage'))
 const DataExport = lazy(() => import('./pages/admin/DataExport'))
-const DailyNoticesManage = lazy(() => import('./pages/admin/DailyNoticesManage'))
 
 export default function App() {
   return (
@@ -118,8 +117,7 @@ export default function App() {
               <Route path="/admin/members" element={<ProtectedRoute requiredModule="members"><MemberManage /></ProtectedRoute>} />
               <Route path="/admin/supplies" element={<ProtectedRoute requiredModule="supplies"><SupplyManage /></ProtectedRoute>} />
               <Route path="/admin/export" element={<ProtectedRoute requiredRole="admin"><DataExport /></ProtectedRoute>} />
-              <Route path="/admin/daily-notices" element={<ProtectedRoute requiredRole="admin"><DailyNoticesManage /></ProtectedRoute>} />
-              <Route path="/admin/duty-manage" element={<ProtectedRoute requiredModule="duty"><DutyManage /></ProtectedRoute>} />
+<Route path="/admin/duty-manage" element={<ProtectedRoute requiredModule="duty"><DutyManage /></ProtectedRoute>} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

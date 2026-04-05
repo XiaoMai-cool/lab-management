@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Megaphone, X, Download, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, Megaphone, X, Download, FileText, Bell, ChevronUp, ChevronDown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { stripHtml } from '../../lib/sanitize';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,7 +14,7 @@ import StorageUsage from '../../components/StorageUsage';
 const RichTextEditor = lazy(() => import('../../components/RichTextEditor'));
 
 type Priority = 'normal' | 'important' | 'urgent';
-type TabKey = 'announcements' | 'documents';
+type TabKey = 'announcements' | 'documents' | 'notices';
 
 interface AnnouncementForm {
   title: string;
@@ -24,6 +24,17 @@ interface AnnouncementForm {
   show_on_login: boolean;
   attachments: AnnouncementAttachment[];
 }
+
+interface DailyNotice {
+  id: string;
+  category: string;
+  content: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const NOTICE_CATEGORIES = ['实验室', '办公室'] as const;
 
 const defaultForm: AnnouncementForm = {
   title: '',
@@ -74,6 +85,17 @@ export default function AnnouncementManage() {
   const [deleteDocConfirmId, setDeleteDocConfirmId] = useState<string | null>(null);
   const [deletingDoc, setDeletingDoc] = useState(false);
 
+  // Daily Notices state
+  const [notices, setNotices] = useState<DailyNotice[]>([]);
+  const [loadingNotices, setLoadingNotices] = useState(true);
+  const [noticeModalOpen, setNoticeModalOpen] = useState(false);
+  const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
+  const [noticeCategory, setNoticeCategory] = useState<string>('实验室');
+  const [noticeContent, setNoticeContent] = useState('');
+  const [savingNotice, setSavingNotice] = useState(false);
+  const [deleteNoticeConfirmId, setDeleteNoticeConfirmId] = useState<string | null>(null);
+  const [deletingNotice, setDeletingNotice] = useState(false);
+
   async function fetchAnnouncements() {
     setLoading(true);
     setError(null);
@@ -112,6 +134,7 @@ export default function AnnouncementManage() {
   useEffect(() => {
     fetchAnnouncements();
     fetchDocuments();
+    fetchNotices();
   }, []);
 
   function openCreateModal() {
@@ -240,6 +263,113 @@ export default function AnnouncementManage() {
     }
   }
 
+  async function fetchNotices() {
+    setLoadingNotices(true);
+    const { data } = await supabase
+      .from('daily_notices')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (data) setNotices(data);
+    setLoadingNotices(false);
+  }
+
+  function openCreateNoticeModal(category: string) {
+    setNoticeCategory(category);
+    setNoticeContent('');
+    setEditingNoticeId(null);
+    setNoticeModalOpen(true);
+  }
+
+  function openEditNoticeModal(notice: DailyNotice) {
+    setNoticeCategory(notice.category);
+    setNoticeContent(notice.content);
+    setEditingNoticeId(notice.id);
+    setNoticeModalOpen(true);
+  }
+
+  function closeNoticeModal() {
+    setNoticeModalOpen(false);
+    setEditingNoticeId(null);
+    setNoticeContent('');
+  }
+
+  async function handleSaveNotice() {
+    if (!noticeContent.trim()) return;
+    setSavingNotice(true);
+    try {
+      if (editingNoticeId) {
+        const { error: updateError } = await supabase
+          .from('daily_notices')
+          .update({
+            content: noticeContent.trim(),
+            category: noticeCategory,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingNoticeId);
+        if (updateError) throw updateError;
+      } else {
+        const categoryNotices = notices.filter(n => n.category === noticeCategory);
+        const maxOrder = categoryNotices.length > 0
+          ? Math.max(...categoryNotices.map(n => n.sort_order))
+          : 0;
+        const { error: insertError } = await supabase
+          .from('daily_notices')
+          .insert({
+            content: noticeContent.trim(),
+            category: noticeCategory,
+            sort_order: maxOrder + 1,
+          });
+        if (insertError) throw insertError;
+      }
+      closeNoticeModal();
+      fetchNotices();
+    } catch (err) {
+      console.error('Save failed:', err);
+      setError('保存失败，请重试');
+    } finally {
+      setSavingNotice(false);
+    }
+  }
+
+  async function handleDeleteNotice(id: string) {
+    setDeletingNotice(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('daily_notices')
+        .delete()
+        .eq('id', id);
+      if (deleteError) throw deleteError;
+      setDeleteNoticeConfirmId(null);
+      fetchNotices();
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setError('删除失败，请重试');
+    } finally {
+      setDeletingNotice(false);
+    }
+  }
+
+  async function handleMoveNotice(notice: DailyNotice, direction: 'up' | 'down') {
+    const categoryNotices = notices
+      .filter(n => n.category === notice.category)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const currentIndex = categoryNotices.findIndex(n => n.id === notice.id);
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= categoryNotices.length) return;
+    const current = categoryNotices[currentIndex];
+    const swap = categoryNotices[swapIndex];
+    try {
+      await Promise.all([
+        supabase.from('daily_notices').update({ sort_order: swap.sort_order }).eq('id', current.id),
+        supabase.from('daily_notices').update({ sort_order: current.sort_order }).eq('id', swap.id),
+      ]);
+      fetchNotices();
+    } catch (err) {
+      console.error('Move failed:', err);
+      setError('排序失败');
+    }
+  }
+
   // Get login-page announcements sorted by login_sort_order for sort controls
   const loginAnnouncements = announcements
     .filter((a) => a.show_on_login)
@@ -313,6 +443,17 @@ export default function AnnouncementManage() {
           >
             <FileText className="w-4 h-4" />
             文档管理
+          </button>
+          <button
+            onClick={() => setActiveTab('notices')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'notices'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Bell className="w-4 h-4" />
+            日常须知
           </button>
         </div>
       </div>
@@ -559,6 +700,97 @@ export default function AnnouncementManage() {
           </>
         )}
 
+        {/* Notices Tab */}
+        {activeTab === 'notices' && (
+          <>
+            {loadingNotices ? (
+              <LoadingSpinner />
+            ) : (
+              <div className="space-y-6">
+                {NOTICE_CATEGORIES.map(category => {
+                  const categoryNotices = notices
+                    .filter(n => n.category === category)
+                    .sort((a, b) => a.sort_order - b.sort_order);
+
+                  const colorScheme = category === '实验室'
+                    ? { label: 'text-blue-600', bg: 'bg-blue-50' }
+                    : { label: 'text-green-600', bg: 'bg-green-50' };
+
+                  return (
+                    <section key={category}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Bell className={`w-5 h-5 ${colorScheme.label}`} />
+                          <h2 className="text-base font-semibold text-gray-900">{category}</h2>
+                          <span className="text-xs text-gray-400">{categoryNotices.length} 条</span>
+                        </div>
+                        <button
+                          onClick={() => openCreateNoticeModal(category)}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium ${colorScheme.bg} ${colorScheme.label} hover:opacity-80 transition-colors`}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          添加
+                        </button>
+                      </div>
+
+                      {categoryNotices.length === 0 ? (
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+                          暂无须知
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {categoryNotices.map((notice, index) => (
+                            <div
+                              key={notice.id}
+                              className="bg-white rounded-xl border border-gray-200 p-3 flex items-center gap-3"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm text-gray-700">{notice.content}</p>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => handleMoveNotice(notice, 'up')}
+                                  disabled={index === 0}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                                  title="上移"
+                                >
+                                  <ChevronUp className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleMoveNotice(notice, 'down')}
+                                  disabled={index === categoryNotices.length - 1}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                                  title="下移"
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => openEditNoticeModal(notice)}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                  title="编辑"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteNoticeConfirmId(notice.id)}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="删除"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
         {isSuperAdmin && (
           <div className="mt-6">
             <StorageUsage />
@@ -731,6 +963,83 @@ export default function AnnouncementManage() {
       >
         <p className="text-sm text-gray-600">
           确定要删除这篇文档吗？此操作不可撤销。
+        </p>
+      </Modal>
+
+      {/* Create/Edit Notice Modal */}
+      <Modal
+        open={noticeModalOpen}
+        onClose={closeNoticeModal}
+        title={editingNoticeId ? '编辑须知' : '添加须知'}
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={closeNoticeModal}
+              className="flex-1 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleSaveNotice}
+              disabled={savingNotice || !noticeContent.trim()}
+              className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {savingNotice ? '保存中...' : '保存'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">分类</label>
+            <select
+              value={noticeCategory}
+              onChange={(e) => setNoticeCategory(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {NOTICE_CATEGORIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">内容</label>
+            <textarea
+              value={noticeContent}
+              onChange={(e) => setNoticeContent(e.target.value)}
+              placeholder="请输入须知内容"
+              rows={3}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Notice Confirmation */}
+      <Modal
+        open={!!deleteNoticeConfirmId}
+        onClose={() => setDeleteNoticeConfirmId(null)}
+        title="确认删除"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setDeleteNoticeConfirmId(null)}
+              className="flex-1 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={() => deleteNoticeConfirmId && handleDeleteNotice(deleteNoticeConfirmId)}
+              disabled={deletingNotice}
+              className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+            >
+              {deletingNotice ? '删除中...' : '确认删除'}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-600">
+          确定要删除这条须知吗？此操作不可撤销。
         </p>
       </Modal>
     </div>
