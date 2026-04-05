@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Megaphone, Upload, X, Download, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, Megaphone, Upload, X, Download, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Announcement, AnnouncementAttachment, Document as DocType } from '../../lib/types';
@@ -281,6 +281,40 @@ export default function AnnouncementManage() {
     }
   }
 
+  // Get login-page announcements sorted by login_sort_order for sort controls
+  const loginAnnouncements = announcements
+    .filter((a) => a.show_on_login)
+    .sort((a, b) => (a.login_sort_order ?? 0) - (b.login_sort_order ?? 0));
+
+  async function handleSwapLoginSortOrder(currentId: string, targetId: string) {
+    const current = announcements.find((a) => a.id === currentId);
+    const target = announcements.find((a) => a.id === targetId);
+    if (!current || !target) return;
+
+    const currentOrder = current.login_sort_order ?? 0;
+    const targetOrder = target.login_sort_order ?? 0;
+
+    // Swap sort orders in DB
+    const [res1, res2] = await Promise.all([
+      supabase
+        .from('announcements')
+        .update({ login_sort_order: targetOrder })
+        .eq('id', currentId),
+      supabase
+        .from('announcements')
+        .update({ login_sort_order: currentOrder })
+        .eq('id', targetId),
+    ]);
+
+    if (res1.error || res2.error) {
+      console.error('Sort order swap failed:', res1.error, res2.error);
+      setError('排序更新失败');
+      return;
+    }
+
+    fetchAnnouncements();
+  }
+
   return (
     <div>
       <PageHeader
@@ -416,6 +450,33 @@ export default function AnnouncementManage() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
+                        {a.show_on_login && (() => {
+                          const idx = loginAnnouncements.findIndex((la) => la.id === a.id);
+                          return (
+                            <>
+                              <button
+                                onClick={() => {
+                                  if (idx > 0) handleSwapLoginSortOrder(a.id, loginAnnouncements[idx - 1].id);
+                                }}
+                                disabled={idx <= 0}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="登录页排序上移"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (idx < loginAnnouncements.length - 1) handleSwapLoginSortOrder(a.id, loginAnnouncements[idx + 1].id);
+                                }}
+                                disabled={idx >= loginAnnouncements.length - 1}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="登录页排序下移"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          );
+                        })()}
                         <button
                           onClick={() => openEditModal(a)}
                           className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"

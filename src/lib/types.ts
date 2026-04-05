@@ -38,6 +38,7 @@ export interface Announcement {
   published: boolean;
   attachments?: AnnouncementAttachment[];
   show_on_login?: boolean;
+  login_sort_order?: number;
   created_at: string;
   updated_at: string;
 }

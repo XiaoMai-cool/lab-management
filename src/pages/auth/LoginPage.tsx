@@ -132,6 +132,7 @@ export default function LoginPage() {
           .select('id,title,content,priority,created_at,show_on_login')
           .eq('published', true)
           .eq('show_on_login', true)
+          .order('login_sort_order', { ascending: true })
           .order('created_at', { ascending: false })
           .limit(5),
         supabase
