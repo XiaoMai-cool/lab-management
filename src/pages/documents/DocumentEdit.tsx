@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Document as DocType } from '../../lib/types';
+import type { Document as DocType, FileAttachment } from '../../lib/types';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import FileUploader, { type FileUploaderHandle } from '../../components/FileUploader';
+
+const RichTextEditor = lazy(() => import('../../components/RichTextEditor'));
 
 const CATEGORIES = ['管理制度', '操作规范', '安全制度', '其他'];
 
@@ -21,6 +24,8 @@ export default function DocumentEdit() {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [content, setContent] = useState('');
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const fileUploaderRef = useRef<FileUploaderHandle>(null);
 
   useEffect(() => {
     if (id) fetchDocument(id);
@@ -43,6 +48,7 @@ export default function DocumentEdit() {
     setTitle(doc.title);
     setCategory(doc.category || CATEGORIES[0]);
     setContent(doc.content);
+    setAttachments((doc.attachments as FileAttachment[]) ?? []);
     setLoading(false);
   }
 
@@ -60,6 +66,11 @@ export default function DocumentEdit() {
 
     setSaving(true);
 
+    const uploaded = fileUploaderRef.current
+      ? await fileUploaderRef.current.uploadAll()
+      : [];
+    const allAttachments = [...attachments, ...uploaded];
+
     if (isEditing) {
       const { error: updateError } = await supabase
         .from('documents')
@@ -68,6 +79,7 @@ export default function DocumentEdit() {
           category,
           content: content.trim(),
           updated_at: new Date().toISOString(),
+          attachments: allAttachments,
         })
         .eq('id', id);
 
@@ -87,6 +99,7 @@ export default function DocumentEdit() {
           content: content.trim(),
           author_id: user!.id,
           sort_order: 0,
+          attachments: allAttachments,
         })
         .select('id')
         .single();
@@ -177,12 +190,22 @@ export default function DocumentEdit() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               内容 *
             </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={20}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y leading-relaxed"
-              placeholder="请输入文档内容..."
+            <Suspense fallback={<div className="h-[300px] bg-gray-50 rounded-lg animate-pulse" />}>
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+              />
+            </Suspense>
+          </div>
+
+          {/* Attachments */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">附件</label>
+            <FileUploader
+              ref={fileUploaderRef}
+              existingFiles={attachments}
+              onExistingRemove={(index) => setAttachments((prev) => prev.filter((_, i) => i !== index))}
+              storagePath="documents"
             />
           </div>
 
