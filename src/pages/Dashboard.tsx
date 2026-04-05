@@ -405,6 +405,64 @@ export default function Dashboard() {
         </section>
       )}
 
+      {/* 我的待办 */}
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-5 h-5 text-blue-600" />
+          <h2 className="text-base font-semibold text-gray-900">我的待办</h2>
+        </div>
+        {pendingReservations.length === 0 && pendingPurchases.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+            暂无待办事项
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {pendingReservations.map((r) => (
+              <Link
+                key={r.id}
+                to="/supplies/my-reservations"
+                className="block bg-white rounded-xl border border-gray-200 p-3 hover:shadow-sm transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      耗材预约 - {(r.supply as any)?.name || '未知'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      数量: {r.quantity} | {formatDate(r.created_at)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    待审批
+                  </span>
+                </div>
+              </Link>
+            ))}
+            {pendingPurchases.map((r) => (
+              <Link
+                key={r.id}
+                to="/purchase-approvals"
+                className="block bg-white rounded-xl border border-gray-200 p-3 hover:shadow-sm transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      采购申请 - {r.title}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {r.estimated_amount ? `预估: ¥${r.estimated_amount}` : ''} {formatDate(r.created_at)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    待审批
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* 快捷操作 */}
       <section>
         <h2 className="text-base font-semibold text-gray-900 mb-3">快捷操作</h2>
@@ -646,63 +704,6 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* 我的待办 */}
-      <section>
-        <div className="flex items-center gap-2 mb-3">
-          <Clock className="w-5 h-5 text-blue-600" />
-          <h2 className="text-base font-semibold text-gray-900">我的待办</h2>
-        </div>
-        {pendingReservations.length === 0 && pendingPurchases.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
-            暂无待办事项
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {pendingReservations.map((r) => (
-              <Link
-                key={r.id}
-                to="/supplies/my-reservations"
-                className="block bg-white rounded-xl border border-gray-200 p-3 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      耗材预约 - {(r.supply as any)?.name || '未知'}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      数量: {r.quantity} | {formatDate(r.created_at)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    待审批
-                  </span>
-                </div>
-              </Link>
-            ))}
-            {pendingPurchases.map((r) => (
-              <Link
-                key={r.id}
-                to="/purchase-approvals"
-                className="block bg-white rounded-xl border border-gray-200 p-3 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      采购申请 - {r.title}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {r.estimated_amount ? `预估: ¥${r.estimated_amount}` : ''} {formatDate(r.created_at)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    待审批
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
