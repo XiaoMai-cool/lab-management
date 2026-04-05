@@ -86,16 +86,45 @@ export default function DataExport() {
             .select('*, supply:supplies(name), user:profiles!user_id(name)')
             .order('created_at', { ascending: false });
           if (err) throw err;
-          const rows = (data ?? []).map((r: Record<string, unknown>) => ({
-            '耗材': (r.supply as Record<string, unknown>)?.name ?? '',
-            '申请人': (r.user as Record<string, unknown>)?.name ?? '',
-            '数量': r.quantity,
-            '用途': r.purpose,
-            '是否归还': r.is_returnable ? '是' : '否',
-            '状态': r.status,
-            '申请时间': r.created_at,
-            '审批备注': r.review_note ?? '',
-          }));
+
+          // Fetch all reservation items to show multi-item details
+          const reservationIds = (data ?? []).map((r: Record<string, unknown>) => r.id as string);
+          let itemsByReservation: Record<string, { name: string; quantity: number }[]> = {};
+          if (reservationIds.length > 0) {
+            const { data: items } = await supabase
+              .from('supply_reservation_items')
+              .select('reservation_id, quantity, supply:supplies(name)')
+              .in('reservation_id', reservationIds);
+            if (items) {
+              for (const item of items as any[]) {
+                const rid = item.reservation_id as string;
+                if (!itemsByReservation[rid]) itemsByReservation[rid] = [];
+                itemsByReservation[rid].push({
+                  name: item.supply?.name ?? '',
+                  quantity: item.quantity,
+                });
+              }
+            }
+          }
+
+          const rows = (data ?? []).map((r: Record<string, unknown>) => {
+            const rid = r.id as string;
+            const items = itemsByReservation[rid];
+            const itemsText = items && items.length > 0
+              ? items.map(i => `${i.name}(${i.quantity})`).join(', ')
+              : (r.supply as Record<string, unknown>)?.name ?? '';
+
+            return {
+              '物品明细': itemsText,
+              '申请人': (r.user as Record<string, unknown>)?.name ?? '',
+              '数量': r.quantity,
+              '用途': r.purpose,
+              '是否归还': r.is_returnable ? '是' : '否',
+              '状态': r.status,
+              '申请时间': r.created_at,
+              '审批备注': r.review_note ?? '',
+            };
+          });
           downloadExcel(rows, '预约记录');
           break;
         }
@@ -129,7 +158,8 @@ export default function DataExport() {
             '标题': p.title,
             '类别': p.category,
             '采购类型': p.purchase_type === 'personal' ? '个人' : '公共',
-            '金额': p.estimated_amount,
+            '预估金额': p.estimated_amount,
+            '实际金额': p.actual_amount,
             '审批状态': p.approval_status,
             '审批人': (p.approver as Record<string, unknown>)?.name ?? '',
             '报销状态': p.reimbursement_status ?? '',

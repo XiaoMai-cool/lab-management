@@ -137,6 +137,14 @@ export default function BorrowingManage() {
   async function handleAdminReturn(record: BorrowingRecord) {
     setActionLoading(record.id);
     try {
+      // Guard against double-click: check current status from DB
+      const { data: current } = await supabase
+        .from('supply_borrowings')
+        .select('status')
+        .eq('id', record.id)
+        .single();
+      if (current?.status !== 'borrowed') return;
+
       // Restore stock FIRST
       const { error: stockError } = await supabase.rpc('adjust_stock', {
         p_table: 'supplies',
@@ -152,7 +160,8 @@ export default function BorrowingManage() {
           status: 'returned',
           returned_at: new Date().toISOString(),
         })
-        .eq('id', record.id);
+        .eq('id', record.id)
+        .eq('status', 'borrowed');
 
       if (updateError) throw updateError;
 
@@ -176,6 +185,14 @@ export default function BorrowingManage() {
     if (!confirm('确定要撤销该归还记录吗？物品状态将恢复为借用中，库存将相应减少。')) return;
     setActionLoading(record.id);
     try {
+      // Guard against double-click: check current status from DB
+      const { data: current } = await supabase
+        .from('supply_borrowings')
+        .select('status')
+        .eq('id', record.id)
+        .single();
+      if (current?.status !== 'returned') return;
+
       // Deduct stock FIRST
       const { error: stockError } = await supabase.rpc('adjust_stock', {
         p_table: 'supplies',
@@ -191,7 +208,8 @@ export default function BorrowingManage() {
           status: 'borrowed',
           returned_at: null,
         })
-        .eq('id', record.id);
+        .eq('id', record.id)
+        .eq('status', 'returned');
       if (updateError) throw updateError;
 
       // Update local state

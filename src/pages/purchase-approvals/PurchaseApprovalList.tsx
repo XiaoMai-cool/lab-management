@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { ClipboardList, Filter, ArrowRight, Pencil, ChevronDown, ChevronUp, ExternalLink, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { deleteStorageFiles } from '../../lib/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Purchase, ReimbursementFile } from '../../lib/types';
 import Card from '../../components/Card';
@@ -220,6 +221,18 @@ export default function PurchaseApprovalList() {
     if (!confirm('确定要撤回该采购申请吗？')) return;
     setWithdrawingId(id);
     try {
+      // Clean up storage files (best-effort)
+      try {
+        const purchase = list.find(r => r.id === id);
+        if (purchase) {
+          const urls = [
+            ...(purchase.attachments || []).map(a => a.url),
+            ...(purchase.receipt_attachments || []).map(a => a.url),
+          ];
+          if (urls.length) await deleteStorageFiles(urls);
+        }
+      } catch { /* ignore storage cleanup errors */ }
+
       const { error: delError } = await supabase
         .from('purchases')
         .delete()

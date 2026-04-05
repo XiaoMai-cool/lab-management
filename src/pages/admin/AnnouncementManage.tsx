@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Megaphone, X, Download, FileText, Bell, ChevronUp, ChevronDown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { deleteStorageFiles } from '../../lib/storage';
 import { stripHtml } from '../../lib/sanitize';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Announcement, AnnouncementAttachment, Document as DocType } from '../../lib/types';
@@ -228,6 +229,14 @@ export default function AnnouncementManage() {
     setDeleting(true);
 
     try {
+      // Clean up storage files (best-effort)
+      try {
+        const ann = announcements.find(a => a.id === id);
+        if (ann?.attachments?.length) {
+          await deleteStorageFiles(ann.attachments.map(a => a.url));
+        }
+      } catch { /* ignore storage cleanup errors */ }
+
       const { error: deleteError } = await supabase
         .from('announcements')
         .delete()
@@ -249,6 +258,14 @@ export default function AnnouncementManage() {
     setDeletingDoc(true);
 
     try {
+      // Clean up storage files (best-effort)
+      try {
+        const doc = documents.find(d => d.id === id);
+        if (doc?.attachments?.length) {
+          await deleteStorageFiles(doc.attachments.map(a => a.url));
+        }
+      } catch { /* ignore storage cleanup errors */ }
+
       const { error: deleteError } = await supabase
         .from('documents')
         .delete()

@@ -72,6 +72,14 @@ export default function SupplyReturn() {
   async function handleReturn(record: BorrowingRecord) {
     setActionLoading(record.id);
     try {
+      // Guard against double-click: check current status from DB
+      const { data: current } = await supabase
+        .from('supply_borrowings')
+        .select('status')
+        .eq('id', record.id)
+        .single();
+      if (current?.status !== 'borrowed') return;
+
       // Increase supply stock FIRST
       const { error: stockError } = await supabase.rpc('adjust_stock', {
         p_table: 'supplies',
@@ -87,7 +95,8 @@ export default function SupplyReturn() {
           status: 'returned',
           returned_at: new Date().toISOString(),
         })
-        .eq('id', record.id);
+        .eq('id', record.id)
+        .eq('status', 'borrowed');
 
       if (updateError) throw updateError;
 
@@ -112,6 +121,14 @@ export default function SupplyReturn() {
     setDamagedModalOpen(false);
 
     try {
+      // Guard against double-click: check current status from DB
+      const { data: current } = await supabase
+        .from('supply_borrowings')
+        .select('status')
+        .eq('id', damagedTarget.id)
+        .single();
+      if (current?.status !== 'borrowed') return;
+
       const { error: updateError } = await supabase
         .from('supply_borrowings')
         .update({
@@ -119,7 +136,8 @@ export default function SupplyReturn() {
           returned_at: new Date().toISOString(),
           notes: damagedNote.trim() || damagedTarget.notes,
         })
-        .eq('id', damagedTarget.id);
+        .eq('id', damagedTarget.id)
+        .eq('status', 'borrowed');
 
       if (updateError) throw updateError;
 
