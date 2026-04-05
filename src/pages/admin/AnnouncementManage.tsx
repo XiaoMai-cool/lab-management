@@ -72,6 +72,7 @@ export default function AnnouncementManage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loginSortDirty, setLoginSortDirty] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<AnnouncementForm>(defaultForm);
@@ -471,7 +472,23 @@ export default function AnnouncementManage() {
             {/* 登录页展示排序区域 */}
             {loginAnnouncements.length > 0 && (
               <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-3">
-                <h3 className="text-xs font-semibold text-blue-800 mb-2">登录页展示顺序</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-blue-800">登录页展示顺序</h3>
+                  {loginSortDirty && (
+                    <button
+                      onClick={async () => {
+                        const updates = loginAnnouncements.map((a, i) => (
+                          supabase.from('announcements').update({ login_sort_order: i + 1 }).eq('id', a.id)
+                        ));
+                        await Promise.all(updates);
+                        setLoginSortDirty(false);
+                      }}
+                      className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      确认保存
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-1">
                   {loginAnnouncements.map((a, idx) => (
                     <div
@@ -496,9 +513,7 @@ export default function AnnouncementManage() {
                               if (ann.id === target.id) return { ...ann, login_sort_order: myOrder };
                               return ann;
                             }));
-                            supabase.from('announcements').update({ login_sort_order: targetOrder }).eq('id', a.id);
-                            supabase.from('announcements').update({ login_sort_order: myOrder }).eq('id', target.id);
-                            // 闪烁高亮
+                            setLoginSortDirty(true);
                             setTimeout(() => {
                               const el = document.getElementById(`login-sort-${a.id}`);
                               if (el) { el.style.backgroundColor = '#dbeafe'; setTimeout(() => { el.style.backgroundColor = ''; }, 400); }
@@ -520,8 +535,7 @@ export default function AnnouncementManage() {
                               if (ann.id === target.id) return { ...ann, login_sort_order: myOrder };
                               return ann;
                             }));
-                            supabase.from('announcements').update({ login_sort_order: targetOrder }).eq('id', a.id);
-                            supabase.from('announcements').update({ login_sort_order: myOrder }).eq('id', target.id);
+                            setLoginSortDirty(true);
                             setTimeout(() => {
                               const el = document.getElementById(`login-sort-${a.id}`);
                               if (el) { el.style.backgroundColor = '#dbeafe'; setTimeout(() => { el.style.backgroundColor = ''; }, 400); }
