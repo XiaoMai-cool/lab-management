@@ -28,6 +28,9 @@ export interface AnnouncementAttachment {
   size: number;
 }
 
+// 通用文件附件接口，公告和文档共用
+export type FileAttachment = AnnouncementAttachment;
+
 export interface Announcement {
   id: string;
   title: string;
@@ -52,6 +55,8 @@ export interface Document {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  attachments?: FileAttachment[];  // 新增
+  author?: { name: string };       // join 查询时
 }
 
 export interface SupplyCategory {
