@@ -286,6 +286,24 @@ export default function AnnouncementManage() {
     .filter((a) => a.show_on_login)
     .sort((a, b) => (a.login_sort_order ?? 0) - (b.login_sort_order ?? 0));
 
+  // 确保 login_sort_order 都有唯一值（首次加载时修复全为0的问题）
+  useEffect(() => {
+    const loginItems = announcements.filter(a => a.show_on_login);
+    const allZero = loginItems.length > 1 && loginItems.every(a => (a.login_sort_order ?? 0) === 0);
+    if (allZero) {
+      const sorted = [...loginItems].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const updates = sorted.map((a, i) => ({ id: a.id, order: i + 1 }));
+      setAnnouncements(prev => prev.map(a => {
+        const u = updates.find(u => u.id === a.id);
+        return u ? { ...a, login_sort_order: u.order } : a;
+      }));
+      // 静默同步到数据库
+      updates.forEach(u => {
+        supabase.from('announcements').update({ login_sort_order: u.order }).eq('id', u.id);
+      });
+    }
+  }, [announcements.length]);
+
   async function handleSwapLoginSortOrder(currentId: string, targetId: string) {
     const current = announcements.find((a) => a.id === currentId);
     const target = announcements.find((a) => a.id === targetId);
@@ -293,6 +311,19 @@ export default function AnnouncementManage() {
 
     const currentOrder = current.login_sort_order ?? 0;
     const targetOrder = target.login_sort_order ?? 0;
+
+    // 如果序号相同，先赋唯一值
+    if (currentOrder === targetOrder) {
+      const loginItems = loginAnnouncements;
+      loginItems.forEach((a, i) => {
+        supabase.from('announcements').update({ login_sort_order: i + 1 }).eq('id', a.id);
+      });
+      setAnnouncements(prev => prev.map(a => {
+        const idx = loginItems.findIndex(la => la.id === a.id);
+        return idx >= 0 ? { ...a, login_sort_order: idx + 1 } : a;
+      }));
+      return;
+    }
 
     // 先更新本地状态，立即反映变化，不刷新页面
     setAnnouncements(prev => prev.map(a => {
