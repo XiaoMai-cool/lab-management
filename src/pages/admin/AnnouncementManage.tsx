@@ -368,58 +368,81 @@ export default function AnnouncementManage() {
         {/* Announcements Tab */}
         {activeTab === 'announcements' && (
           <>
-            {/* 登录页展示排序区域 - 拖拽排序 */}
+            {/* 登录页展示排序区域 */}
             {loginAnnouncements.length > 0 && (
               <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-3">
-                <h3 className="text-xs font-semibold text-blue-800 mb-2">登录页展示顺序（拖拽排序）</h3>
+                <h3 className="text-xs font-semibold text-blue-800 mb-2">登录页展示顺序</h3>
                 <div className="space-y-1">
                   {loginAnnouncements.map((a, idx) => (
                     <div
                       key={a.id}
-                      draggable
-                      onDragStart={(e) => { e.dataTransfer.setData('text/plain', a.id); (e.currentTarget as HTMLElement).style.opacity = '0.5'; }}
-                      onDragEnd={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-                      onDragOver={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor = '#3b82f6'; }}
-                      onDragLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = ''; }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).style.borderColor = '';
-                        const dragId = e.dataTransfer.getData('text/plain');
-                        if (dragId === a.id) return;
-                        // 重新排列：把 dragId 移到 idx 位置
-                        const newOrder = loginAnnouncements.filter(la => la.id !== dragId);
-                        const dragItem = loginAnnouncements.find(la => la.id === dragId);
-                        if (!dragItem) return;
-                        newOrder.splice(idx, 0, dragItem);
-                        // 更新所有 sort order
-                        const updates = newOrder.map((item, i) => ({ id: item.id, order: i + 1 }));
-                        setAnnouncements(prev => prev.map(ann => {
-                          const u = updates.find(u => u.id === ann.id);
-                          return u ? { ...ann, login_sort_order: u.order } : ann;
-                        }));
-                        updates.forEach(u => {
-                          supabase.from('announcements').update({ login_sort_order: u.order }).eq('id', u.id);
-                        });
-                      }}
-                      className="flex items-center gap-2 bg-white rounded-lg border border-blue-100 px-2.5 py-1.5 cursor-grab active:cursor-grabbing select-none transition-colors"
+                      id={`login-sort-${a.id}`}
+                      className="flex items-center gap-2 bg-white rounded-lg border border-blue-100 px-2.5 py-1.5 select-none transition-all duration-300"
                     >
-                      <span className="text-[10px] text-blue-400 cursor-grab">⠿</span>
-                      <span className="text-xs font-bold text-blue-500 w-4 text-center">{idx + 1}</span>
+                      <span className="text-xs font-bold text-blue-500 w-4 text-center shrink-0">{idx + 1}</span>
                       <span className="text-xs text-gray-900 flex-1 truncate">{a.title}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${priorityColors[a.priority]}`}>
                         {priorityLabels[a.priority]}
                       </span>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          setAnnouncements(prev => prev.map(ann => ann.id === a.id ? { ...ann, show_on_login: false } : ann));
-                          await supabase.from('announcements').update({ show_on_login: false }).eq('id', a.id);
-                        }}
-                        className="p-0.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 shrink-0"
-                        title="从登录页移除"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center shrink-0">
+                        <button
+                          onClick={() => {
+                            if (idx === 0) return;
+                            const target = loginAnnouncements[idx - 1];
+                            const myOrder = a.login_sort_order ?? 0;
+                            const targetOrder = target.login_sort_order ?? 0;
+                            setAnnouncements(prev => prev.map(ann => {
+                              if (ann.id === a.id) return { ...ann, login_sort_order: targetOrder };
+                              if (ann.id === target.id) return { ...ann, login_sort_order: myOrder };
+                              return ann;
+                            }));
+                            supabase.from('announcements').update({ login_sort_order: targetOrder }).eq('id', a.id);
+                            supabase.from('announcements').update({ login_sort_order: myOrder }).eq('id', target.id);
+                            // 闪烁高亮
+                            setTimeout(() => {
+                              const el = document.getElementById(`login-sort-${a.id}`);
+                              if (el) { el.style.backgroundColor = '#dbeafe'; setTimeout(() => { el.style.backgroundColor = ''; }, 400); }
+                            }, 50);
+                          }}
+                          disabled={idx === 0}
+                          className="p-1 rounded text-blue-400 hover:text-blue-600 hover:bg-blue-100 disabled:opacity-20 disabled:cursor-not-allowed"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (idx === loginAnnouncements.length - 1) return;
+                            const target = loginAnnouncements[idx + 1];
+                            const myOrder = a.login_sort_order ?? 0;
+                            const targetOrder = target.login_sort_order ?? 0;
+                            setAnnouncements(prev => prev.map(ann => {
+                              if (ann.id === a.id) return { ...ann, login_sort_order: targetOrder };
+                              if (ann.id === target.id) return { ...ann, login_sort_order: myOrder };
+                              return ann;
+                            }));
+                            supabase.from('announcements').update({ login_sort_order: targetOrder }).eq('id', a.id);
+                            supabase.from('announcements').update({ login_sort_order: myOrder }).eq('id', target.id);
+                            setTimeout(() => {
+                              const el = document.getElementById(`login-sort-${a.id}`);
+                              if (el) { el.style.backgroundColor = '#dbeafe'; setTimeout(() => { el.style.backgroundColor = ''; }, 400); }
+                            }, 50);
+                          }}
+                          disabled={idx === loginAnnouncements.length - 1}
+                          className="p-1 rounded text-blue-400 hover:text-blue-600 hover:bg-blue-100 disabled:opacity-20 disabled:cursor-not-allowed"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setAnnouncements(prev => prev.map(ann => ann.id === a.id ? { ...ann, show_on_login: false } : ann));
+                            await supabase.from('announcements').update({ show_on_login: false }).eq('id', a.id);
+                          }}
+                          className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 ml-0.5"
+                          title="从登录页移除"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
