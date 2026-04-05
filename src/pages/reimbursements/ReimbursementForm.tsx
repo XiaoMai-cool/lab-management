@@ -40,6 +40,15 @@ export default function ReimbursementForm() {
     }
   }, [profile, purchaseId]);
 
+  // Warn before leaving with unsaved data
+  useEffect(() => {
+    const hasData = uploadingFiles.length > 0;
+    if (!hasData || success) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [uploadingFiles, success]);
+
   async function fetchPurchase() {
     if (!profile || !purchaseId) return;
     try {

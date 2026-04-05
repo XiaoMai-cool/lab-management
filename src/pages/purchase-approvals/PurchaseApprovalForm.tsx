@@ -176,6 +176,15 @@ export default function PurchaseApprovalForm() {
     }
   }, [title, category]);
 
+  // Warn before leaving with unsaved data
+  useEffect(() => {
+    const hasData = title.trim() || description.trim() || uploadingFiles.length > 0;
+    if (!hasData || success) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [title, description, uploadingFiles, success]);
+
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFiles = e.target.files;
     if (!selectedFiles) return;

@@ -42,6 +42,13 @@ const exportCards: ExportCard[] = [
     color: 'bg-purple-50 text-purple-600',
   },
   {
+    key: 'chemical_inventory',
+    title: '导出药品库存',
+    description: '导出所有药品的当前库存状态',
+    icon: FlaskConical,
+    color: 'bg-indigo-50 text-indigo-600',
+  },
+  {
     key: 'purchases',
     title: '导出采购记录',
     description: '导出所有采购申请记录',
@@ -144,6 +151,28 @@ export default function DataExport() {
             '使用时间': l.used_at,
           }));
           downloadExcel(rows, '药品记录');
+          break;
+        }
+
+        case 'chemical_inventory': {
+          const { data, error: err } = await supabase
+            .from('chemicals')
+            .select('name, batch_number, cas_number, category, stock, unit, location, molecular_formula, expiry_date, updated_at')
+            .order('name');
+          if (err) throw err;
+          const rows = (data ?? []).map((c: Record<string, unknown>) => ({
+            '名称': c.name,
+            '编号': c.batch_number ?? '',
+            'CAS号': c.cas_number ?? '',
+            '分类': c.category ?? '',
+            '库存': c.stock,
+            '单位': c.unit,
+            '存放位置': c.location,
+            '分子式': c.molecular_formula ?? '',
+            '有效期': c.expiry_date ?? '',
+            '更新时间': c.updated_at,
+          }));
+          downloadExcel(rows, '药品库存');
           break;
         }
 

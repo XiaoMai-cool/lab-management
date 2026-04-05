@@ -31,6 +31,15 @@ export default function DocumentEdit() {
     if (id) fetchDocument(id);
   }, [id]);
 
+  // Warn before leaving with unsaved data
+  useEffect(() => {
+    const hasChanges = title.trim() || content.trim();
+    if (!hasChanges) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [title, content]);
+
   async function fetchDocument(docId: string) {
     const { data, error: fetchError } = await supabase
       .from('documents')

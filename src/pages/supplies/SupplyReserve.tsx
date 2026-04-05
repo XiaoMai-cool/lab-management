@@ -58,6 +58,15 @@ export default function SupplyReserve() {
     fetchSupplies();
   }, []);
 
+  // Warn before leaving with unsaved data
+  useEffect(() => {
+    const hasData = selectedItems.size > 0;
+    if (!hasData || success) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [selectedItems, success]);
+
   const groupedSupplies = useMemo(() => {
     const filtered = supplies.filter(
       (s) =>
