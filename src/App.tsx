@@ -98,6 +98,7 @@ export default function App() {
 
               {/* 采购审批 + 报销 */}
               <Route path="/purchase-approvals/new" element={<PurchaseApprovalForm />} />
+              <Route path="/purchase-approvals/edit/:id" element={<PurchaseApprovalForm />} />
               <Route path="/purchase-approvals" element={<PurchaseApprovalList />} />
               <Route path="/purchase-approvals/review" element={<PurchaseApprovalReview />} />
               <Route path="/reimbursements" element={<Navigate to="/purchase-approvals" replace />} />

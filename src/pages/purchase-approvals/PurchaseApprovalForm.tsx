@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle, Upload, X, FileText, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,6 +48,8 @@ function formatFileSize(bytes: number): string {
 
 export default function PurchaseApprovalForm() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditing = !!editId;
   const { profile, isTeacher } = useAuth();
 
   const [title, setTitle] = useState('');
@@ -72,6 +74,7 @@ export default function PurchaseApprovalForm() {
   const [teachers, setTeachers] = useState<Profile[]>([]);
   const [defaultTeacherId, setDefaultTeacherId] = useState<string | null>(null);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
+  const [loadingEdit, setLoadingEdit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -106,6 +109,65 @@ export default function PurchaseApprovalForm() {
     }
     load();
   }, [profile, isTeacher]);
+
+  useEffect(() => {
+    if (!editId) return;
+    async function loadPurchase() {
+      setLoadingEdit(true);
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('id', editId)
+        .single();
+
+      if (error || !data) {
+        setError('加载采购记录失败');
+        setLoadingEdit(false);
+        return;
+      }
+
+      // Only allow editing rejected purchases
+      if (data.approval_status !== 'rejected') {
+        setError('只能修改被拒绝的采购申请');
+        setLoadingEdit(false);
+        return;
+      }
+
+      setTitle(data.title || '');
+      setPurchaseType(data.purchase_type || 'personal');
+      setCategory(data.category || '其他');
+      setEstimatedAmount(data.estimated_amount?.toString() || '');
+      setDescription(data.description || '');
+      if (data.approver_id) setApproverId(data.approver_id);
+
+      // Load extra fields
+      if (data.extra_fields) {
+        const ef = data.extra_fields as Record<string, unknown>;
+        if (hasReagentFields(data.category)) {
+          setReagentFields({
+            item_name: (ef.item_name as string) || '',
+            cas_number: (ef.cas_number as string) || '',
+            specification: (ef.specification as string) || '',
+            concentration: (ef.concentration as string) || '',
+            purity: (ef.purity as string) || '',
+            manufacturer: (ef.manufacturer as string) || '',
+            quantity: ef.quantity?.toString() || '',
+            unit: (ef.unit as string) || '',
+          });
+        } else if (hasSupplyFields(data.category)) {
+          setSupplyFields({
+            item_name: (ef.item_name as string) || '',
+            specification: (ef.specification as string) || '',
+            quantity: ef.quantity?.toString() || '',
+            unit: (ef.unit as string) || '',
+          });
+        }
+      }
+
+      setLoadingEdit(false);
+    }
+    loadPurchase();
+  }, [editId]);
 
   // Sync supply item_name default from title
   useEffect(() => {
@@ -232,12 +294,30 @@ export default function PurchaseApprovalForm() {
         record.reimbursement_status = 'pending';
       }
 
-      const { error: insertErr } = await supabase.from('purchases').insert(record);
+      if (isEditing) {
+        // Update: reset to pending, clear rejection
+        record.approval_status = isAutoApproved ? 'approved' : 'pending';
+        record.approval_note = isAutoApproved ? '教师自行采购，自动通过' : null;
+        record.approved_at = isAutoApproved ? now : null;
 
-      if (insertErr) {
-        setError('提交失败：' + insertErr.message);
-        setSubmitting(false);
-        return;
+        const { error: updateErr } = await supabase
+          .from('purchases')
+          .update(record)
+          .eq('id', editId);
+
+        if (updateErr) {
+          setError('修改失败：' + updateErr.message);
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        const { error: insertErr } = await supabase.from('purchases').insert(record);
+
+        if (insertErr) {
+          setError('提交失败：' + insertErr.message);
+          setSubmitting(false);
+          return;
+        }
       }
 
       setSuccess(true);
@@ -249,6 +329,7 @@ export default function PurchaseApprovalForm() {
   }
 
   if (!profile) return <LoadingSpinner />;
+  if (loadingEdit) return <LoadingSpinner />;
 
   if (success) {
     return (
@@ -256,7 +337,10 @@ export default function PurchaseApprovalForm() {
         <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
         <h2 className="text-xl font-bold text-gray-900 mb-2">提交成功</h2>
         <p className="text-gray-500 mb-6 text-center">
-          {isTeacher ? '采购申请已自动通过，请前往采购完成后提交报销。' : '采购申请已提交，请等待教师审批。'}
+          {isEditing
+            ? (isTeacher ? '采购申请已修改并自动通过。' : '采购申请已修改，请等待教师审批。')
+            : (isTeacher ? '采购申请已自动通过，请前往采购完成后提交报销。' : '采购申请已提交，请等待教师审批。')
+          }
         </p>
         <div className="flex gap-3">
           <button onClick={() => navigate('/purchase-approvals')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
@@ -279,7 +363,7 @@ export default function PurchaseApprovalForm() {
         <ArrowLeft className="w-4 h-4" />
         返回
       </button>
-      <PageHeader title="采购申请" subtitle="提交采购申请，审批通过后进行采购和报销" />
+      <PageHeader title={isEditing ? '修改采购申请' : '采购申请'} subtitle={isEditing ? '修改后将重新提交审批' : '提交采购申请，审批通过后进行采购和报销'} />
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -588,7 +672,7 @@ export default function PurchaseApprovalForm() {
             disabled={submitting}
             className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? '提交中...' : '提交采购申请'}
+            {submitting ? '提交中...' : isEditing ? '重新提交' : '提交采购申请'}
           </button>
         </form>
       </Card>
