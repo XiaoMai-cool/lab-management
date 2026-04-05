@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FileText, FolderOpen, Megaphone, ChevronRight } from 'lucide-react';
+import { FileText, FolderOpen, Megaphone, ChevronRight, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { stripHtml } from '../../lib/sanitize';
 import type { Document as DocType, Announcement } from '../../lib/types';
@@ -111,6 +111,15 @@ export default function DocumentList() {
       <PageHeader
         title="公告与文档"
         subtitle="课题组公告信息与管理制度"
+        action={
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回
+          </button>
+        }
       />
 
       {/* Tabs */}
