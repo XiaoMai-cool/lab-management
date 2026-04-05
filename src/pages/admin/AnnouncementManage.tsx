@@ -9,6 +9,7 @@ import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import FileUploader, { type FileUploaderHandle } from '../../components/FileUploader';
+import StorageUsage from '../../components/StorageUsage';
 const RichTextEditor = lazy(() => import('../../components/RichTextEditor'));
 
 type Priority = 'normal' | 'important' | 'urgent';
@@ -50,7 +51,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function AnnouncementManage() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('announcements');
   const fileUploaderRef = useRef<FileUploaderHandle>(null);
@@ -554,6 +555,12 @@ export default function AnnouncementManage() {
               </div>
             )}
           </>
+        )}
+
+        {isSuperAdmin && (
+          <div className="mt-6">
+            <StorageUsage />
+          </div>
         )}
       </div>
 
