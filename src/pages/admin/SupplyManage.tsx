@@ -164,13 +164,6 @@ export default function SupplyManage() {
   }
 
   async function handleDelete(id: string) {
-    const supply = supplies.find((s) => s.id === id);
-    if (supply && supply.stock > 0) {
-      alert('库存不为 0 的耗材不能删除，请先清空库存');
-      setDeleteConfirmId(null);
-      return;
-    }
-
     setDeleting(true);
 
     try {

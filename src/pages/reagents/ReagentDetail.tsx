@@ -182,10 +182,6 @@ export default function ReagentDetail() {
 
   async function handleDelete() {
     if (!id) return;
-    if (chemical && chemical.stock > 0) {
-      alert('库存不为 0 的药品不能删除，请先清空库存');
-      return;
-    }
     try {
       setDeleting(true);
       const { error: delError } = await supabase.from('chemicals').delete().eq('id', id);
