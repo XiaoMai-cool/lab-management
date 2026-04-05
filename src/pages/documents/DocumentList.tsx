@@ -160,17 +160,6 @@ export default function DocumentList() {
             公告
           </button>
           <button
-            onClick={() => switchTab('docs')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
-              currentTab === 'docs'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            文档资料
-          </button>
-          <button
             onClick={() => switchTab('notices')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
               currentTab === 'notices'
@@ -180,6 +169,17 @@ export default function DocumentList() {
           >
             <Bell className="w-4 h-4" />
             日常须知
+          </button>
+          <button
+            onClick={() => switchTab('docs')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentTab === 'docs'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            文档资料
           </button>
         </div>
       </div>
