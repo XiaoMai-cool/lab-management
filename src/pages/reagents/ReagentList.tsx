@@ -110,9 +110,23 @@ export default function ReagentList() {
   const [recallWarning, setRecallWarning] = useState<{ warning: ActiveWarning; chemical: Chemical } | null>(null);
   const [recallSubmitting, setRecallSubmitting] = useState(false);
 
-  // Checklist state
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  // Checklist state - restore from sessionStorage on mount
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('reagent_checklist');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [checklistExpanded, setChecklistExpanded] = useState(false);
+
+  // Sync checklist to sessionStorage
+  useEffect(() => {
+    if (checklist.length > 0) {
+      sessionStorage.setItem('reagent_checklist', JSON.stringify(checklist));
+    } else {
+      sessionStorage.removeItem('reagent_checklist');
+    }
+  }, [checklist]);
 
   // Save list modal
   const [showSaveModal, setShowSaveModal] = useState(false);
