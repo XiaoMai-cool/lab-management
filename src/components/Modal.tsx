@@ -8,6 +8,8 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** 为 true 时，点外面/按 Escape/点 X 会先弹确认框 */
+  confirmClose?: boolean;
 }
 
 export default function Modal({
@@ -16,7 +18,15 @@ export default function Modal({
   title,
   children,
   footer,
+  confirmClose,
 }: ModalProps) {
+  function handleClose() {
+    if (confirmClose) {
+      if (confirm('内容尚未保存，确定要关闭吗？')) onClose();
+    } else {
+      onClose();
+    }
+  }
   // Lock body scroll when modal is open
   useEffect(() => {
     if (open) {
@@ -33,7 +43,7 @@ export default function Modal({
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -46,7 +56,7 @@ export default function Modal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 transition-opacity"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Content */}
@@ -57,7 +67,7 @@ export default function Modal({
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-gray-300 md:hidden" />
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 -mr-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5" />

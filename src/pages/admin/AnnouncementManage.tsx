@@ -942,6 +942,7 @@ export default function AnnouncementManage() {
         open={modalOpen}
         onClose={closeModal}
         title={editingId ? '编辑公告' : '新建公告'}
+        confirmClose={!!form.title.trim() || !!form.content.trim()}
         footer={
           <div className="flex gap-3">
             <button
@@ -1109,6 +1110,7 @@ export default function AnnouncementManage() {
       <Modal
         open={noticeModalOpen}
         onClose={closeNoticeModal}
+        confirmClose={!!noticeContent.trim()}
         title={editingNoticeId ? '编辑须知' : '添加须知'}
         footer={
           <div className="flex gap-3">
