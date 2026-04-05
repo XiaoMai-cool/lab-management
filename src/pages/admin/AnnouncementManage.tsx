@@ -294,7 +294,14 @@ export default function AnnouncementManage() {
     const currentOrder = current.login_sort_order ?? 0;
     const targetOrder = target.login_sort_order ?? 0;
 
-    // Swap sort orders in DB
+    // 先更新本地状态，立即反映变化，不刷新页面
+    setAnnouncements(prev => prev.map(a => {
+      if (a.id === currentId) return { ...a, login_sort_order: targetOrder };
+      if (a.id === targetId) return { ...a, login_sort_order: currentOrder };
+      return a;
+    }));
+
+    // 后台静默同步到数据库
     const [res1, res2] = await Promise.all([
       supabase
         .from('announcements')
@@ -309,10 +316,8 @@ export default function AnnouncementManage() {
     if (res1.error || res2.error) {
       console.error('Sort order swap failed:', res1.error, res2.error);
       setError('排序更新失败');
-      return;
+      fetchAnnouncements(); // 失败时才重新获取
     }
-
-    fetchAnnouncements();
   }
 
   return (
