@@ -379,6 +379,40 @@ export default function AnnouncementManage() {
         {/* Announcements Tab */}
         {activeTab === 'announcements' && (
           <>
+            {/* 登录页展示排序区域 */}
+            {loginAnnouncements.length > 0 && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-blue-800 mb-3">登录页展示顺序</h3>
+                <div className="space-y-2">
+                  {loginAnnouncements.map((a, idx) => (
+                    <div key={a.id} className="flex items-center gap-3 bg-white rounded-lg border border-blue-100 px-3 py-2">
+                      <span className="text-xs font-bold text-blue-500 w-5 text-center">{idx + 1}</span>
+                      <span className="text-sm text-gray-900 flex-1 truncate">{a.title}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${priorityColors[a.priority]}`}>
+                        {priorityLabels[a.priority]}
+                      </span>
+                      <div className="flex gap-0.5">
+                        <button
+                          onClick={() => { if (idx > 0) handleSwapLoginSortOrder(a.id, loginAnnouncements[idx - 1].id); }}
+                          disabled={idx === 0}
+                          className="p-1 rounded text-blue-400 hover:text-blue-600 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => { if (idx < loginAnnouncements.length - 1) handleSwapLoginSortOrder(a.id, loginAnnouncements[idx + 1].id); }}
+                          disabled={idx === loginAnnouncements.length - 1}
+                          className="p-1 rounded text-blue-400 hover:text-blue-600 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {loading ? (
               <LoadingSpinner />
             ) : announcements.length === 0 ? (
@@ -450,33 +484,6 @@ export default function AnnouncementManage() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
-                        {a.show_on_login && (() => {
-                          const idx = loginAnnouncements.findIndex((la) => la.id === a.id);
-                          return (
-                            <>
-                              <button
-                                onClick={() => {
-                                  if (idx > 0) handleSwapLoginSortOrder(a.id, loginAnnouncements[idx - 1].id);
-                                }}
-                                disabled={idx <= 0}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                title="登录页排序上移"
-                              >
-                                <ArrowUp className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (idx < loginAnnouncements.length - 1) handleSwapLoginSortOrder(a.id, loginAnnouncements[idx + 1].id);
-                                }}
-                                disabled={idx >= loginAnnouncements.length - 1}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                title="登录页排序下移"
-                              >
-                                <ArrowDown className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          );
-                        })()}
                         <button
                           onClick={() => openEditModal(a)}
                           className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
