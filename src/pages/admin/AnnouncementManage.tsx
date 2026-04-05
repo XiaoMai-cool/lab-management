@@ -411,6 +411,16 @@ export default function AnnouncementManage() {
                         >
                           <ArrowDown className="w-3.5 h-3.5" />
                         </button>
+                        <button
+                          onClick={async () => {
+                            setAnnouncements(prev => prev.map(ann => ann.id === a.id ? { ...ann, show_on_login: false } : ann));
+                            await supabase.from('announcements').update({ show_on_login: false }).eq('id', a.id);
+                          }}
+                          className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 ml-1"
+                          title="从登录页移除"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
