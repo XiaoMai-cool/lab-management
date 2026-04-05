@@ -1,0 +1,52 @@
+[
+  {
+    "id": "1c157f7b-bc75-40b6-853a-1282e744c62e",
+    "chemical_id": "7498c64d-549b-4a78-9584-211a7508c9e3",
+    "reported_by": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "status": "arrived",
+    "reported_at": "2026-04-04T09:32:06.430814+00:00",
+    "estimated_delivery_date": null,
+    "arrived_at": "2026-04-04T09:34:51.124+00:00",
+    "created_at": "2026-04-04T09:32:06.430814+00:00"
+  },
+  {
+    "id": "231c5705-beb2-42f5-b846-0d168eb07754",
+    "chemical_id": "7498c64d-549b-4a78-9584-211a7508c9e3",
+    "reported_by": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "status": "arrived",
+    "reported_at": "2026-04-04T06:37:18.471611+00:00",
+    "estimated_delivery_date": null,
+    "arrived_at": "2026-04-04T08:23:29.776+00:00",
+    "created_at": "2026-04-04T06:37:18.471611+00:00"
+  },
+  {
+    "id": "45bf2c84-7778-449b-bc81-f697907c6446",
+    "chemical_id": "7498c64d-549b-4a78-9584-211a7508c9e3",
+    "reported_by": "49459c18-6a4e-4ad3-b74f-3197689ecb27",
+    "status": "arrived",
+    "reported_at": "2026-04-04T03:15:26.610116+00:00",
+    "estimated_delivery_date": null,
+    "arrived_at": "2026-04-04T03:16:14.855+00:00",
+    "created_at": "2026-04-04T03:15:26.610116+00:00"
+  },
+  {
+    "id": "5619e050-01dc-494e-a71f-9fc070150134",
+    "chemical_id": "7498c64d-549b-4a78-9584-211a7508c9e3",
+    "reported_by": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "status": "arrived",
+    "reported_at": "2026-04-04T09:35:05.148746+00:00",
+    "estimated_delivery_date": null,
+    "arrived_at": "2026-04-04T10:46:18.071+00:00",
+    "created_at": "2026-04-04T09:35:05.148746+00:00"
+  },
+  {
+    "id": "5927d200-a99e-4139-8451-e540fcdc9a74",
+    "chemical_id": "7498c64d-549b-4a78-9584-211a7508c9e3",
+    "reported_by": "49459c18-6a4e-4ad3-b74f-3197689ecb27",
+    "status": "arrived",
+    "reported_at": "2026-04-04T03:15:26.001983+00:00",
+    "estimated_delivery_date": null,
+    "arrived_at": "2026-04-04T03:16:18.81+00:00",
+    "created_at": "2026-04-04T03:15:26.001983+00:00"
+  }
+]
