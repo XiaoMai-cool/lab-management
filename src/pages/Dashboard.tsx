@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { stripHtml } from '../lib/sanitize';
 import type {
   Announcement,
   AnnouncementAttachment,
@@ -73,7 +74,7 @@ interface ChemicalWarning {
 }
 
 export default function Dashboard() {
-  const { user, profile, isSuppliesManager, isChemicalsManager, isTeacher, isReimbursementApprover, isSuperAdmin, isAdmin } = useAuth();
+  const { user, profile, isSuppliesManager, isChemicalsManager, isTeacher, isReimbursementApprover, isSuperAdmin } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [lowStockSupplies, setLowStockSupplies] = useState<Supply[]>([]);
   const [pendingReservations, setPendingReservations] = useState<SupplyReservation[]>([]);
@@ -86,7 +87,6 @@ export default function Dashboard() {
     reimbursementsPending: number;
   }>({ supplyReservations: 0, chemicalWarningsPending: 0, purchaseApprovals: 0, reimbursementsPending: 0 });
   const [todayReturnedCount, setTodayReturnedCount] = useState(0);
-  const [dailyNotices, setDailyNotices] = useState<{ id: string; category: string; content: string; sort_order: number }[]>([]);
   const [dutyConfigs, setDutyConfigs] = useState<DutyConfig[]>([]);
   const [dutyOverrides, setDutyOverrides] = useState<DutyOverride[]>([]);
   const hasAnyManagerRole = isSuppliesManager || isChemicalsManager || isTeacher || isReimbursementApprover || isSuperAdmin;
@@ -263,18 +263,6 @@ export default function Dashboard() {
         })
     );
 
-    // Daily notices
-    promises.push(
-      supabase
-        .from('daily_notices')
-        .select('id, category, content, sort_order')
-        .order('sort_order', { ascending: true })
-        .then(({ data, error: err }) => {
-          if (err) { console.error('Daily notices:', err); return; }
-          setDailyNotices(data || []);
-        })
-    );
-
     try {
       await Promise.all(promises);
     } catch (err) {
@@ -417,6 +405,32 @@ export default function Dashboard() {
         </section>
       )}
 
+      {/* 快捷操作 */}
+      <section>
+        <h2 className="text-base font-semibold text-gray-900 mb-3">快捷操作</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.path}
+                to={action.path}
+                className="flex flex-col items-center gap-2.5 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
+              >
+                <div
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color}`}
+                >
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">
+                  {action.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
       {/* 公告栏 */}
       <section>
         <div className="flex items-center gap-2 mb-3">
@@ -458,8 +472,8 @@ export default function Dashboard() {
                     {a.title}
                   </h3>
                 </div>
-                <p className="text-sm text-gray-600 mt-1.5 line-clamp-2 whitespace-pre-line">
-                  {a.content}
+                <p className="text-sm text-gray-600 mt-1.5 line-clamp-2">
+                  {stripHtml(a.content)}
                 </p>
                 {/* Announcement attachments */}
                 {a.attachments && (a.attachments as AnnouncementAttachment[]).length > 0 && (
@@ -492,36 +506,51 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* 快捷操作 */}
+      {/* 值日安排 */}
       <section>
-        <h2 className="text-base font-semibold text-gray-900 mb-3">快捷操作</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.path}
-                to={action.path}
-                className="flex flex-col items-center gap-2.5 bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
-              >
-                <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color}`}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">
-                  {action.label}
-                </span>
-              </Link>
-            );
-          })}
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarCheck className="w-5 h-5 text-green-600" />
+          <h2 className="text-base font-semibold text-gray-900">值日安排</h2>
+        </div>
+        <div className="space-y-3">
+          {/* 今日值日 + 办公室本月 */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-blue-50 rounded-xl px-3 py-3 text-center">
+              <p className="text-[10px] text-blue-500 font-medium">实验室今日</p>
+              <p className="text-base font-bold text-gray-900 mt-1">{labDutyName}</p>
+            </div>
+            <div className="bg-green-50 rounded-xl px-3 py-3 text-center">
+              <p className="text-[10px] text-green-500 font-medium">办公室本月</p>
+              <p className="text-base font-bold text-gray-900 mt-1">{officeDutyName}</p>
+            </div>
+          </div>
+          {/* 本周排班 */}
+          <div className="bg-white rounded-xl border border-gray-200 p-3">
+            <p className="text-[10px] text-gray-400 mb-2">实验室本周排班</p>
+            <div className="flex gap-1.5">
+              {labWeekSchedule.map((item) => {
+                const dow = new Date().getDay();
+                const isToday = item.day === ['', '周一', '周二', '周三', '周四', '周五', ''][dow];
+                return (
+                  <div
+                    key={item.day}
+                    className={`flex-1 text-center rounded-lg py-2 ${
+                      isToday ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-600'
+                    }`}
+                  >
+                    <p className={`text-[10px] ${isToday ? 'text-blue-100' : 'text-gray-400'}`}>{item.day}</p>
+                    <p className={`text-xs font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-700'}`}>{item.name}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 库存预警 & 本周值日 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 库存预警 (managers/admins only) */}
-        {(isSuppliesManager || isChemicalsManager || isAdmin) && <section>
+      {/* 库存预警 (耗材管理员 & 超级管理员 only) */}
+      {(isSuppliesManager || isSuperAdmin) && (
+        <section>
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
             <h2 className="text-base font-semibold text-gray-900">库存预警</h2>
@@ -569,94 +598,6 @@ export default function Dashboard() {
               )}
             </div>
           )}
-        </section>}
-
-        {/* 本周值日 */}
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <CalendarCheck className="w-5 h-5 text-green-600" />
-            <h2 className="text-base font-semibold text-gray-900">值日安排</h2>
-          </div>
-          <div className="space-y-3">
-            {/* 今日值日 + 办公室本月 */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-blue-50 rounded-xl px-3 py-3 text-center">
-                <p className="text-[10px] text-blue-500 font-medium">实验室今日</p>
-                <p className="text-base font-bold text-gray-900 mt-1">{labDutyName}</p>
-              </div>
-              <div className="bg-green-50 rounded-xl px-3 py-3 text-center">
-                <p className="text-[10px] text-green-500 font-medium">办公室本月</p>
-                <p className="text-base font-bold text-gray-900 mt-1">{officeDutyName}</p>
-              </div>
-            </div>
-            {/* 本周排班 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-3">
-              <p className="text-[10px] text-gray-400 mb-2">实验室本周排班</p>
-              <div className="flex gap-1.5">
-                {labWeekSchedule.map((item) => {
-                  const dow = new Date().getDay();
-                  const isToday = item.day === ['', '周一', '周二', '周三', '周四', '周五', ''][dow];
-                  return (
-                    <div
-                      key={item.day}
-                      className={`flex-1 text-center rounded-lg py-2 ${
-                        isToday ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-600'
-                      }`}
-                    >
-                      <p className={`text-[10px] ${isToday ? 'text-blue-100' : 'text-gray-400'}`}>{item.day}</p>
-                      <p className={`text-xs font-bold mt-0.5 ${isToday ? 'text-white' : 'text-gray-700'}`}>{item.name}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* 日常须知 */}
-      {dailyNotices.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
-            <h2 className="text-base font-semibold text-gray-900">日常须知</h2>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-            {(() => {
-              const labNotices = dailyNotices.filter(n => n.category === '实验室');
-              const officeNotices = dailyNotices.filter(n => n.category === '办公室');
-              return (
-                <>
-                  {labNotices.length > 0 && (
-                    <div>
-                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide mb-1">实验室</p>
-                      <ul className="space-y-1.5 text-xs text-gray-600">
-                        {labNotices.map(n => (
-                          <li key={n.id} className="flex items-start gap-2">
-                            <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                            <span>{n.content}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {officeNotices.length > 0 && (
-                    <div>
-                      <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">办公室</p>
-                      <ul className="space-y-1.5 text-xs text-gray-600">
-                        {officeNotices.map(n => (
-                          <li key={n.id} className="flex items-start gap-2">
-                            <ChevronRight className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                            <span>{n.content}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
         </section>
       )}
 
