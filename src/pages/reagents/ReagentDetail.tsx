@@ -379,15 +379,7 @@ export default function ReagentDetail() {
               )}
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => setShowWarningConfirm(true)}
-            disabled={warningLoading}
-            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-          >
-            即将用完
-          </button>
-        )}
+        ) : null}
       </div>
 
       {/* 标签页切换 */}
