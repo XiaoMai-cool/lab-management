@@ -73,6 +73,7 @@ export default function AnnouncementManage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loginSortDirty, setLoginSortDirty] = useState(false);
+  const [dashboardSortDirty, setDashboardSortDirty] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<AnnouncementForm>(defaultForm);
@@ -376,6 +377,28 @@ export default function AnnouncementManage() {
     .filter((a) => a.show_on_login)
     .sort((a, b) => (a.login_sort_order ?? 0) - (b.login_sort_order ?? 0));
 
+  // Get published announcements sorted by dashboard_sort_order for dashboard sort controls
+  const dashboardAnnouncements = announcements
+    .filter((a) => a.published)
+    .sort((a, b) => (a.dashboard_sort_order ?? 0) - (b.dashboard_sort_order ?? 0));
+
+  // 确保 dashboard_sort_order 都有唯一值（首次加载时修复全为0的问题）
+  useEffect(() => {
+    const pubItems = announcements.filter(a => a.published);
+    const allZero = pubItems.length > 1 && pubItems.every(a => (a.dashboard_sort_order ?? 0) === 0);
+    if (allZero) {
+      const sorted = [...pubItems].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const updates = sorted.map((a, i) => ({ id: a.id, order: i + 1 }));
+      setAnnouncements(prev => prev.map(a => {
+        const u = updates.find(u => u.id === a.id);
+        return u ? { ...a, dashboard_sort_order: u.order } : a;
+      }));
+      updates.forEach(u => {
+        supabase.from('announcements').update({ dashboard_sort_order: u.order }).eq('id', u.id);
+      });
+    }
+  }, [announcements.length]);
+
   // 确保 login_sort_order 都有唯一值（首次加载时修复全为0的问题）
   useEffect(() => {
     const loginItems = announcements.filter(a => a.show_on_login);
@@ -555,6 +578,90 @@ export default function AnnouncementManage() {
                           title="从登录页移除"
                         >
                           <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 首页公告栏排序区域 */}
+            {dashboardAnnouncements.length > 0 && (
+              <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-amber-800">首页公告栏展示顺序</h3>
+                  {dashboardSortDirty && (
+                    <button
+                      onClick={async () => {
+                        const updates = dashboardAnnouncements.map((a, i) => (
+                          supabase.from('announcements').update({ dashboard_sort_order: i + 1 }).eq('id', a.id)
+                        ));
+                        await Promise.all(updates);
+                        setDashboardSortDirty(false);
+                      }}
+                      className="px-3 py-1 text-xs font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
+                    >
+                      确认保存
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {dashboardAnnouncements.map((a, idx) => (
+                    <div
+                      key={a.id}
+                      id={`dashboard-sort-${a.id}`}
+                      className="flex items-center gap-2 bg-white rounded-lg border border-amber-100 px-2.5 py-1.5 select-none transition-all duration-300"
+                    >
+                      <span className="text-xs font-bold text-amber-500 w-4 text-center shrink-0">{idx + 1}</span>
+                      <span className="text-xs text-gray-900 flex-1 truncate">{a.title}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${priorityColors[a.priority]}`}>
+                        {priorityLabels[a.priority]}
+                      </span>
+                      <div className="flex items-center shrink-0">
+                        <button
+                          onClick={() => {
+                            if (idx === 0) return;
+                            const target = dashboardAnnouncements[idx - 1];
+                            const myOrder = a.dashboard_sort_order ?? 0;
+                            const targetOrder = target.dashboard_sort_order ?? 0;
+                            setAnnouncements(prev => prev.map(ann => {
+                              if (ann.id === a.id) return { ...ann, dashboard_sort_order: targetOrder };
+                              if (ann.id === target.id) return { ...ann, dashboard_sort_order: myOrder };
+                              return ann;
+                            }));
+                            setDashboardSortDirty(true);
+                            setTimeout(() => {
+                              const el = document.getElementById(`dashboard-sort-${a.id}`);
+                              if (el) { el.style.backgroundColor = '#fef3c7'; setTimeout(() => { el.style.backgroundColor = ''; }, 400); }
+                            }, 50);
+                          }}
+                          disabled={idx === 0}
+                          className="p-1 rounded text-amber-400 hover:text-amber-600 hover:bg-amber-100 disabled:opacity-20 disabled:cursor-not-allowed"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (idx === dashboardAnnouncements.length - 1) return;
+                            const target = dashboardAnnouncements[idx + 1];
+                            const myOrder = a.dashboard_sort_order ?? 0;
+                            const targetOrder = target.dashboard_sort_order ?? 0;
+                            setAnnouncements(prev => prev.map(ann => {
+                              if (ann.id === a.id) return { ...ann, dashboard_sort_order: targetOrder };
+                              if (ann.id === target.id) return { ...ann, dashboard_sort_order: myOrder };
+                              return ann;
+                            }));
+                            setDashboardSortDirty(true);
+                            setTimeout(() => {
+                              const el = document.getElementById(`dashboard-sort-${a.id}`);
+                              if (el) { el.style.backgroundColor = '#fef3c7'; setTimeout(() => { el.style.backgroundColor = ''; }, 400); }
+                            }, 50);
+                          }}
+                          disabled={idx === dashboardAnnouncements.length - 1}
+                          className="p-1 rounded text-amber-400 hover:text-amber-600 hover:bg-amber-100 disabled:opacity-20 disabled:cursor-not-allowed"
+                        >
+                          ↓
                         </button>
                       </div>
                     </div>

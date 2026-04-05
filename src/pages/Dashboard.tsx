@@ -108,8 +108,9 @@ export default function Dashboard() {
         .from('announcements')
         .select('*, author:profiles!author_id(name)')
         .eq('published', true)
+        .order('dashboard_sort_order', { ascending: true })
         .order('created_at', { ascending: false })
-        .limit(3)
+        .limit(5)
         .then(({ data, error: err }) => {
           if (err) { hasAnyError = true; console.error('Announcements:', err); return; }
           setAnnouncements(data || []);
