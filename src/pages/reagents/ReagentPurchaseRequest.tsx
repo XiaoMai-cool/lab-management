@@ -236,10 +236,12 @@ export default function ReagentPurchaseRequest() {
               user_id: user?.id,
             });
 
-            await supabase
-              .from('chemicals')
-              .update({ stock: chem.stock + request.quantity })
-              .eq('id', chem.id);
+            const { error: stockError } = await supabase.rpc('adjust_stock', {
+              p_table: 'chemicals',
+              p_id: chem.id,
+              p_delta: request.quantity,
+            });
+            if (stockError) throw stockError;
           }
           break;
         }

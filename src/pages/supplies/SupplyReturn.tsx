@@ -72,7 +72,15 @@ export default function SupplyReturn() {
   async function handleReturn(record: BorrowingRecord) {
     setActionLoading(record.id);
     try {
-      // Update borrowing status
+      // Increase supply stock FIRST
+      const { error: stockError } = await supabase.rpc('adjust_stock', {
+        p_table: 'supplies',
+        p_id: record.supply_id,
+        p_delta: record.quantity,
+      });
+      if (stockError) throw stockError;
+
+      // Update borrowing status after stock succeeds
       const { error: updateError } = await supabase
         .from('supply_borrowings')
         .update({
@@ -82,14 +90,6 @@ export default function SupplyReturn() {
         .eq('id', record.id);
 
       if (updateError) throw updateError;
-
-      // Increase supply stock
-      const { error: stockError } = await supabase
-        .from('supplies')
-        .update({ stock: record.supply.stock + record.quantity })
-        .eq('id', record.supply_id);
-
-      if (stockError) throw stockError;
 
       // Remove from list
       setBorrowings((prev) => prev.filter((b) => b.id !== record.id));

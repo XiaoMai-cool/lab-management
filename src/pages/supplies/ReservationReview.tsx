@@ -73,18 +73,33 @@ export default function ReservationReview() {
     setProcessingId(reservation.id);
     setActionError(null);
     try {
-      // Restore stock
       const supply = reservation.supply as any;
-      if (supply) {
-        const restoredStock = supply.stock + reservation.quantity;
-        const { error: stockError } = await supabase
-          .from('supplies')
-          .update({ stock: restoredStock, updated_at: new Date().toISOString() })
-          .eq('id', supply.id);
+
+      // Restore stock for all items first
+      const { data: items } = await supabase
+        .from('supply_reservation_items')
+        .select('supply_id, quantity')
+        .eq('reservation_id', reservation.id);
+
+      if (items && items.length > 0) {
+        for (const item of items) {
+          const { error: stockError } = await supabase.rpc('adjust_stock', {
+            p_table: 'supplies',
+            p_id: item.supply_id,
+            p_delta: item.quantity,
+          });
+          if (stockError) throw stockError;
+        }
+      } else if (supply) {
+        const { error: stockError } = await supabase.rpc('adjust_stock', {
+          p_table: 'supplies',
+          p_id: supply.id,
+          p_delta: reservation.quantity,
+        });
         if (stockError) throw stockError;
       }
 
-      // Reset reservation status
+      // Reset reservation status after stock is restored
       const { error: updateError } = await supabase
         .from('supply_reservations')
         .update({
@@ -108,6 +123,58 @@ export default function ReservationReview() {
     setProcessingId(reservation.id);
     setActionError(null);
     try {
+      const oldStatus = reservation.status;
+      const supply = reservation.supply as any;
+
+      // Adjust stock when changing to/from 'approved'
+      if (oldStatus !== newStatus) {
+        const { data: items } = await supabase
+          .from('supply_reservation_items')
+          .select('supply_id, quantity')
+          .eq('reservation_id', reservation.id);
+
+        if (oldStatus === 'approved' && newStatus !== 'approved') {
+          // Leaving approved: restore stock
+          if (items && items.length > 0) {
+            for (const item of items) {
+              const { error: stockError } = await supabase.rpc('adjust_stock', {
+                p_table: 'supplies',
+                p_id: item.supply_id,
+                p_delta: item.quantity,
+              });
+              if (stockError) throw stockError;
+            }
+          } else if (supply) {
+            const { error: stockError } = await supabase.rpc('adjust_stock', {
+              p_table: 'supplies',
+              p_id: supply.id,
+              p_delta: reservation.quantity,
+            });
+            if (stockError) throw stockError;
+          }
+        } else if (oldStatus !== 'approved' && newStatus === 'approved') {
+          // Entering approved: deduct stock
+          if (items && items.length > 0) {
+            for (const item of items) {
+              const { error: stockError } = await supabase.rpc('adjust_stock', {
+                p_table: 'supplies',
+                p_id: item.supply_id,
+                p_delta: -item.quantity,
+              });
+              if (stockError) throw stockError;
+            }
+          } else if (supply) {
+            const { error: stockError } = await supabase.rpc('adjust_stock', {
+              p_table: 'supplies',
+              p_id: supply.id,
+              p_delta: -reservation.quantity,
+            });
+            if (stockError) throw stockError;
+          }
+        }
+      }
+
+      // Update status after stock adjustment succeeds
       const { error: updateError } = await supabase
         .from('supply_reservations')
         .update({
@@ -152,16 +219,37 @@ export default function ReservationReview() {
     if (!user) return;
     const supply = reservation.supply as any;
 
-    if (supply && reservation.quantity > supply.stock) {
-      setActionError(`库存不足: 当前库存 ${supply.stock}${supply.unit}，预约数量 ${reservation.quantity}${supply.unit}`);
-      return;
-    }
-
     setProcessingId(reservation.id);
     setActionError(null);
 
     try {
-      // Update reservation status
+      // Deduct stock for all items FIRST
+      const { data: items } = await supabase
+        .from('supply_reservation_items')
+        .select('supply_id, quantity')
+        .eq('reservation_id', reservation.id);
+
+      if (items && items.length > 0) {
+        // Multi-item: deduct each item's stock
+        for (const item of items) {
+          const { error: stockError } = await supabase.rpc('adjust_stock', {
+            p_table: 'supplies',
+            p_id: item.supply_id,
+            p_delta: -item.quantity,
+          });
+          if (stockError) throw stockError;
+        }
+      } else if (supply) {
+        // Single-item fallback (header supply_id)
+        const { error: stockError } = await supabase.rpc('adjust_stock', {
+          p_table: 'supplies',
+          p_id: supply.id,
+          p_delta: -reservation.quantity,
+        });
+        if (stockError) throw stockError;
+      }
+
+      // Update reservation status after stock deduction succeeds
       const { error: updateError } = await supabase
         .from('supply_reservations')
         .update({
@@ -173,17 +261,6 @@ export default function ReservationReview() {
         .eq('id', reservation.id);
 
       if (updateError) throw updateError;
-
-      // Decrease supply stock
-      if (supply) {
-        const newStock = Math.max(0, supply.stock - reservation.quantity);
-        const { error: stockError } = await supabase
-          .from('supplies')
-          .update({ stock: newStock, updated_at: new Date().toISOString() })
-          .eq('id', supply.id);
-
-        if (stockError) throw stockError;
-      }
 
       // Remove from local list
       setReservations((prev) => prev.filter((r) => r.id !== reservation.id));

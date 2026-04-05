@@ -137,6 +137,15 @@ export default function BorrowingManage() {
   async function handleAdminReturn(record: BorrowingRecord) {
     setActionLoading(record.id);
     try {
+      // Restore stock FIRST
+      const { error: stockError } = await supabase.rpc('adjust_stock', {
+        p_table: 'supplies',
+        p_id: record.supply_id,
+        p_delta: record.quantity,
+      });
+      if (stockError) throw stockError;
+
+      // Update borrowing status after stock succeeds
       const { error: updateError } = await supabase
         .from('supply_borrowings')
         .update({
@@ -146,13 +155,6 @@ export default function BorrowingManage() {
         .eq('id', record.id);
 
       if (updateError) throw updateError;
-
-      const { error: stockError } = await supabase
-        .from('supplies')
-        .update({ stock: record.supply.stock + record.quantity })
-        .eq('id', record.supply_id);
-
-      if (stockError) throw stockError;
 
       // Update local state
       setBorrowings((prev) =>
@@ -174,7 +176,15 @@ export default function BorrowingManage() {
     if (!confirm('确定要撤销该归还记录吗？物品状态将恢复为借用中，库存将相应减少。')) return;
     setActionLoading(record.id);
     try {
-      // Update borrowing status back to borrowed
+      // Deduct stock FIRST
+      const { error: stockError } = await supabase.rpc('adjust_stock', {
+        p_table: 'supplies',
+        p_id: record.supply_id,
+        p_delta: -record.quantity,
+      });
+      if (stockError) throw stockError;
+
+      // Update borrowing status after stock succeeds
       const { error: updateError } = await supabase
         .from('supply_borrowings')
         .update({
@@ -183,14 +193,6 @@ export default function BorrowingManage() {
         })
         .eq('id', record.id);
       if (updateError) throw updateError;
-
-      // Decrease stock (return had added it back)
-      const newStock = Math.max(0, record.supply.stock - record.quantity);
-      const { error: stockError } = await supabase
-        .from('supplies')
-        .update({ stock: newStock })
-        .eq('id', record.supply_id);
-      if (stockError) throw stockError;
 
       // Update local state
       setBorrowings((prev) =>
