@@ -125,6 +125,7 @@ export default function SupplyManage() {
   }
 
   async function handleSave() {
+    if (saving) return;
     if (!form.name.trim() || !form.category_id) return;
     setSaving(true);
 

@@ -138,6 +138,7 @@ export default function SupplyReserve() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
 
     if (!user || selectedItems.size === 0) {
       setError('请至少选择一项物资');

@@ -53,6 +53,7 @@ export default function DocumentEdit() {
   }
 
   async function handleSave() {
+    if (saving) return;
     setError('');
 
     if (!title.trim()) {

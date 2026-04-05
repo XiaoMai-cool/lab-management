@@ -217,9 +217,9 @@ export default function Dashboard() {
     if (isReimbursementApprover) {
       promises.push(
         supabase
-          .from('reimbursements')
+          .from('purchases')
           .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending')
+          .eq('reimbursement_status', 'pending')
           .then(({ count, error: err }) => {
             if (err) { hasAnyError = true; return; }
             setPendingTaskCounts((prev) => ({ ...prev, reimbursementsPending: count ?? 0 }));

@@ -85,6 +85,7 @@ export default function ProfilePage() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleChangePassword() {
+    if (submitting) return;
     setPasswordError(null);
 
     if (!newPassword || newPassword.length < 6) {

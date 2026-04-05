@@ -121,6 +121,7 @@ export default function ReimbursementForm() {
   }
 
   async function handleSubmit() {
+    if (submitting) return;
     if (!profile || !purchase) return;
 
     const parsedAmount = parseFloat(actualAmount);

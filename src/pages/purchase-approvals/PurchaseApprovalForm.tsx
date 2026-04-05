@@ -243,6 +243,7 @@ export default function PurchaseApprovalForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     if (!profile) return;
 
     if (!title.trim()) {

@@ -268,6 +268,7 @@ export default function ReagentForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     if (!form.name.trim()) {
       setError('请填写药品名称');
       return;

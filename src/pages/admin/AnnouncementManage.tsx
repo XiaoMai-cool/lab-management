@@ -172,6 +172,7 @@ export default function AnnouncementManage() {
   }
 
   async function handleSave() {
+    if (saving) return;
     const contentEmpty = !form.content.trim() || form.content.trim() === '<p></p>';
     if (!form.title.trim() || contentEmpty) return;
     setSaving(true);
