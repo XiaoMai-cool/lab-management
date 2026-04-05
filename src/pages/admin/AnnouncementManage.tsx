@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Megaphone, Upload, X, Download, FileText, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, Megaphone, Upload, X, Download, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Announcement, AnnouncementAttachment, Document as DocType } from '../../lib/types';
@@ -303,53 +303,6 @@ export default function AnnouncementManage() {
       });
     }
   }, [announcements.length]);
-
-  async function handleSwapLoginSortOrder(currentId: string, targetId: string) {
-    const current = announcements.find((a) => a.id === currentId);
-    const target = announcements.find((a) => a.id === targetId);
-    if (!current || !target) return;
-
-    const currentOrder = current.login_sort_order ?? 0;
-    const targetOrder = target.login_sort_order ?? 0;
-
-    // 如果序号相同，先赋唯一值
-    if (currentOrder === targetOrder) {
-      const loginItems = loginAnnouncements;
-      loginItems.forEach((a, i) => {
-        supabase.from('announcements').update({ login_sort_order: i + 1 }).eq('id', a.id);
-      });
-      setAnnouncements(prev => prev.map(a => {
-        const idx = loginItems.findIndex(la => la.id === a.id);
-        return idx >= 0 ? { ...a, login_sort_order: idx + 1 } : a;
-      }));
-      return;
-    }
-
-    // 先更新本地状态，立即反映变化，不刷新页面
-    setAnnouncements(prev => prev.map(a => {
-      if (a.id === currentId) return { ...a, login_sort_order: targetOrder };
-      if (a.id === targetId) return { ...a, login_sort_order: currentOrder };
-      return a;
-    }));
-
-    // 后台静默同步到数据库
-    const [res1, res2] = await Promise.all([
-      supabase
-        .from('announcements')
-        .update({ login_sort_order: targetOrder })
-        .eq('id', currentId),
-      supabase
-        .from('announcements')
-        .update({ login_sort_order: currentOrder })
-        .eq('id', targetId),
-    ]);
-
-    if (res1.error || res2.error) {
-      console.error('Sort order swap failed:', res1.error, res2.error);
-      setError('排序更新失败');
-      fetchAnnouncements(); // 失败时才重新获取
-    }
-  }
 
   return (
     <div>
