@@ -15,16 +15,16 @@ export default function Card({
   title,
   extra,
 }: CardProps) {
-  const Component = onClick ? 'button' : 'div';
-
   return (
-    <Component
+    <div
       className={`bg-white rounded-xl shadow-sm border border-gray-100 ${
         onClick
           ? 'w-full text-left cursor-pointer hover:shadow-md active:scale-[0.99] transition-all'
           : ''
       } ${className}`}
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       {title && (
         <div className="flex items-center justify-between px-4 py-3 md:px-5 md:py-4 border-b border-gray-100">
@@ -33,6 +33,6 @@ export default function Card({
         </div>
       )}
       <div className="p-4 md:p-5">{children}</div>
-    </Component>
+    </div>
   );
 }
