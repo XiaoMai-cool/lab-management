@@ -126,7 +126,11 @@ export default function ReservationReview() {
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, status: string) {
+    if (status === 'approved') {
+      alert('已通过的申领不能删除，请使用撤回功能');
+      return;
+    }
     if (!confirm('确定要删除该预约记录吗？此操作不可恢复。')) return;
     setProcessingId(id);
     setActionError(null);
@@ -448,14 +452,16 @@ export default function ReservationReview() {
                           <Pencil className="w-3.5 h-3.5" />
                           修改状态
                         </button>
-                        <button
-                          onClick={() => handleDelete(reservation.id)}
-                          disabled={processingId === reservation.id}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          删除
-                        </button>
+                        {reservation.status !== 'approved' && (
+                          <button
+                            onClick={() => handleDelete(reservation.id, reservation.status)}
+                            disabled={processingId === reservation.id}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            删除
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

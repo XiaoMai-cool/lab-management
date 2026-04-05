@@ -212,6 +212,11 @@ export default function PurchaseApprovalList() {
   }
 
   async function handleWithdraw(id: string) {
+    const item = list.find((r) => r.id === id);
+    if (item && item.approval_status !== 'pending') {
+      alert('只能撤回待审批的采购申请');
+      return;
+    }
     if (!confirm('确定要撤回该采购申请吗？')) return;
     setWithdrawingId(id);
     try {

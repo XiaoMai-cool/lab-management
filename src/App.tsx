@@ -100,7 +100,7 @@ export default function App() {
               <Route path="/purchase-approvals/new" element={<PurchaseApprovalForm />} />
               <Route path="/purchase-approvals/edit/:id" element={<PurchaseApprovalForm />} />
               <Route path="/purchase-approvals" element={<PurchaseApprovalList />} />
-              <Route path="/purchase-approvals/review" element={<PurchaseApprovalReview />} />
+              <Route path="/purchase-approvals/review" element={<ProtectedRoute requiredRole="teacher"><PurchaseApprovalReview /></ProtectedRoute>} />
               <Route path="/reimbursements" element={<Navigate to="/purchase-approvals" replace />} />
               <Route path="/reimbursements/new" element={<ReimbursementForm />} />
               <Route path="/reimbursements/review" element={<ProtectedRoute requiredRole="admin"><ReimbursementReview /></ProtectedRoute>} />
