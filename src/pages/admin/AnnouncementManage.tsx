@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Megaphone, Upload, X, Download, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, Megaphone, X, Download, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Announcement, AnnouncementAttachment, Document as DocType } from '../../lib/types';
@@ -8,6 +8,8 @@ import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import FileUploader, { type FileUploaderHandle } from '../../components/FileUploader';
+const RichTextEditor = lazy(() => import('../../components/RichTextEditor'));
 
 type Priority = 'normal' | 'important' | 'urgent';
 type TabKey = 'announcements' | 'documents';
@@ -30,12 +32,6 @@ const defaultForm: AnnouncementForm = {
   attachments: [],
 };
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
 const priorityLabels: Record<Priority, string> = {
   normal: '普通',
   important: '重要',
@@ -57,6 +53,7 @@ export default function AnnouncementManage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>('announcements');
+  const fileUploaderRef = useRef<FileUploaderHandle>(null);
 
   // Announcement state
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -68,7 +65,6 @@ export default function AnnouncementManage() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
 
   // Document state
   const [documents, setDocuments] = useState<DocType[]>([]);
@@ -118,7 +114,6 @@ export default function AnnouncementManage() {
 
   function openCreateModal() {
     setForm(defaultForm);
-    setUploadingFiles([]);
     setEditingId(null);
     setModalOpen(true);
   }
@@ -132,7 +127,6 @@ export default function AnnouncementManage() {
       show_on_login: announcement.show_on_login ?? false,
       attachments: (announcement.attachments as AnnouncementAttachment[]) ?? [],
     });
-    setUploadingFiles([]);
     setEditingId(announcement.id);
     setModalOpen(true);
   }
@@ -141,18 +135,6 @@ export default function AnnouncementManage() {
     setModalOpen(false);
     setEditingId(null);
     setForm(defaultForm);
-    setUploadingFiles([]);
-  }
-
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles) return;
-    setUploadingFiles(prev => [...prev, ...Array.from(selectedFiles)]);
-    e.target.value = '';
-  }
-
-  function removeNewFile(index: number) {
-    setUploadingFiles(prev => prev.filter((_, i) => i !== index));
   }
 
   function removeExistingAttachment(index: number) {
@@ -162,41 +144,15 @@ export default function AnnouncementManage() {
     }));
   }
 
-  async function uploadAllFiles(): Promise<AnnouncementAttachment[]> {
-    const uploaded: AnnouncementAttachment[] = [];
-    for (const file of uploadingFiles) {
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const timestamp = Date.now();
-      const path = `announcements/${timestamp}.${ext}`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from('attachments')
-        .upload(path, file);
-
-      if (uploadErr) throw new Error(`上传文件 ${file.name} 失败: ${uploadErr.message}`);
-
-      const { data: urlData } = supabase.storage
-        .from('attachments')
-        .getPublicUrl(path);
-
-      uploaded.push({
-        name: file.name,
-        url: urlData.publicUrl,
-        type: file.type,
-        size: file.size,
-      });
-    }
-    return uploaded;
-  }
-
   async function handleSave() {
     if (!form.title.trim() || !form.content.trim()) return;
     setSaving(true);
 
     try {
-      // Upload new files
-      const newAttachments = await uploadAllFiles();
-      const allAttachments = [...form.attachments, ...newAttachments];
+      const uploaded = fileUploaderRef.current
+        ? await fileUploaderRef.current.uploadAll()
+        : [];
+      const allAttachments = [...form.attachments, ...uploaded];
 
       if (editingId) {
         const { error: updateError } = await supabase
@@ -642,26 +598,13 @@ export default function AnnouncementManage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               内容
             </label>
-            <textarea
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="请输入公告内容（支持换行）"
-              rows={8}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
-            />
+            <Suspense fallback={<div className="h-[200px] bg-gray-50 rounded-lg animate-pulse" />}>
+              <RichTextEditor
+                content={form.content}
+                onChange={(html) => setForm({ ...form, content: html })}
+              />
+            </Suspense>
           </div>
-
-          {/* Preview */}
-          {form.content.trim() && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                预览
-              </label>
-              <div className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 whitespace-pre-line min-h-[60px]">
-                {form.content}
-              </div>
-            </div>
-          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -716,74 +659,12 @@ export default function AnnouncementManage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               附件
             </label>
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500">支持图片、PDF、Word、Excel</p>
-                </div>
-                <label className="shrink-0 cursor-pointer">
-                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Upload className="w-3.5 h-3.5" />
-                    选择文件
-                  </span>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {/* Existing attachments */}
-              {form.attachments.length > 0 && (
-                <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
-                  {form.attachments.map((att, index) => (
-                    <div
-                      key={`existing-${index}`}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-gray-700 truncate">{att.name}</p>
-                        <p className="text-xs text-gray-400">{formatFileSize(att.size)}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeExistingAttachment(index)}
-                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* New files to upload */}
-              {uploadingFiles.length > 0 && (
-                <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
-                  {uploadingFiles.map((file, index) => (
-                    <div
-                      key={`new-${index}`}
-                      className="flex items-center justify-between p-2 bg-blue-50 rounded-lg"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-gray-700 truncate">{file.name}</p>
-                        <p className="text-xs text-gray-400">{formatFileSize(file.size)} (待上传)</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeNewFile(index)}
-                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <FileUploader
+              ref={fileUploaderRef}
+              existingFiles={form.attachments}
+              onExistingRemove={removeExistingAttachment}
+              storagePath="announcements"
+            />
           </div>
         </div>
       </Modal>
