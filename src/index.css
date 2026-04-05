@@ -85,3 +85,14 @@ body {
 .tiptap-content a { color: #2563eb; text-decoration: underline; }
 .tiptap-content img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.5rem 0; }
 .tiptap-content blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; color: #6b7280; margin: 0.5rem 0; }
+
+/* Print styles for PDF export */
+@media print {
+  .bottom-nav, .print\:hidden { display: none !important; }
+  body { background: white; }
+  .document-print-content {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit2, Calendar, User, Tag } from 'lucide-react';
+import { ArrowLeft, Edit2, Calendar, User, Tag, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Document as DocType, Profile } from '../../lib/types';
+import type { Document as DocType, Profile, FileAttachment } from '../../lib/types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import RichTextRenderer from '../../components/RichTextRenderer';
+import FileAttachmentList from '../../components/FileAttachmentList';
 
 export default function DocumentView() {
   const { id } = useParams<{ id: string }>();
@@ -84,15 +86,26 @@ export default function DocumentView() {
           返回
         </button>
 
-        {isAdmin && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(`/documents/edit/${document.id}`)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors print:hidden"
           >
-            <Edit2 className="w-3.5 h-3.5" />
-            编辑
+            <Printer className="w-4 h-4" />
+            导出 PDF
           </button>
-        )}
+
+          {isAdmin && (
+            <button
+              onClick={() => navigate(`/documents/edit/${document.id}`)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              编辑
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -123,9 +136,10 @@ export default function DocumentView() {
         {/* Divider */}
         <div className="border-t border-gray-200 mb-6" />
 
-        {/* Document content - preserve line breaks */}
-        <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
-          {document.content}
+        {/* Document content */}
+        <div className="document-print-content">
+          <RichTextRenderer content={document.content} />
+          <FileAttachmentList attachments={(document.attachments as FileAttachment[]) ?? []} />
         </div>
       </div>
     </div>
