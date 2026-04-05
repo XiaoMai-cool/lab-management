@@ -59,61 +59,64 @@ export default function DocumentEdit() {
       setError('请填写标题');
       return;
     }
-    if (!content.trim()) {
+    const contentEmpty = !content.trim() || content.trim() === '<p></p>';
+    if (contentEmpty) {
       setError('请填写内容');
       return;
     }
 
     setSaving(true);
 
-    const uploaded = fileUploaderRef.current
-      ? await fileUploaderRef.current.uploadAll()
-      : [];
-    const allAttachments = [...attachments, ...uploaded];
+    try {
+      const uploaded = fileUploaderRef.current
+        ? await fileUploaderRef.current.uploadAll()
+        : [];
+      const allAttachments = [...attachments, ...uploaded];
 
-    if (isEditing) {
-      const { error: updateError } = await supabase
-        .from('documents')
-        .update({
-          title: title.trim(),
-          category,
-          content: content.trim(),
-          updated_at: new Date().toISOString(),
-          attachments: allAttachments,
-        })
-        .eq('id', id);
+      if (isEditing) {
+        const { error: updateError } = await supabase
+          .from('documents')
+          .update({
+            title: title.trim(),
+            category,
+            content: content.trim(),
+            updated_at: new Date().toISOString(),
+            attachments: allAttachments,
+          })
+          .eq('id', id);
 
-      if (updateError) {
-        setError('保存失败：' + updateError.message);
-        setSaving(false);
-        return;
+        if (updateError) {
+          setError('保存失败：' + updateError.message);
+          return;
+        }
+
+        navigate(`/documents/${id}`);
+      } else {
+        const { data, error: insertError } = await supabase
+          .from('documents')
+          .insert({
+            title: title.trim(),
+            category,
+            content: content.trim(),
+            author_id: user!.id,
+            sort_order: 0,
+            attachments: allAttachments,
+          })
+          .select('id')
+          .single();
+
+        if (insertError || !data) {
+          setError('保存失败：' + (insertError?.message || '未知错误'));
+          return;
+        }
+
+        navigate(`/documents/${data.id}`);
       }
-
-      navigate(`/documents/${id}`);
-    } else {
-      const { data, error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          title: title.trim(),
-          category,
-          content: content.trim(),
-          author_id: user!.id,
-          sort_order: 0,
-          attachments: allAttachments,
-        })
-        .select('id')
-        .single();
-
-      if (insertError || !data) {
-        setError('保存失败：' + (insertError?.message || '未知错误'));
-        setSaving(false);
-        return;
-      }
-
-      navigate(`/documents/${data.id}`);
+    } catch (err) {
+      setError('操作失败：' + (err instanceof Error ? err.message : '未知错误'));
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
   if (loading) return <LoadingSpinner />;

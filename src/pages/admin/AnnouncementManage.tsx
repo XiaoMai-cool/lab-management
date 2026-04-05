@@ -147,7 +147,8 @@ export default function AnnouncementManage() {
   }
 
   async function handleSave() {
-    if (!form.title.trim() || !form.content.trim()) return;
+    const contentEmpty = !form.content.trim() || form.content.trim() === '<p></p>';
+    if (!form.title.trim() || contentEmpty) return;
     setSaving(true);
 
     try {
@@ -580,7 +581,7 @@ export default function AnnouncementManage() {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving || !form.title.trim() || !form.content.trim()}
+              disabled={saving || !form.title.trim() || !form.content.trim() || form.content.trim() === '<p></p>'}
               className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? '保存中...' : '保存'}

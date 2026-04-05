@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, FileSpreadsheet, FileImage, File, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, FileSpreadsheet, FileImage, File, Download, ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
 import type { FileAttachment } from '../lib/types';
 
 interface FileAttachmentListProps {
@@ -41,7 +41,7 @@ export default function FileAttachmentList({ attachments }: FileAttachmentListPr
   return (
     <div className="mt-6 pt-4 border-t border-gray-100">
       <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-1.5">
-        📎 附件 ({attachments.length})
+        <Paperclip className="w-4 h-4" /> 附件 ({attachments.length})
       </h3>
       <div className="space-y-2">
         {attachments.map((att, index) => {

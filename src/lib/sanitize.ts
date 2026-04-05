@@ -39,8 +39,14 @@ function cleanNode(node: Node): void {
       }
     }
     if (tag === 'a') {
+      const href = el.getAttribute('href') ?? '';
+      if (!/^https?:\/\//i.test(href)) el.removeAttribute('href');
       el.setAttribute('target', '_blank');
       el.setAttribute('rel', 'noopener noreferrer');
+    }
+    if (tag === 'img') {
+      const src = el.getAttribute('src') ?? '';
+      if (!/^https?:\/\//i.test(src)) el.removeAttribute('src');
     }
     cleanNode(el);
   }

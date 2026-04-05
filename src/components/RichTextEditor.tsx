@@ -49,7 +49,7 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
       return;
     }
     const ext = file.name.split('.').pop() ?? 'bin';
-    const path = `editor/${Date.now()}.${ext}`;
+    const path = `editor/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
     const { error } = await supabase.storage.from('attachments').upload(path, file);
     if (error) {
       alert('图片上传失败: ' + error.message);

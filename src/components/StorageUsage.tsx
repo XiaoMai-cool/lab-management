@@ -12,17 +12,24 @@ export default function StorageUsage() {
   }, []);
 
   async function calculateUsage() {
-    let totalBytes = 0;
+    // 注意：新增存储文件夹时需同步更新此列表
     const folders = ['announcements', 'documents', 'editor', 'reimbursements', 'purchases'];
-    for (const folder of folders) {
-      const { data } = await supabase.storage.from('attachments').list(folder, { limit: 1000 });
-      if (data) {
-        for (const file of data) {
-          totalBytes += file.metadata?.size ?? 0;
+    try {
+      const results = await Promise.all(
+        folders.map((folder) => supabase.storage.from('attachments').list(folder, { limit: 1000 }))
+      );
+      let totalBytes = 0;
+      for (const { data } of results) {
+        if (data) {
+          for (const file of data) {
+            totalBytes += file.metadata?.size ?? 0;
+          }
         }
       }
+      setUsedMB(totalBytes / (1024 * 1024));
+    } catch {
+      // 查询失败时静默处理，不影响页面
     }
-    setUsedMB(totalBytes / (1024 * 1024));
   }
 
   if (usedMB === null) return null;
