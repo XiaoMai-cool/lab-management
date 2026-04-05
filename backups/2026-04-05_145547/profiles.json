@@ -1,0 +1,169 @@
+[
+  {
+    "id": "2e6fe204-1004-4ff3-bf2d-4afbf3f10512",
+    "name": "彭鸿昌",
+    "email": "penghongchang@lab",
+    "role": "student",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:59.389507+00:00",
+    "updated_at": "2026-04-03T07:03:59.389507+00:00"
+  },
+  {
+    "id": "31bf4c84-75d6-4a5a-b739-44f3c2a1915a",
+    "name": "邓岩昊",
+    "email": "dengyanhao@lab",
+    "role": "student",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:54.965173+00:00",
+    "updated_at": "2026-04-03T07:03:54.965173+00:00"
+  },
+  {
+    "id": "3a694646-5ac9-48f5-b9be-85604d7ac14b",
+    "name": "Muhammad",
+    "email": "muhammad@lab",
+    "role": "student",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:04:02.864104+00:00",
+    "updated_at": "2026-04-03T07:04:02.864104+00:00"
+  },
+  {
+    "id": "45a9297f-9c8d-493d-95c5-37c6fc5dc238",
+    "name": "宋艳芳",
+    "email": "songyanfang@lab",
+    "role": "manager",
+    "managed_modules": [
+      "chemicals"
+    ],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:41.321112+00:00",
+    "updated_at": "2026-04-04T03:13:21.835865+00:00"
+  },
+  {
+    "id": "49459c18-6a4e-4ad3-b74f-3197689ecb27",
+    "name": "李健楠",
+    "email": "lijiannan@lab",
+    "role": "manager",
+    "managed_modules": [
+      "reimbursements",
+      "members",
+      "announcements",
+      "documents"
+    ],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:38.933514+00:00",
+    "updated_at": "2026-04-04T03:13:57.961396+00:00"
+  },
+  {
+    "id": "60396f5a-6e01-4858-a2bd-33edaa2a7394",
+    "name": "林弋杰",
+    "email": "linyijie@lab",
+    "role": "student",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:53.019515+00:00",
+    "updated_at": "2026-04-03T07:03:53.019515+00:00"
+  },
+  {
+    "id": "744c4007-0cb5-4284-9228-55d981302eae",
+    "name": "王邵鸿",
+    "email": "wangshaohong@lab",
+    "role": "manager",
+    "managed_modules": [
+      "duty"
+    ],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:48.889967+00:00",
+    "updated_at": "2026-04-03T07:03:48.889967+00:00"
+  },
+  {
+    "id": "9333beb8-19c2-4608-8753-96a96db6f5df",
+    "name": "郭昕洋",
+    "email": "guoxinyang@lab",
+    "role": "teacher",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:51.269624+00:00",
+    "updated_at": "2026-04-03T07:03:51.269624+00:00"
+  },
+  {
+    "id": "9e3c167f-4a33-4f4d-9f24-61cbdbdaae5b",
+    "name": "邱叶",
+    "email": "qiuye@lab",
+    "role": "teacher",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:43.751597+00:00",
+    "updated_at": "2026-04-03T07:03:43.751597+00:00"
+  },
+  {
+    "id": "af9bbdee-f570-427b-9f2a-b6638e0badc6",
+    "name": "麦宏博",
+    "email": "maihongbo@lab",
+    "role": "student",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:04:01.09352+00:00",
+    "updated_at": "2026-04-03T07:04:01.09352+00:00"
+  },
+  {
+    "id": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "name": "冯玉杰",
+    "email": "fengyujie@lab",
+    "role": "super_admin",
+    "managed_modules": [
+      "supplies",
+      "chemicals",
+      "documents",
+      "duty",
+      "reimbursements",
+      "announcements",
+      "members"
+    ],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:05:54.484699+00:00",
+    "updated_at": "2026-04-03T15:17:56.70791+00:00"
+  },
+  {
+    "id": "bfa5df23-95eb-490b-aa36-a1bb03cf5ea6",
+    "name": "Feng Family",
+    "email": "fengfamily@lab",
+    "role": "super_admin",
+    "managed_modules": [
+      "supplies",
+      "chemicals",
+      "documents",
+      "duty",
+      "reimbursements",
+      "announcements",
+      "members"
+    ],
+    "avatar_url": null,
+    "created_at": "2026-03-28T00:27:23.939292+00:00",
+    "updated_at": "2026-04-03T15:18:00.292466+00:00"
+  },
+  {
+    "id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "name": "王子寒",
+    "email": "wangzihan@lab",
+    "role": "manager",
+    "managed_modules": [
+      "supplies"
+    ],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:46.178929+00:00",
+    "updated_at": "2026-04-03T07:03:46.178929+00:00"
+  },
+  {
+    "id": "f3f21c05-e2ec-4993-a3b4-7171eab2a2f2",
+    "name": "陈鸿琳",
+    "email": "chenhonglin@lab",
+    "role": "student",
+    "managed_modules": [],
+    "avatar_url": null,
+    "created_at": "2026-04-03T07:03:57.150416+00:00",
+    "updated_at": "2026-04-03T07:03:57.150416+00:00"
+  }
+]

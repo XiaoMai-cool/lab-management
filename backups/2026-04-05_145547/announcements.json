@@ -1,0 +1,58 @@
+[
+  {
+    "id": "2396ce2f-fd74-4053-8c49-68a4bd37b54b",
+    "title": "危化品使用须知",
+    "content": "危化品使用须知：\n\n• 药品快用完时请在系统中点击「即将用完」上报\n• 使用完的空瓶（带标签）放在药品柜旁纸箱回收\n• 采购统一找宋艳芳老师，禁止私自采购",
+    "priority": "important",
+    "author_id": "bfa5df23-95eb-490b-aa36-a1bb03cf5ea6",
+    "published": true,
+    "created_at": "2026-04-04T02:38:46.636475+00:00",
+    "updated_at": "2026-04-05T06:59:40.123895+00:00",
+    "attachments": [],
+    "show_on_login": true,
+    "login_sort_order": 3,
+    "dashboard_sort_order": 0
+  },
+  {
+    "id": "4bbb5603-cc1b-4ad7-982d-51fb4a8ebc34",
+    "title": "耗材领取规范",
+    "content": "耗材领取相关规范：\n\n1. 在系统中提交申领申请\n2. 耗材专人审批通过后发放\n3. 非一次性耗材使用借用功能，用完请及时归还\n\n请合理安排实验计划，按需申领，避免浪费。",
+    "priority": "important",
+    "author_id": "bfa5df23-95eb-490b-aa36-a1bb03cf5ea6",
+    "published": true,
+    "created_at": "2026-04-04T02:38:46.636475+00:00",
+    "updated_at": "2026-04-05T06:59:40.128661+00:00",
+    "attachments": [],
+    "show_on_login": true,
+    "login_sort_order": 2,
+    "dashboard_sort_order": 0
+  },
+  {
+    "id": "623f15be-1fa6-4d7b-a506-198efc0ac8d1",
+    "title": "实验室管理系统正式上线",
+    "content": "实验室管理系统已正式上线运行。\n\n主要功能：\n• 耗材申领与借用\n• 药品库存查询与补货上报\n• 采购审批与报销\n• 制度文档在线查看\n\n请使用管理员分配的账号登录使用。如有问题请联系管理员。",
+    "priority": "urgent",
+    "author_id": "bfa5df23-95eb-490b-aa36-a1bb03cf5ea6",
+    "published": true,
+    "created_at": "2026-04-04T02:38:46.636475+00:00",
+    "updated_at": "2026-04-05T07:04:30.487186+00:00",
+    "attachments": [],
+    "show_on_login": true,
+    "login_sort_order": 1,
+    "dashboard_sort_order": 0
+  },
+  {
+    "id": "e75c73d9-37ed-4f57-9f29-fa0c7ccf276d",
+    "title": "采购与报销流程说明",
+    "content": "采购报销流程（两步）：\n\n第一步：提交采购审批\n在「报销」页面点击「采购审批」，填写要买什么、预计金额，选择老师审批。\n\n第二步：采购后提交报销\n老师批准后自行采购，在「我的采购」中点击「去报销」，上传截图和发票。\n\n注意：没有采购审批的报销将不予通过。",
+    "priority": "important",
+    "author_id": "bfa5df23-95eb-490b-aa36-a1bb03cf5ea6",
+    "published": true,
+    "created_at": "2026-04-04T02:38:46.636475+00:00",
+    "updated_at": "2026-04-05T07:04:15.326561+00:00",
+    "attachments": [],
+    "show_on_login": true,
+    "login_sort_order": 4,
+    "dashboard_sort_order": 0
+  }
+]

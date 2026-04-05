@@ -1,0 +1,25 @@
+[
+  {
+    "id": "5602b1f8-aafc-4ab2-a94c-ba1c5a9f3851",
+    "user_id": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "name": "测试清单",
+    "items": [
+      {
+        "name": "乙酸胺",
+        "location": "",
+        "chemical_id": "7498c64d-549b-4a78-9584-211a7508c9e3",
+        "batch_number": "A1",
+        "specification": ""
+      },
+      {
+        "name": "磷酸氢二钠",
+        "location": "",
+        "chemical_id": "8ad68b88-9b01-46a2-951e-d49faba345c1",
+        "batch_number": "A11",
+        "specification": ""
+      }
+    ],
+    "created_at": "2026-04-05T09:45:12.83601+00:00",
+    "updated_at": "2026-04-05T09:45:12.83601+00:00"
+  }
+]
