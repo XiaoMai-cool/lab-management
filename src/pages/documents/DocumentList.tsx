@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileText, FolderOpen, Megaphone, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { stripHtml } from '../../lib/sanitize';
 import type { Document as DocType, Announcement } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -180,8 +181,8 @@ export default function DocumentList() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">
-                          {a.content}
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                          {stripHtml(a.content)}
                         </p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                           <span>{(a.author as any)?.name || '未知'}</span>

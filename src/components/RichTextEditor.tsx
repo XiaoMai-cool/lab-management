@@ -12,10 +12,9 @@ import {
 interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
-  placeholder?: string;
 }
 
-export default function RichTextEditor({ content, onChange, placeholder: _placeholder }: RichTextEditorProps) {
+export default function RichTextEditor({ content, onChange }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({

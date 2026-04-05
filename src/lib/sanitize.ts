@@ -49,3 +49,10 @@ function cleanNode(node: Node): void {
 export function isHtmlContent(content: string): boolean {
   return /<[a-z][\s\S]*>/i.test(content);
 }
+
+/** 去除 HTML 标签，返回纯文本（用于列表预览） */
+export function stripHtml(html: string): string {
+  if (!isHtmlContent(html)) return html;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent ?? '';
+}

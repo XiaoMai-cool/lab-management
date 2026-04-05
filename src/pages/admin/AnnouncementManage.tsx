@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Megaphone, X, Download, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { stripHtml } from '../../lib/sanitize';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Announcement, AnnouncementAttachment, Document as DocType } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
@@ -447,8 +448,8 @@ export default function AnnouncementManage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">
-                          {a.content}
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                          {stripHtml(a.content)}
                         </p>
                         {/* Inline attachments */}
                         {a.attachments && (a.attachments as AnnouncementAttachment[]).length > 0 && (
