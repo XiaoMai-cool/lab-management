@@ -61,38 +61,67 @@ function getCompositeStatus(item: Purchase): StatusFilter {
   return 'approved';
 }
 
-function ApprovalStatusLine({ item }: { item: Purchase }) {
-  const approvalLabel =
-    item.approval_status === 'pending'
-      ? '待审批'
-      : item.approval_status === 'approved'
-        ? '已通过'
-        : '已拒绝';
-  const approvalColor =
-    item.approval_status === 'pending'
-      ? 'text-yellow-600'
-      : item.approval_status === 'approved'
-        ? 'text-green-600'
-        : 'text-red-600';
+function PurchaseProgressBar({ item }: { item: Purchase }) {
+  // 路径 B：提交时已附发票+金额，审批后直接进报销审批（跳过手动报销步骤）
+  const isPathB = item.actual_amount != null && item.receipt_attachments?.length > 0;
 
-  let reimbLabel = '未报销';
-  let reimbColor = 'text-gray-400';
-  if (item.reimbursement_status === 'pending') {
-    reimbLabel = '报销审核中';
-    reimbColor = 'text-yellow-600';
-  } else if (item.reimbursement_status === 'approved') {
-    reimbLabel = '已报销';
-    reimbColor = 'text-green-600';
-  } else if (item.reimbursement_status === 'rejected') {
-    reimbLabel = '报销被拒';
-    reimbColor = 'text-red-600';
+  // 被拒绝的特殊处理
+  if (item.approval_status === 'rejected') {
+    return (
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="font-medium text-red-600">审批被拒绝</span>
+        {item.approval_note && (
+          <span className="text-gray-400 truncate">— {item.approval_note}</span>
+        )}
+      </div>
+    );
+  }
+  if (item.reimbursement_status === 'rejected') {
+    return (
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="font-medium text-red-600">报销被拒</span>
+        {item.reimbursement_note && (
+          <span className="text-gray-400 truncate">— {item.reimbursement_note}</span>
+        )}
+      </div>
+    );
   }
 
+  // 定义步骤
+  type Step = { label: string; done: boolean; active: boolean };
+  const steps: Step[] = isPathB
+    ? [
+        { label: '已提交', done: true, active: false },
+        { label: '审批', done: item.approval_status === 'approved', active: item.approval_status === 'pending' },
+        { label: '报销审批', done: item.reimbursement_status === 'approved', active: item.reimbursement_status === 'pending' },
+      ]
+    : [
+        { label: '已提交', done: true, active: false },
+        { label: '审批', done: item.approval_status === 'approved', active: item.approval_status === 'pending' },
+        { label: '报销', done: !!item.reimbursement_status, active: item.approval_status === 'approved' && !item.reimbursement_status },
+        { label: '报销审批', done: item.reimbursement_status === 'approved', active: item.reimbursement_status === 'pending' },
+      ];
+
   return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span className={`font-medium ${approvalColor}`}>{approvalLabel}</span>
-      <span className="text-gray-300">&rarr;</span>
-      <span className={`font-medium ${reimbColor}`}>{reimbLabel}</span>
+    <div className="flex items-center gap-0 w-full">
+      {steps.map((step, i) => (
+        <div key={step.label} className="flex items-center flex-1 min-w-0">
+          {/* 圆点 */}
+          <div className={`w-2 h-2 rounded-full shrink-0 ${
+            step.done ? 'bg-green-500' : step.active ? 'bg-blue-500 ring-2 ring-blue-200' : 'bg-gray-300'
+          }`} />
+          {/* 标签 */}
+          <span className={`ml-1 text-[10px] truncate ${
+            step.done ? 'text-green-600 font-medium' : step.active ? 'text-blue-600 font-medium' : 'text-gray-400'
+          }`}>
+            {step.label}
+          </span>
+          {/* 连接线 */}
+          {i < steps.length - 1 && (
+            <div className={`flex-1 h-px mx-1 ${step.done ? 'bg-green-300' : 'bg-gray-200'}`} />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -317,7 +346,7 @@ export default function PurchaseApprovalList() {
                             )}
                           </div>
 
-                          <ApprovalStatusLine item={item} />
+                          <PurchaseProgressBar item={item} />
 
                           <p className="text-xs text-gray-500 mt-1">
                             审批人：{item.approver?.name ?? '未知'}
