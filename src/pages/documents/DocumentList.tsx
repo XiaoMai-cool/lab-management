@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FileText, FolderOpen, Megaphone, ChevronRight, ArrowLeft } from 'lucide-react';
+import { FileText, FolderOpen, Megaphone, ChevronRight, ArrowLeft, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { stripHtml } from '../../lib/sanitize';
 import type { Document as DocType, Announcement } from '../../lib/types';
@@ -33,7 +33,14 @@ const priorityColors: Record<string, string> = {
   important: 'bg-yellow-100 text-yellow-700',
 };
 
-type TabKey = 'announcements' | 'docs';
+type TabKey = 'announcements' | 'docs' | 'notices';
+
+interface DailyNotice {
+  id: string;
+  category: string;
+  content: string;
+  sort_order: number;
+}
 
 export default function DocumentList() {
   const navigate = useNavigate();
@@ -48,6 +55,10 @@ export default function DocumentList() {
   const [documents, setDocuments] = useState<DocType[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
 
+  // Daily notices state
+  const [notices, setNotices] = useState<DailyNotice[]>([]);
+  const [loadingNotices, setLoadingNotices] = useState(false);
+
   function switchTab(tab: TabKey) {
     setSearchParams({ tab });
   }
@@ -55,8 +66,10 @@ export default function DocumentList() {
   useEffect(() => {
     if (currentTab === 'announcements') {
       fetchAnnouncements();
-    } else {
+    } else if (currentTab === 'docs') {
       fetchDocuments();
+    } else if (currentTab === 'notices') {
+      fetchNotices();
     }
   }, [currentTab]);
 
@@ -82,6 +95,16 @@ export default function DocumentList() {
 
     if (data) setDocuments(data as DocType[]);
     setLoadingDocs(false);
+  }
+
+  async function fetchNotices() {
+    setLoadingNotices(true);
+    const { data } = await supabase
+      .from('daily_notices')
+      .select('id, category, content, sort_order')
+      .order('sort_order', { ascending: true });
+    if (data) setNotices(data);
+    setLoadingNotices(false);
   }
 
   // Group documents by category
@@ -147,6 +170,17 @@ export default function DocumentList() {
             <FileText className="w-4 h-4" />
             文档资料
           </button>
+          <button
+            onClick={() => switchTab('notices')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
+              currentTab === 'notices'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Bell className="w-4 h-4" />
+            日常须知
+          </button>
         </div>
       </div>
 
@@ -202,6 +236,55 @@ export default function DocumentList() {
                     </div>
                   </button>
                 ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Notices tab */}
+        {currentTab === 'notices' && (
+          <>
+            {loadingNotices ? (
+              <LoadingSpinner />
+            ) : notices.length === 0 ? (
+              <EmptyState
+                icon={Bell}
+                title="暂无日常须知"
+                description="管理员还没有添加日常须知"
+              />
+            ) : (
+              <div className="space-y-6 pb-6">
+                {(['实验室', '办公室'] as const).map(category => {
+                  const categoryNotices = notices.filter(n => n.category === category);
+                  if (categoryNotices.length === 0) return null;
+                  const colorScheme = category === '实验室'
+                    ? { label: 'text-blue-600', bg: 'bg-blue-50' }
+                    : { label: 'text-green-600', bg: 'bg-green-50' };
+                  return (
+                    <div key={category}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${colorScheme.bg} ${colorScheme.label}`}>
+                          <Bell className="w-4 h-4" />
+                        </div>
+                        <h2 className="text-sm font-semibold text-gray-900">{category}</h2>
+                        <span className="text-xs text-gray-400">{categoryNotices.length} 条</span>
+                      </div>
+                      <div className="space-y-2">
+                        {categoryNotices.map(notice => (
+                          <div
+                            key={notice.id}
+                            className="bg-white border border-gray-100 rounded-lg p-3 md:p-4 shadow-sm"
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <ChevronRight className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                              <p className="text-sm text-gray-700">{notice.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>
