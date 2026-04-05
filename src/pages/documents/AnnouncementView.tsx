@@ -57,7 +57,7 @@ export default function AnnouncementView() {
         <EmptyState title="公告不存在" description="未找到该公告，可能已被删除" />
         <div className="text-center mt-4">
           <button
-            onClick={() => navigate('/documents')}
+            onClick={() => navigate(-1)}
             className="text-sm text-blue-600 hover:text-blue-700"
           >
             返回列表
@@ -76,7 +76,7 @@ export default function AnnouncementView() {
       {/* Header bar */}
       <div className="sticky top-14 md:top-16 z-10 bg-gray-50 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
         <button
-          onClick={() => navigate('/documents')}
+          onClick={() => navigate(-1)}
           className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

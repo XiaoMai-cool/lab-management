@@ -273,7 +273,7 @@ export default function PurchaseApprovalForm() {
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
       <button
-        onClick={() => navigate('/purchase-approvals')}
+        onClick={() => navigate(-1)}
         className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-3"
       >
         <ArrowLeft className="w-4 h-4" />

@@ -203,7 +203,7 @@ export default function ReagentDetail() {
           <p className="font-medium">加载失败</p>
           <p className="mt-1 text-sm">{error || '药品不存在'}</p>
           <button
-            onClick={() => navigate('/reagents')}
+            onClick={() => navigate(-1)}
             className="mt-3 rounded-md bg-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-700"
           >
             返回列表
@@ -221,7 +221,7 @@ export default function ReagentDetail() {
     <div className="mx-auto max-w-4xl p-4">
       {/* 返回按钮 */}
       <button
-        onClick={() => navigate('/reagents')}
+        onClick={() => navigate(-1)}
         className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
       >
         <span>&larr;</span> 返回药品列表
