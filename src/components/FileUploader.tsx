@@ -1,0 +1,111 @@
+import { useState, forwardRef, useImperativeHandle } from 'react';
+import { Upload, X } from 'lucide-react';
+import type { FileAttachment } from '../lib/types';
+import { supabase } from '../lib/supabase';
+
+interface FileUploaderProps {
+  existingFiles: FileAttachment[];
+  onExistingRemove: (index: number) => void;
+  storagePath: string;
+  accept?: string;
+  maxSizeMB?: number;
+}
+
+export interface FileUploaderHandle {
+  uploadAll: () => Promise<FileAttachment[]>;
+  hasPendingFiles: () => boolean;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+const FileUploader = forwardRef<FileUploaderHandle, FileUploaderProps>(
+  function FileUploader({ existingFiles, onExistingRemove, storagePath, accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx', maxSizeMB = 10 }, ref) {
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+    async function uploadAll(): Promise<FileAttachment[]> {
+      const uploaded: FileAttachment[] = [];
+      for (const file of pendingFiles) {
+        const ext = file.name.split('.').pop() ?? 'bin';
+        const path = `${storagePath}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+        const { error } = await supabase.storage.from('attachments').upload(path, file);
+        if (error) throw new Error(`上传 ${file.name} 失败: ${error.message}`);
+        const { data } = supabase.storage.from('attachments').getPublicUrl(path);
+        uploaded.push({ name: file.name, url: data.publicUrl, type: file.type, size: file.size });
+      }
+      setPendingFiles([]);
+      return uploaded;
+    }
+
+    useImperativeHandle(ref, () => ({
+      uploadAll,
+      hasPendingFiles: () => pendingFiles.length > 0,
+    }));
+
+    function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+      const selected = Array.from(e.target.files ?? []);
+      const maxBytes = maxSizeMB * 1024 * 1024;
+      const valid: File[] = [];
+      for (const file of selected) {
+        if (file.size > maxBytes) {
+          alert(`文件 "${file.name}" 超过 ${maxSizeMB}MB 限制`);
+        } else {
+          valid.push(file);
+        }
+      }
+      setPendingFiles((prev) => [...prev, ...valid]);
+      e.target.value = '';
+    }
+
+    function removePending(index: number) {
+      setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+    }
+
+    return (
+      <div className="space-y-2">
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+          <Upload className="w-4 h-4" />
+          选择文件
+          <input type="file" multiple accept={accept} onChange={handleFileSelect} className="hidden" />
+        </label>
+
+        {existingFiles.length > 0 && (
+          <div className="space-y-1.5">
+            {existingFiles.map((att, index) => (
+              <div key={`existing-${index}`} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-700 truncate">{att.name}</p>
+                  <p className="text-xs text-gray-400">{formatFileSize(att.size)}</p>
+                </div>
+                <button type="button" onClick={() => onExistingRemove(index)} className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {pendingFiles.length > 0 && (
+          <div className="space-y-1.5">
+            {pendingFiles.map((file, index) => (
+              <div key={`pending-${index}`} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-700 truncate">{file.name}</p>
+                  <p className="text-xs text-gray-400">{formatFileSize(file.size)} (待上传)</p>
+                </div>
+                <button type="button" onClick={() => removePending(index)} className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+export default FileUploader;
