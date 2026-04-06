@@ -293,6 +293,7 @@ export default function MemberManage() {
       await auditLog({
         action: 'transfer_module',
         targetTable: 'profiles',
+        targetId: transferForm.newUserId,
         details: {
           module: transferForm.module,
           fromUser: fromUser?.name || null,

@@ -22,7 +22,7 @@ jobs:
           node-version: '20'
 
       - name: 安装依赖
-        run: npm install xlsx
+        run: npm install --no-save xlsx
 
       - name: 导出 Excel 数据
         env:
@@ -31,7 +31,7 @@ jobs:
 
       - name: 清理旧导出（只保留最近 8 次）
         run: |
-          cd exports
+          mkdir -p exports && cd exports
           ls -d */ 2>/dev/null | sort | head -n -8 | xargs -r rm -rf
           echo "当前导出数量: $(ls -d */ 2>/dev/null | wc -l)"
 

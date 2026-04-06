@@ -16,7 +16,8 @@ jobs:
       - name: 检查站点是否可访问
         id: check
         run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://lab-management-3w7.pages.dev" 2>/dev/null || echo "000")
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://lab-management-3w7.pages.dev" 2>/dev/null)
+          if [ -z "$HTTP_STATUS" ]; then HTTP_STATUS="000"; fi
           echo "status=$HTTP_STATUS" >> $GITHUB_OUTPUT
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
             echo "✅ 站点正常 (HTTP $HTTP_STATUS)"
@@ -26,11 +27,13 @@ jobs:
           fi
 
       - name: 检查 Supabase API 是否可用
+        if: always()
         id: check_api
         run: |
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://lzvhbudvzzigwqysyzha.supabase.co/rest/v1/profiles?select=id&limit=1" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" 2>/dev/null || echo "000")
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" 2>/dev/null)
+          if [ -z "$HTTP_STATUS" ]; then HTTP_STATUS="000"; fi
           echo "api_status=$HTTP_STATUS" >> $GITHUB_OUTPUT
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
             echo "✅ Supabase API 正常 (HTTP $HTTP_STATUS)"
