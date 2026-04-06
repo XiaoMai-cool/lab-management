@@ -38,24 +38,39 @@ jobs:
 
       - name: 发送告警邮件
         if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.163.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.SMTP_EMAIL }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "⚠️ 实验室管理系统异常告警"
-          to: ${{ secrets.SMTP_EMAIL }}
-          from: "Lab Monitor <${{ secrets.SMTP_EMAIL }}>"
-          body: |
-            实验室管理系统健康检查失败！
+        env:
+          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SITE_STATUS: ${{ steps.check.outputs.status }}
+          API_STATUS: ${{ steps.check_api.outputs.api_status }}
+        run: |
+          python3 -c "
+          import smtplib, os
+          from email.mime.text import MIMEText
 
-            🕐 检查时间: ${{ github.event.repository.updated_at }}
-            🌐 站点状态: HTTP ${{ steps.check.outputs.status }}
-            📡 API 状态: HTTP ${{ steps.check_api.outputs.api_status }}
+          smtp_email = os.environ['SMTP_EMAIL']
+          smtp_pass = os.environ['SMTP_PASSWORD']
+          site_status = os.environ.get('SITE_STATUS', 'unknown')
+          api_status = os.environ.get('API_STATUS', 'unknown')
 
-            请尽快检查：
-            - 站点: https://lab.fenglab.fun
-            - Supabase Dashboard: https://supabase.com/dashboard
-            - GitHub Actions: https://github.com/XiaoMai-cool/lab-management/actions
+          body = f'''实验室管理系统健康检查失败！
+
+          站点状态: HTTP {site_status}
+          API 状态: HTTP {api_status}
+
+          请尽快检查：
+          - 站点: https://lab.fenglab.fun
+          - Supabase: https://supabase.com/dashboard
+          - Actions: https://github.com/XiaoMai-cool/lab-management/actions
+          '''
+
+          msg = MIMEText(body, 'plain', 'utf-8')
+          msg['Subject'] = '⚠️ 实验室管理系统异常告警'
+          msg['From'] = smtp_email
+          msg['To'] = smtp_email
+
+          with smtplib.SMTP_SSL('smtp.163.com', 465) as server:
+              server.login(smtp_email, smtp_pass)
+              server.sendmail(smtp_email, [smtp_email], msg.as_string())
+          print('✅ 告警邮件已发送')
+          "
