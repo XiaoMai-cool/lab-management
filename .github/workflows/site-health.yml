@@ -3,7 +3,6 @@ name: 站点健康检查
 on:
   workflow_dispatch:
   schedule:
-    # 每 4 小时运行一次（UTC 0:00, 4:00, 8:00, 12:00, 16:00, 20:00）
     - cron: '0 */4 * * *'
 
 jobs:
@@ -11,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: 签出代码
+        uses: actions/checkout@v4
+
       - name: 检查站点是否可访问
         id: check
         run: |
@@ -43,40 +45,4 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SITE_STATUS: ${{ steps.check.outputs.status }}
           API_STATUS: ${{ steps.check_api.outputs.api_status }}
-        run: |
-          python3 -c "
-          import smtplib, os
-          from email.mime.text import MIMEText
-
-          smtp_email = os.environ['SMTP_EMAIL']
-          smtp_pass = os.environ['SMTP_PASSWORD']
-          site_status = os.environ.get('SITE_STATUS', 'unknown')
-          api_status = os.environ.get('API_STATUS', 'unknown')
-
-          body = f'''【实验室管理系统告警】
-
-你的实验室管理系统可能出问题了，请检查一下：
-
-【检测结果】
-- 网站是否能打开：{'正常' if site_status and 200 <= int(site_status) < 400 else '无法访问（状态码 ' + site_status + '）'}
-- 数据库是否正常：{'正常' if api_status and 200 <= int(api_status) < 400 else '无法连接（状态码 ' + api_status + '）'}
-
-【你需要做什么】
-1. 先打开网站看看能不能正常用：https://lab-management-3w7.pages.dev
-2. 如果网站打不开，去 Cloudflare Pages 看看部署状态
-3. 如果网站能打开但功能不正常，去 Supabase 看看数据库状态：https://supabase.com/dashboard
-4. 查看详细日志：https://github.com/XiaoMai-cool/lab-management/actions
-
-如果一切正常，可能是网络波动导致的误报，可以忽略。
-'''
-
-          msg = MIMEText(body, 'plain', 'utf-8')
-          msg['Subject'] = '⚠️ 实验室管理系统异常告警'
-          msg['From'] = smtp_email
-          msg['To'] = smtp_email
-
-          with smtplib.SMTP_SSL('smtp.163.com', 465) as server:
-              server.login(smtp_email, smtp_pass)
-              server.sendmail(smtp_email, [smtp_email], msg.as_string())
-          print('✅ 告警邮件已发送')
-          "
+        run: python3 scripts/send-alert.py
