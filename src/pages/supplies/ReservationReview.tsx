@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, CheckCircle, XCircle, ClipboardList, ShieldAlert, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
 import type { SupplyReservation } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
@@ -109,6 +110,12 @@ export default function ReservationReview() {
         })
         .eq('id', reservation.id);
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'recall',
+        targetTable: 'supply_reservations',
+        targetId: reservation.id,
+        details: { supplyName: (reservation.supply as any)?.name, quantity: reservation.quantity },
+      });
 
       fetchReservations();
     } catch (err: any) {
@@ -184,6 +191,12 @@ export default function ReservationReview() {
         })
         .eq('id', reservation.id);
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'update_status',
+        targetTable: 'supply_reservations',
+        targetId: reservation.id,
+        details: { oldStatus, newStatus, supplyName: (reservation.supply as any)?.name },
+      });
       setEditingItem(null);
       fetchReservations();
     } catch (err: any) {
@@ -207,6 +220,12 @@ export default function ReservationReview() {
         .delete()
         .eq('id', id);
       if (delError) throw delError;
+      await auditLog({
+        action: 'delete',
+        targetTable: 'supply_reservations',
+        targetId: id,
+        details: { status },
+      });
       setReviewedList((prev) => prev.filter((r) => r.id !== id));
     } catch (err: any) {
       setActionError(err.message || '删除失败');
@@ -261,6 +280,12 @@ export default function ReservationReview() {
         .eq('id', reservation.id);
 
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'approve',
+        targetTable: 'supply_reservations',
+        targetId: reservation.id,
+        details: { supplyName: supply?.name, quantity: reservation.quantity, note: reviewNotes[reservation.id]?.trim() || null },
+      });
 
       // Remove from local list
       setReservations((prev) => prev.filter((r) => r.id !== reservation.id));
@@ -300,6 +325,12 @@ export default function ReservationReview() {
         .eq('id', reservation.id);
 
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'reject',
+        targetTable: 'supply_reservations',
+        targetId: reservation.id,
+        details: { supplyName: (reservation.supply as any)?.name, quantity: reservation.quantity, note },
+      });
 
       setReservations((prev) => prev.filter((r) => r.id !== reservation.id));
       setReviewNotes((prev) => {

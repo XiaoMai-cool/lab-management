@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
 import SubNav from '../../components/SubNav';
 import type { SubNavItem } from '../../components/SubNav';
@@ -98,6 +99,12 @@ export default function ChemicalWarnings() {
         .update({ status: 'ordered', estimated_delivery_date: estimatedDate })
         .eq('id', warningId);
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'mark_ordered',
+        targetTable: 'chemical_warnings',
+        targetId: warningId,
+        details: { estimatedDeliveryDate: estimatedDate },
+      });
       setOrderingId(null);
       setEstimatedDate('');
       await fetchWarnings();
@@ -125,6 +132,13 @@ export default function ChemicalWarnings() {
         }
       }
 
+      await auditLog({
+        action: 'mark_arrived',
+        targetTable: 'chemical_warnings',
+        targetId: warningId,
+        details: { chemicalId, newStock: stockValue || null },
+      });
+
       setUpdatingStockId(null);
       setStockValue('');
       await fetchWarnings();
@@ -144,6 +158,11 @@ export default function ChemicalWarnings() {
         .update({ status: 'ordered', arrived_at: null })
         .eq('id', warningId);
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'recall_arrived',
+        targetTable: 'chemical_warnings',
+        targetId: warningId,
+      });
       await fetchWarnings();
     } catch (err: any) {
       alert('撤回失败: ' + (err.message || '未知错误'));

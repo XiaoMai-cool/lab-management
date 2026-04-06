@@ -1,0 +1,61 @@
+name: 站点健康检查
+
+on:
+  schedule:
+    # 每 4 小时运行一次（UTC 0:00, 4:00, 8:00, 12:00, 16:00, 20:00）
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检查站点是否可访问
+        id: check
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://lab.fenglab.fun" 2>/dev/null || echo "000")
+          echo "status=$HTTP_STATUS" >> $GITHUB_OUTPUT
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✅ 站点正常 (HTTP $HTTP_STATUS)"
+          else
+            echo "❌ 站点异常 (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+
+      - name: 检查 Supabase API 是否可用
+        id: check_api
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://lzvhbudvzzigwqysyzha.supabase.co/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" 2>/dev/null || echo "000")
+          echo "api_status=$HTTP_STATUS" >> $GITHUB_OUTPUT
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✅ Supabase API 正常 (HTTP $HTTP_STATUS)"
+          else
+            echo "❌ Supabase API 异常 (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+
+      - name: 发送告警邮件
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.ALERT_EMAIL_USER }}
+          password: ${{ secrets.ALERT_EMAIL_PASS }}
+          subject: "⚠️ 实验室管理系统异常告警"
+          to: ${{ secrets.ALERT_EMAIL_TO }}
+          from: "Lab Monitor <${{ secrets.ALERT_EMAIL_USER }}>"
+          body: |
+            实验室管理系统健康检查失败！
+
+            🕐 检查时间: ${{ github.event.repository.updated_at }}
+            🌐 站点状态: HTTP ${{ steps.check.outputs.status }}
+            📡 API 状态: HTTP ${{ steps.check_api.outputs.api_status }}
+
+            请尽快检查：
+            - 站点: https://lab.fenglab.fun
+            - Supabase Dashboard: https://supabase.com/dashboard
+            - GitHub Actions: https://github.com/XiaoMai-cool/lab-management/actions

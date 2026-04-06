@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Search, Package, Users } from 'lucide-react';
 import dayjs from 'dayjs';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -164,6 +165,12 @@ export default function BorrowingManage() {
         .eq('status', 'borrowed');
 
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'return',
+        targetTable: 'supply_borrowings',
+        targetId: record.id,
+        details: { supplyName: record.supply?.name, quantity: record.quantity, userName: record.user?.name },
+      });
 
       // Update local state
       setBorrowings((prev) =>
@@ -211,6 +218,12 @@ export default function BorrowingManage() {
         .eq('id', record.id)
         .eq('status', 'returned');
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'undo_return',
+        targetTable: 'supply_borrowings',
+        targetId: record.id,
+        details: { supplyName: record.supply?.name, quantity: record.quantity, userName: record.user?.name },
+      });
 
       // Update local state
       setBorrowings((prev) =>

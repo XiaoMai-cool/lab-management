@@ -51,6 +51,7 @@ const TABLES = [
   'purchases',
   'student_teacher_assignments',
   'reagent_lists',
+  'audit_log',
 ];
 
 async function fetchAllRows(table) {

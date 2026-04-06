@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/Card';
 import StatusBadge from '../../components/StatusBadge';
@@ -171,6 +172,12 @@ export default function ReagentDetail() {
         .delete()
         .eq('id', activeWarning.id);
       if (delError) throw delError;
+      await auditLog({
+        action: 'recall',
+        targetTable: 'chemical_warnings',
+        targetId: activeWarning.id,
+        details: { chemicalName: chemical?.name, chemicalId: id },
+      });
       setActiveWarning(null);
       setShowRecallConfirm(false);
     } catch (err: any) {
@@ -186,6 +193,12 @@ export default function ReagentDetail() {
       setDeleting(true);
       const { error: delError } = await supabase.from('chemicals').delete().eq('id', id);
       if (delError) throw delError;
+      await auditLog({
+        action: 'delete',
+        targetTable: 'chemicals',
+        targetId: id,
+        details: { name: chemical?.name, casNumber: chemical?.cas_number },
+      });
       navigate('/reagents', { replace: true });
     } catch (err: any) {
       alert('删除失败: ' + (err.message || '未知错误'));

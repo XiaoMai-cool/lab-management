@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import type { Supply, SupplyCategory } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
@@ -173,6 +174,14 @@ export default function SupplyManage() {
         .delete()
         .eq('id', id);
       if (deleteError) throw deleteError;
+
+      const deletedSupply = supplies.find((s) => s.id === id);
+      await auditLog({
+        action: 'delete',
+        targetTable: 'supplies',
+        targetId: id,
+        details: { name: deletedSupply?.name, specification: deletedSupply?.specification },
+      });
 
       setDeleteConfirmId(null);
       fetchData();

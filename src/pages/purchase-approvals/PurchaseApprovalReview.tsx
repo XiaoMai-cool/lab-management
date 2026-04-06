@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { ClipboardCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Purchase } from '../../lib/types';
 import Card from '../../components/Card';
@@ -111,6 +112,12 @@ export default function PurchaseApprovalReview() {
         .eq('id', reviewingItem.id);
 
       if (updateErr) throw updateErr;
+      await auditLog({
+        action: action === 'approved' ? 'approve' : 'reject',
+        targetTable: 'purchases',
+        targetId: reviewingItem.id,
+        details: { title: reviewingItem.title, note: reviewNote || null, skipRegistration },
+      });
       setShowModal(false);
       fetchPurchases();
     } catch (err: unknown) {
@@ -143,6 +150,12 @@ export default function PurchaseApprovalReview() {
         .update(updateData)
         .eq('id', item.id);
       if (updateErr) throw updateErr;
+      await auditLog({
+        action: 'recall',
+        targetTable: 'purchases',
+        targetId: item.id,
+        details: { title: item.title, previousStatus: item.approval_status },
+      });
       fetchPurchases();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : '撤回失败');

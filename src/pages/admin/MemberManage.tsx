@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, ArrowRightLeft, Users, Shield, KeyRound, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Profile, Role } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
@@ -174,6 +175,18 @@ export default function MemberManage() {
         .update({ role: editForm.role, managed_modules: editForm.managed_modules })
         .eq('id', editingMember.id);
       if (updateError) throw updateError;
+      await auditLog({
+        action: 'update_role',
+        targetTable: 'profiles',
+        targetId: editingMember.id,
+        details: {
+          name: editingMember.name,
+          oldRole: editingMember.role,
+          newRole: editForm.role,
+          oldModules: editingMember.managed_modules,
+          newModules: editForm.managed_modules,
+        },
+      });
       setEditOpen(false);
       setEditingMember(null);
       showSuccess('已更新');
@@ -234,6 +247,12 @@ export default function MemberManage() {
         target_user_id: deleteTarget.id,
       });
       if (rpcError) throw rpcError;
+      await auditLog({
+        action: 'delete',
+        targetTable: 'profiles',
+        targetId: deleteTarget.id,
+        details: { name: deleteTarget.name, email: deleteTarget.email, role: deleteTarget.role },
+      });
       setDeleteTarget(null);
       showSuccess(`已删除 ${deleteTarget.name}`);
       fetchMembers();
@@ -268,6 +287,18 @@ export default function MemberManage() {
           managed_modules: [...(newOwner.managed_modules ?? []).filter((m) => m !== transferForm.module), transferForm.module],
         }).eq('id', newOwner.id);
       }
+      const fromUser = transferForm.currentUserId
+        ? members.find((m) => m.id === transferForm.currentUserId)
+        : null;
+      await auditLog({
+        action: 'transfer_module',
+        targetTable: 'profiles',
+        details: {
+          module: transferForm.module,
+          fromUser: fromUser?.name || null,
+          toUser: newOwner?.name || null,
+        },
+      });
       setTransferOpen(false);
       showSuccess('权限交接成功');
       fetchMembers();

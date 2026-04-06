@@ -8,6 +8,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Purchase, ReimbursementFile } from '../../lib/types';
 import Card from '../../components/Card';
@@ -119,6 +120,12 @@ export default function ReimbursementReview() {
         })
         .eq('id', reviewingItem.id);
       if (updateErr) throw updateErr;
+      await auditLog({
+        action: action === 'approved' ? 'approve' : 'reject',
+        targetTable: 'purchases',
+        targetId: reviewingItem.id,
+        details: { type: 'reimbursement', title: reviewingItem.title, amount: reviewingItem.actual_amount, note: reviewNote || null },
+      });
       setShowModal(false);
       fetchList();
     } catch (err: unknown) {
@@ -141,6 +148,12 @@ export default function ReimbursementReview() {
         })
         .eq('id', item.id);
       if (updateErr) throw updateErr;
+      await auditLog({
+        action: 'recall',
+        targetTable: 'purchases',
+        targetId: item.id,
+        details: { type: 'reimbursement', title: item.title, previousStatus: item.reimbursement_status },
+      });
       fetchList();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : '撤回失败');
