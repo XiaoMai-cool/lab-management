@@ -43,11 +43,11 @@ jobs:
           server_address: smtp.163.com
           server_port: 465
           secure: true
-          username: ${{ secrets.ALERT_EMAIL_USER }}
-          password: ${{ secrets.ALERT_EMAIL_PASS }}
+          username: ${{ secrets.SMTP_EMAIL }}
+          password: ${{ secrets.SMTP_PASSWORD }}
           subject: "⚠️ 实验室管理系统异常告警"
-          to: ${{ secrets.ALERT_EMAIL_TO }}
-          from: "Lab Monitor <${{ secrets.ALERT_EMAIL_USER }}>"
+          to: ${{ secrets.SMTP_EMAIL }}
+          from: "Lab Monitor <${{ secrets.SMTP_EMAIL }}>"
           body: |
             实验室管理系统健康检查失败！
 
