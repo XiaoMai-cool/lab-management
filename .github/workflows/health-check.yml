@@ -14,7 +14,7 @@ jobs:
       - name: 检查站点是否可访问
         id: check
         run: |
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://lab.fenglab.fun" 2>/dev/null || echo "000")
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://lab-management-3w7.pages.dev" 2>/dev/null || echo "000")
           echo "status=$HTTP_STATUS" >> $GITHUB_OUTPUT
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
             echo "✅ 站点正常 (HTTP $HTTP_STATUS)"
@@ -62,7 +62,7 @@ jobs:
 - 数据库是否正常：{'正常' if api_status and 200 <= int(api_status) < 400 else '无法连接（状态码 ' + api_status + '）'}
 
 【你需要做什么】
-1. 先打开网站看看能不能正常用：https://lab.fenglab.fun
+1. 先打开网站看看能不能正常用：https://lab-management-3w7.pages.dev
 2. 如果网站打不开，去 Cloudflare Pages 看看部署状态
 3. 如果网站能打开但功能不正常，去 Supabase 看看数据库状态：https://supabase.com/dashboard
 4. 查看详细日志：https://github.com/XiaoMai-cool/lab-management/actions
