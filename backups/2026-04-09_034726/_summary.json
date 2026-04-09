@@ -1,0 +1,33 @@
+{
+  "backup_time": "2026-04-09T03:47:26.715Z",
+  "total_tables": 26,
+  "total_rows": 221,
+  "tables": {
+    "profiles": 14,
+    "announcements": 4,
+    "daily_notices": 5,
+    "documents": 0,
+    "supply_categories": 4,
+    "supplies": 51,
+    "supply_reservations": 1,
+    "supply_reservation_items": 7,
+    "supply_borrowings": 0,
+    "chemicals": 120,
+    "chemical_usage_logs": 0,
+    "chemical_purchases": 0,
+    "chemical_warnings": 5,
+    "duty_roster": 0,
+    "duty_config": 2,
+    "duty_overrides": 0,
+    "equipment": 0,
+    "meetings": 0,
+    "meeting_reports": 0,
+    "reimbursements": 0,
+    "purchase_logs": 0,
+    "purchase_approvals": 0,
+    "purchases": 1,
+    "student_teacher_assignments": 6,
+    "reagent_lists": 1,
+    "audit_log": 0
+  }
+}

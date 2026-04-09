@@ -1,0 +1,15 @@
+[
+  {
+    "id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "c2f3f897-eb2a-4228-b243-9315a9a38b49",
+    "user_id": "af9bbdee-f570-427b-9f2a-b6638e0badc6",
+    "quantity": 7,
+    "purpose": "",
+    "is_returnable": false,
+    "status": "rejected",
+    "reviewer_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "review_note": "测试",
+    "created_at": "2026-04-09T03:18:48.896621+00:00",
+    "reviewed_at": "2026-04-09T03:20:48.587+00:00"
+  }
+]
