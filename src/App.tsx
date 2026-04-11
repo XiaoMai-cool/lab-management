@@ -103,7 +103,7 @@ export default function App() {
               <Route path="/purchase-approvals/review" element={<ProtectedRoute requiredRole="teacher"><PurchaseApprovalReview /></ProtectedRoute>} />
               <Route path="/reimbursements" element={<Navigate to="/purchase-approvals" replace />} />
               <Route path="/reimbursements/new" element={<ReimbursementForm />} />
-              <Route path="/reimbursements/review" element={<ProtectedRoute requiredRole="admin"><ReimbursementReview /></ProtectedRoute>} />
+              <Route path="/reimbursements/review" element={<ProtectedRoute requiredModule="reimbursements"><ReimbursementReview /></ProtectedRoute>} />
               <Route path="/reimbursements/stats" element={<ReimbursementStats />} />
 
               {/* 入库登记 */}

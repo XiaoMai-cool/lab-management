@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, Upload, X, FileText } from 'lucide-react';
+import { CheckCircle, Upload, X, FileText, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Purchase, ReimbursementFile } from '../../lib/types';
@@ -25,12 +25,15 @@ export default function ReimbursementForm() {
   const [notFound, setNotFound] = useState(false);
 
   const [actualAmount, setActualAmount] = useState('');
-  const [files, setFiles] = useState<ReimbursementFile[]>([]);
-  const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<ReimbursementFile[]>([]);
+  const [failedFiles, setFailedFiles] = useState<{ file: File; error: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile && purchaseId) {
@@ -42,12 +45,12 @@ export default function ReimbursementForm() {
 
   // Warn before leaving with unsaved data
   useEffect(() => {
-    const hasData = uploadingFiles.length > 0;
+    const hasData = uploadedFiles.length > 0;
     if (!hasData || success) return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [uploadingFiles, success]);
+  }, [uploadedFiles, success]);
 
   async function fetchPurchase() {
     if (!profile || !purchaseId) return;
@@ -78,19 +81,76 @@ export default function ReimbursementForm() {
     }
   }
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles) return;
-    setUploadingFiles((prev) => [...prev, ...Array.from(selectedFiles)]);
-    e.target.value = '';
+  async function uploadFiles(filesToUpload: File[]) {
+    if (!profile || filesToUpload.length === 0) return;
+
+    setUploading(true);
+    setError(null);
+    const total = filesToUpload.length;
+    const newFailed: { file: File; error: string }[] = [];
+
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i];
+      setUploadProgress({ current: i + 1, total, fileName: file.name });
+
+      try {
+        const ext = file.name.split('.').pop() ?? 'bin';
+        const path = `reimbursements/${profile.id}/${Date.now()}.${ext}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from('attachments')
+          .upload(path, file);
+
+        if (uploadErr) throw uploadErr;
+
+        const { data: urlData } = supabase.storage
+          .from('attachments')
+          .getPublicUrl(path);
+
+        setUploadedFiles((prev) => [...prev, {
+          name: file.name,
+          url: urlData.publicUrl,
+          type: 'other',
+          size: file.size,
+        }]);
+      } catch (err: unknown) {
+        newFailed.push({ file, error: err instanceof Error ? err.message : '上传失败' });
+      }
+    }
+
+    if (newFailed.length > 0) {
+      setFailedFiles((prev) => [...prev, ...newFailed]);
+    }
+    setUploading(false);
+    setUploadProgress(null);
   }
 
-  function removeFile(index: number) {
-    setUploadingFiles((prev) => prev.filter((_, i) => i !== index));
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    const filesToUpload = Array.from(selectedFiles);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    await uploadFiles(filesToUpload);
+  }
+
+  async function retryFailed(index: number) {
+    const { file } = failedFiles[index];
+    setFailedFiles((prev) => prev.filter((_, i) => i !== index));
+    await uploadFiles([file]);
+  }
+
+  async function retryAllFailed() {
+    const files = failedFiles.map((f) => f.file);
+    setFailedFiles([]);
+    await uploadFiles(files);
+  }
+
+  function removeFailedFile(index: number) {
+    setFailedFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   function removeUploadedFile(index: number) {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   function formatFileSize(bytes: number): string {
@@ -99,38 +159,8 @@ export default function ReimbursementForm() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  async function uploadAllFiles(): Promise<ReimbursementFile[]> {
-    if (!profile) return [];
-    const uploaded: ReimbursementFile[] = [...files];
-
-    for (const file of uploadingFiles) {
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const timestamp = Date.now();
-      const path = `reimbursements/${profile.id}/${timestamp}.${ext}`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from('attachments')
-        .upload(path, file);
-
-      if (uploadErr) throw new Error(`上传文件 ${file.name} 失败: ${uploadErr.message}`);
-
-      const { data: urlData } = supabase.storage
-        .from('attachments')
-        .getPublicUrl(path);
-
-      uploaded.push({
-        name: file.name,
-        url: urlData.publicUrl,
-        type: 'other',
-        size: file.size,
-      });
-    }
-
-    return uploaded;
-  }
-
   async function handleSubmit() {
-    if (submitting) return;
+    if (submitting || uploading) return;
     if (!profile || !purchase) return;
 
     const parsedAmount = parseFloat(actualAmount);
@@ -143,13 +173,11 @@ export default function ReimbursementForm() {
       setSubmitting(true);
       setError(null);
 
-      const allFiles = await uploadAllFiles();
-
       const { error: updateErr } = await supabase
         .from('purchases')
         .update({
           actual_amount: parsedAmount,
-          receipt_attachments: allFiles,
+          receipt_attachments: uploadedFiles,
           reimbursement_status: 'pending',
         })
         .eq('id', purchase.id);
@@ -326,6 +354,14 @@ export default function ReimbursementForm() {
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
               上传凭证
             </h3>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
               <div className="flex items-center gap-3 mb-2">
                 <FileText className="w-5 h-5 text-gray-400" />
@@ -334,36 +370,50 @@ export default function ReimbursementForm() {
                     购买截图、发票、检测报告等凭证
                   </p>
                 </div>
-                <label className="shrink-0 cursor-pointer">
-                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Upload className="w-3.5 h-3.5" />
-                    选择文件
-                  </span>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </label>
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {uploading ? '上传中...' : '选择文件'}
+                </button>
               </div>
 
-              {/* Already uploaded files */}
-              {files.length > 0 && (
+              {/* 上传进度 */}
+              {uploadProgress && (
+                <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <span className="truncate">正在上传: {uploadProgress.fileName}</span>
+                    <span className="shrink-0 ml-2">{uploadProgress.current}/{uploadProgress.total}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 已上传的文件 */}
+              {uploadedFiles.length > 0 && (
                 <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
-                  {files.map((file, index) => (
+                  {uploadedFiles.map((file, index) => (
                     <div
                       key={`uploaded-${index}`}
                       className="flex items-center justify-between p-2 bg-green-50 rounded-lg"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-xs text-gray-700 truncate">{file.name}</p>
-                        <p className="text-xs text-green-600">已上传</p>
+                        <p className="text-xs text-green-600">{formatFileSize(file.size)} · 已上传</p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => removeUploadedFile(index)}
-                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                        disabled={uploading}
+                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -372,28 +422,49 @@ export default function ReimbursementForm() {
                 </div>
               )}
 
-              {/* Pending upload files */}
-              {uploadingFiles.length > 0 && (
+              {/* 上传失败的文件 */}
+              {failedFiles.length > 0 && (
                 <div className="space-y-1.5 mt-3 pt-3 border-t border-gray-100">
-                  {uploadingFiles.map((file, index) => (
+                  {failedFiles.map((item, index) => (
                     <div
-                      key={`pending-${index}`}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                      key={`failed-${index}`}
+                      className="flex items-center justify-between p-2 bg-red-50 rounded-lg"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs text-gray-700 truncate">{file.name}</p>
-                        <p className="text-xs text-gray-400">
-                          {formatFileSize(file.size)}
-                        </p>
+                        <p className="text-xs text-gray-700 truncate">{item.file.name}</p>
+                        <p className="text-xs text-red-500">上传失败: {item.error}</p>
                       </div>
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="shrink-0 ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button
+                          type="button"
+                          onClick={() => retryFailed(index)}
+                          disabled={uploading}
+                          className="p-1 text-blue-500 hover:text-blue-700 disabled:opacity-30 transition-colors"
+                          title="重试"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFailedFile(index)}
+                          disabled={uploading}
+                          className="p-1 text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
+                  {failedFiles.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={retryAllFailed}
+                      disabled={uploading}
+                      className="w-full text-xs text-blue-600 hover:text-blue-800 disabled:opacity-30 py-1"
+                    >
+                      全部重试
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -402,7 +473,7 @@ export default function ReimbursementForm() {
           {/* 提交 */}
           <button
             onClick={handleSubmit}
-            disabled={submitting || !actualAmount}
+            disabled={submitting || uploading || !actualAmount || failedFiles.length > 0}
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             <Upload className="w-4 h-4" />
