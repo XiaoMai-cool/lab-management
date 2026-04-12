@@ -82,7 +82,7 @@ const FileUploader = forwardRef<FileUploaderHandle, FileUploaderProps>(
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
         >
           <Upload className="w-4 h-4" />
-          选择文件
+          {pendingFiles.length > 0 || existingFiles.length > 0 ? '继续添加' : '选择文件'}
         </button>
 
         {existingFiles.length > 0 && (

@@ -369,6 +369,9 @@ export default function ReimbursementForm() {
                   <p className="text-xs text-gray-500">
                     购买截图、发票、检测报告等凭证
                   </p>
+                  <p className="text-xs text-gray-400">
+                    支持多选，也可多次添加
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -377,7 +380,7 @@ export default function ReimbursementForm() {
                   className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  {uploading ? '上传中...' : '选择文件'}
+                  {uploading ? '上传中...' : uploadedFiles.length > 0 ? '继续添加' : '选择文件'}
                 </button>
               </div>
 
