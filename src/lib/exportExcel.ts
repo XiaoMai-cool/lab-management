@@ -11,24 +11,49 @@ export function downloadExcel(
   filename: string,
   sheetName = 'Sheet1'
 ) {
-  if (data.length === 0) return;
-
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
   // 自动调整列宽
-  const headers = Object.keys(data[0]);
-  ws['!cols'] = headers.map((h) => {
-    const maxLen = Math.max(
-      h.length,
-      ...data.map((row) => {
-        const val = row[h];
-        return val === null || val === undefined ? 0 : String(val).length;
-      })
-    );
-    return { wch: Math.min(maxLen + 2, 40) };
-  });
+  if (data.length > 0) {
+    const headers = Object.keys(data[0]);
+    ws['!cols'] = headers.map((h) => {
+      const maxLen = Math.max(
+        h.length,
+        ...data.map((row) => {
+          const val = row[h];
+          return val === null || val === undefined ? 0 : String(val).length;
+        })
+      );
+      return { wch: Math.min(maxLen + 2, 40) };
+    });
+  }
 
+  XLSX.writeFile(wb, `${filename}.xlsx`);
+}
+
+export function downloadMultiSheetExcel(
+  sheets: { name: string; data: Record<string, unknown>[] }[],
+  filename: string
+) {
+  const wb = XLSX.utils.book_new();
+  for (const sheet of sheets) {
+    const ws = XLSX.utils.json_to_sheet(sheet.data);
+    if (sheet.data.length > 0) {
+      const headers = Object.keys(sheet.data[0]);
+      ws['!cols'] = headers.map((h) => {
+        const maxLen = Math.max(
+          h.length,
+          ...sheet.data.map((row) => {
+            const val = row[h];
+            return val === null || val === undefined ? 0 : String(val).length;
+          })
+        );
+        return { wch: Math.min(maxLen + 2, 40) };
+      });
+    }
+    XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+  }
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
