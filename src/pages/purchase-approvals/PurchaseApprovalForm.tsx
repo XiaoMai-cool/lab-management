@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle, Upload, X, FileText, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -70,7 +70,6 @@ export default function PurchaseApprovalForm() {
 
   // Attachments
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [teachers, setTeachers] = useState<Profile[]>([]);
   const [defaultTeacherId, setDefaultTeacherId] = useState<string | null>(null);
@@ -186,11 +185,17 @@ export default function PurchaseApprovalForm() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [title, description, uploadingFiles, success]);
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles || selectedFiles.length === 0) return;
-    setUploadingFiles(prev => [...prev, ...Array.from(selectedFiles)]);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  function openFilePicker() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx';
+    input.onchange = () => {
+      if (input.files && input.files.length > 0) {
+        setUploadingFiles(prev => [...prev, ...Array.from(input.files!)]);
+      }
+    };
+    input.click();
   }
 
   function removeFile(index: number) {
@@ -377,14 +382,6 @@ export default function PurchaseApprovalForm() {
       </button>
       <PageHeader title={isEditing ? '修改采购申请' : '采购申请'} subtitle={isEditing ? '修改后将重新提交审批' : '提交采购申请，审批通过后进行采购和报销'} />
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-        onChange={handleFileSelect}
-        className="sr-only"
-      />
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -617,11 +614,10 @@ export default function PurchaseApprovalForm() {
                 <FileText className="w-5 h-5 text-gray-400" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-500">支持图片、PDF、Word、Excel</p>
-                  <p className="text-xs text-gray-400">支持多选，也可多次添加</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={openFilePicker}
                   className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                 >
                   <Upload className="w-3.5 h-3.5" />

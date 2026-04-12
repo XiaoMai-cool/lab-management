@@ -2,7 +2,6 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
-import { useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Bold, Italic, Heading2, Heading3, List, ListOrdered,
@@ -15,7 +14,6 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ content, onChange }: RichTextEditorProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -41,23 +39,29 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
 
   if (!editor) return null;
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !editor) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert('图片不能超过 10MB');
-      return;
-    }
-    const ext = file.name.split('.').pop() ?? 'bin';
-    const path = `editor/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-    const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: file.type });
-    if (error) {
-      alert('图片上传失败: ' + error.message);
-      return;
-    }
-    const { data } = supabase.storage.from('attachments').getPublicUrl(path);
-    editor.chain().focus().setImage({ src: data.publicUrl }).run();
-    e.target.value = '';
+  function openImagePicker() {
+    if (!editor) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file || !editor) return;
+      if (file.size > 10 * 1024 * 1024) {
+        alert('图片不能超过 10MB');
+        return;
+      }
+      const ext = file.name.split('.').pop() ?? 'bin';
+      const path = `editor/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+      const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: file.type });
+      if (error) {
+        alert('图片上传失败: ' + error.message);
+        return;
+      }
+      const { data } = supabase.storage.from('attachments').getPublicUrl(path);
+      editor.chain().focus().setImage({ src: data.publicUrl }).run();
+    };
+    input.click();
   }
 
   function handleAddLink() {
@@ -97,10 +101,9 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
         <button type="button" onClick={handleAddLink} className={btnClass(editor.isActive('link'))} title="插入链接">
           <LinkIcon className="w-4 h-4" />
         </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()} className={btnClass(false)} title="插入图片">
+        <button type="button" onClick={openImagePicker} className={btnClass(false)} title="插入图片">
           <ImageIcon className="w-4 h-4" />
         </button>
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="sr-only" />
       </div>
       {/* Editor */}
       <EditorContent editor={editor} />

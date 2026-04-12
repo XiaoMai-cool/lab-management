@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Upload, X, FileText, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -33,7 +33,6 @@ export default function ReimbursementForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile && purchaseId) {
@@ -104,13 +103,18 @@ export default function ReimbursementForm() {
     };
   }
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles || selectedFiles.length === 0) return;
-    const filesToUpload = Array.from(selectedFiles);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    // Fire and forget - state updates handle the UI
-    void doUpload(filesToUpload);
+  function openFilePicker() {
+    if (uploading) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx';
+    input.onchange = () => {
+      if (input.files && input.files.length > 0) {
+        void doUpload(Array.from(input.files));
+      }
+    };
+    input.click();
   }
 
   async function doUpload(filesToUpload: File[]) {
@@ -362,14 +366,6 @@ export default function ReimbursementForm() {
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
               上传凭证
             </h3>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-              onChange={handleFileSelect}
-              className="sr-only"
-            />
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
               <div className="flex items-center gap-3 mb-2">
                 <FileText className="w-5 h-5 text-gray-400" />
@@ -377,14 +373,11 @@ export default function ReimbursementForm() {
                   <p className="text-xs text-gray-500">
                     购买截图、发票、检测报告等凭证
                   </p>
-                  <p className="text-xs text-gray-400">
-                    支持多选，也可多次添加
-                  </p>
                 </div>
                 <button
                   type="button"
                   disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={openFilePicker}
                   className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
                 >
                   <Upload className="w-3.5 h-3.5" />

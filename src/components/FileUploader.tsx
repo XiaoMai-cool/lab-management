@@ -1,4 +1,4 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Upload, X } from 'lucide-react';
 import type { FileAttachment } from '../lib/types';
 import { supabase } from '../lib/supabase';
@@ -26,7 +26,6 @@ const FileUploader = forwardRef<FileUploaderHandle, FileUploaderProps>(
   function FileUploader({ existingFiles, onExistingRemove, storagePath, accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx', maxSizeMB = 10 }, ref) {
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     async function uploadAll(): Promise<FileAttachment[]> {
       const uploaded: FileAttachment[] = [];
@@ -51,22 +50,27 @@ const FileUploader = forwardRef<FileUploaderHandle, FileUploaderProps>(
       hasPendingFiles: () => pendingFiles.length > 0,
     }));
 
-    function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-      const selected = Array.from(e.target.files ?? []);
-      if (selected.length === 0) return;
-      const maxBytes = maxSizeMB * 1024 * 1024;
-      const valid: File[] = [];
-      for (const file of selected) {
-        if (file.size > maxBytes) {
-          alert(`文件 "${file.name}" 超过 ${maxSizeMB}MB 限制`);
-        } else {
-          valid.push(file);
+    function openFilePicker() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.multiple = true;
+      input.accept = accept;
+      input.onchange = () => {
+        if (!input.files || input.files.length === 0) return;
+        const maxBytes = maxSizeMB * 1024 * 1024;
+        const valid: File[] = [];
+        for (const file of Array.from(input.files)) {
+          if (file.size > maxBytes) {
+            alert(`文件 "${file.name}" 超过 ${maxSizeMB}MB 限制`);
+          } else {
+            valid.push(file);
+          }
         }
-      }
-      setPendingFiles((prev) => [...prev, ...valid]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+        if (valid.length > 0) {
+          setPendingFiles((prev) => [...prev, ...valid]);
+        }
+      };
+      input.click();
     }
 
     function removePending(index: number) {
@@ -75,10 +79,9 @@ const FileUploader = forwardRef<FileUploaderHandle, FileUploaderProps>(
 
     return (
       <div className="space-y-2">
-        <input ref={fileInputRef} type="file" multiple accept={accept} onChange={handleFileSelect} className="sr-only" />
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={openFilePicker}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
         >
           <Upload className="w-4 h-4" />
