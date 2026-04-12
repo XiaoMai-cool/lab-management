@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, FileText, ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Purchase } from '../../lib/types';
+import type { Purchase, ReimbursementFile } from '../../lib/types';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -324,6 +324,39 @@ export default function PurchaseApprovalReview() {
                       </div>
                     )}
 
+                    {/* 附件 */}
+                    {item.attachments &&
+                      (item.attachments as ReimbursementFile[]).length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-1.5">
+                            附件（{(item.attachments as ReimbursementFile[]).length}）
+                          </p>
+                          <div className="space-y-1.5">
+                            {(item.attachments as ReimbursementFile[]).map((file, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+                              >
+                                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                                <p className="text-xs text-gray-700 truncate flex-1">
+                                  {file.name}
+                                </p>
+                                {file.url && (
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-500 hover:text-blue-600"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                     {/* 已处理 tab: 审批备注 + 后续状态 */}
                     {tab === 'reviewed' && (
                       <>
@@ -420,43 +453,80 @@ export default function PurchaseApprovalReview() {
       >
         <div className="space-y-4">
           {reviewingItem && (
-            <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500">申请人</span>
-                <span className="text-sm font-medium">
-                  {reviewingItem.applicant?.name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500">类别</span>
-                <span className="text-sm">{reviewingItem.category}</span>
-              </div>
-              {reviewingItem.estimated_amount != null && (
+            <>
+              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">预计金额</span>
-                  <span className="text-sm font-bold text-gray-900">
-                    ¥{reviewingItem.estimated_amount.toFixed(2)}
+                  <span className="text-xs text-gray-500">申请人</span>
+                  <span className="text-sm font-medium">
+                    {reviewingItem.applicant?.name}
                   </span>
                 </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500">申请日期</span>
-                <span className="text-sm">
-                  {dayjs(reviewingItem.created_at).format('YYYY-MM-DD')}
-                </span>
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">采购类型</span>
+                  <span className="text-sm">
+                    {reviewingItem.purchase_type === 'public' ? '公共采购' : '个人采购'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">类别</span>
+                  <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${categoryColors[reviewingItem.category] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {reviewingItem.category}
+                  </span>
+                </div>
+                {reviewingItem.estimated_amount != null && (
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-500">预计金额</span>
+                    <span className="text-sm font-bold text-gray-900">
+                      ¥{reviewingItem.estimated_amount.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">申请日期</span>
+                  <span className="text-sm">
+                    {dayjs(reviewingItem.created_at).format('YYYY-MM-DD HH:mm')}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
 
-          {reviewingItem?.description && (
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500 mb-1 font-medium">
-                用途说明
-              </p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                {reviewingItem.description}
-              </p>
-            </div>
+              {reviewingItem.description && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1 font-medium">
+                    用途说明
+                  </p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {reviewingItem.description}
+                  </p>
+                </div>
+              )}
+
+              {/* 采购申请附件 */}
+              {reviewingItem.attachments &&
+                (reviewingItem.attachments as ReimbursementFile[]).length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1.5">
+                      附件（{(reviewingItem.attachments as ReimbursementFile[]).length}）
+                    </p>
+                    <div className="space-y-1">
+                      {(reviewingItem.attachments as ReimbursementFile[]).map((file, idx) => (
+                        <a
+                          key={idx}
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs hover:bg-gray-100 transition-colors"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <span className="text-gray-700 truncate flex-1">
+                            {file.name}
+                          </span>
+                          <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </>
           )}
 
           {/* Skip registration toggle */}
