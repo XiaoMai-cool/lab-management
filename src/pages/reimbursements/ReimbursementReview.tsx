@@ -6,6 +6,8 @@ import {
   Receipt,
   FileText,
   ExternalLink,
+  Eye,
+  Paperclip,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { auditLog } from '../../lib/auditLog';
@@ -234,9 +236,14 @@ export default function ReimbursementReview() {
           />
         ) : (
           <div className="space-y-3">
-            {list.map((item) => (
+            {list.map((item) => {
+              const attachmentCount = (item.receipt_attachments as ReimbursementFile[] | null)?.length ?? 0;
+              return (
               <Card key={item.id}>
-                <div className="space-y-3">
+                <div
+                  className="space-y-3 cursor-pointer"
+                  onClick={() => openReview(item)}
+                >
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -257,7 +264,6 @@ export default function ReimbursementReview() {
                             {item.category}
                           </span>
                         )}
-                        {/* Registration status tag */}
                         {!item.skip_registration && (
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -276,55 +282,27 @@ export default function ReimbursementReview() {
                         申请人：{item.applicant?.name ?? '未知'} |{' '}
                         {dayjs(item.created_at).format('YYYY-MM-DD')}
                       </p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-900 shrink-0 ml-3">
-                      ¥{(item.actual_amount ?? 0).toFixed(2)}
-                    </p>
-                  </div>
-
-                  {/* Receipt files */}
-                  {item.receipt_attachments &&
-                    item.receipt_attachments.length > 0 && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 mb-1.5">
-                          报销凭证（{item.receipt_attachments.length}）
+                      {attachmentCount > 0 && (
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" />
+                          {attachmentCount} 个凭证附件
                         </p>
-                        <div className="space-y-1.5">
-                          {(
-                            item.receipt_attachments as ReimbursementFile[]
-                          ).map((file, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
-                            >
-                              <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs text-gray-700 truncate">
-                                  {file.name}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {fileTypeLabels[file.type] ?? file.type}
-                                </p>
-                              </div>
-                              {file.url && (
-                                <a
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-500 hover:text-blue-600"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                    <div className="shrink-0 ml-3 text-right">
+                      <p className="text-lg font-bold text-gray-900">
+                        ¥{(item.actual_amount ?? 0).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-blue-500 mt-1 flex items-center gap-0.5 justify-end">
+                        <Eye className="w-3 h-3" />
+                        查看详情
+                      </p>
+                    </div>
+                  </div>
 
                   {/* Review info (reviewed tab) */}
                   {tab === 'reviewed' && (
-                    <div className="space-y-2">
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-3 text-xs text-gray-400">
                         {item.reimbursed_at && (
                           <span>
@@ -368,60 +346,44 @@ export default function ReimbursementReview() {
                       )}
                     </div>
                   )}
-
-                  {/* Pending action buttons */}
-                  {tab === 'pending' && (
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => openReview(item)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        批准
-                      </button>
-                      <button
-                        onClick={() => openReview(item)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        拒绝
-                      </button>
-                    </div>
-                  )}
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Review Modal */}
+      {/* Detail & Review Modal */}
       <Modal
         open={showModal}
         onClose={() => setShowModal(false)}
-        title={`审批 - ${reviewingItem?.title ?? ''}`}
+        title={reviewingItem?.title ?? ''}
         footer={
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleReview('rejected')}
-              disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
-            >
-              {submitting ? '处理中...' : '拒绝'}
-            </button>
-            <button
-              onClick={() => handleReview('approved')}
-              disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              {submitting ? '处理中...' : '批准'}
-            </button>
-          </div>
+          reviewingItem?.reimbursement_status === 'pending' ? (
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleReview('rejected')}
+                disabled={submitting}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+              >
+                {submitting ? '处理中...' : '拒绝'}
+              </button>
+              <button
+                onClick={() => handleReview('approved')}
+                disabled={submitting}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                {submitting ? '处理中...' : '批准'}
+              </button>
+            </div>
+          ) : undefined
         }
       >
         <div className="space-y-4">
           {reviewingItem && (
             <>
+              {/* 基本信息 */}
               <div className="bg-gray-50 p-3 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-xs text-gray-500">申请人</span>
@@ -430,18 +392,26 @@ export default function ReimbursementReview() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">类别</span>
-                  <span className="text-sm">{reviewingItem.category}</span>
+                  <span className="text-xs text-gray-500">采购类型</span>
+                  <span className="text-sm">
+                    {reviewingItem.purchase_type === 'public' ? '公共采购' : '个人采购'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">实际金额</span>
+                  <span className="text-xs text-gray-500">类别</span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${categoryColors[reviewingItem.category] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {reviewingItem.category}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">报销金额</span>
                   <span className="text-sm font-bold text-gray-900">
                     ¥{(reviewingItem.actual_amount ?? 0).toFixed(2)}
                   </span>
                 </div>
                 {reviewingItem.estimated_amount != null && (
                   <div className="flex justify-between">
-                    <span className="text-xs text-gray-500">预估金额</span>
+                    <span className="text-xs text-gray-500">申请预估</span>
                     <span className="text-sm text-gray-600">
                       ¥{reviewingItem.estimated_amount.toFixed(2)}
                     </span>
@@ -452,16 +422,22 @@ export default function ReimbursementReview() {
                   Math.abs(reviewingItem.actual_amount - reviewingItem.estimated_amount) >= 50 && (
                   <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-xs text-amber-700 font-medium">
-                      ⚠ 金额差异: 申请 ¥{reviewingItem.estimated_amount.toFixed(2)} → 报销 ¥{reviewingItem.actual_amount.toFixed(2)}
+                      金额差异较大: 预估 ¥{reviewingItem.estimated_amount.toFixed(2)} → 实际 ¥{reviewingItem.actual_amount.toFixed(2)}
                     </p>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-xs text-gray-500">申请日期</span>
                   <span className="text-sm">
-                    {dayjs(reviewingItem.created_at).format('YYYY-MM-DD')}
+                    {dayjs(reviewingItem.created_at).format('YYYY-MM-DD HH:mm')}
                   </span>
                 </div>
+                {reviewingItem.approver && (
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-500">采购审批人</span>
+                    <span className="text-sm">{reviewingItem.approver.name}</span>
+                  </div>
+                )}
                 {!reviewingItem.skip_registration && (
                   <div className="flex justify-between">
                     <span className="text-xs text-gray-500">入库登记</span>
@@ -480,28 +456,59 @@ export default function ReimbursementReview() {
                 )}
               </div>
 
-              {/* Receipt files in modal */}
-              {reviewingItem.receipt_attachments &&
-                reviewingItem.receipt_attachments.length > 0 && (
+              {/* 用途说明 */}
+              {reviewingItem.description && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1 font-medium">用途说明</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {reviewingItem.description}
+                  </p>
+                </div>
+              )}
+
+              {/* 采购申请附件 */}
+              {reviewingItem.attachments &&
+                (reviewingItem.attachments as ReimbursementFile[]).length > 0 && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-1.5">
-                      报销凭证
+                      采购申请附件（{(reviewingItem.attachments as ReimbursementFile[]).length}）
                     </p>
                     <div className="space-y-1">
-                      {(
-                        reviewingItem.receipt_attachments as ReimbursementFile[]
-                      ).map((file, idx) => (
+                      {(reviewingItem.attachments as ReimbursementFile[]).map((file, idx) => (
                         <a
-                          key={idx}
+                          key={`att-${idx}`}
                           href={file.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs hover:bg-gray-100 transition-colors"
+                          className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs hover:bg-gray-100 transition-colors"
                         >
-                          <FileText className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-gray-700 truncate flex-1">
-                            {file.name}
-                          </span>
+                          <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <span className="text-gray-700 truncate flex-1">{file.name}</span>
+                          <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* 报销凭证 */}
+              {reviewingItem.receipt_attachments &&
+                (reviewingItem.receipt_attachments as ReimbursementFile[]).length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1.5">
+                      报销凭证（{(reviewingItem.receipt_attachments as ReimbursementFile[]).length}）
+                    </p>
+                    <div className="space-y-1">
+                      {(reviewingItem.receipt_attachments as ReimbursementFile[]).map((file, idx) => (
+                        <a
+                          key={`rec-${idx}`}
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg text-xs hover:bg-blue-100 transition-colors"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                          <span className="text-gray-700 truncate flex-1">{file.name}</span>
                           <span className="text-gray-400 shrink-0">
                             {fileTypeLabels[file.type] ?? file.type}
                           </span>
@@ -514,18 +521,21 @@ export default function ReimbursementReview() {
             </>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              审批备注
-            </label>
-            <textarea
-              value={reviewNote}
-              onChange={(e) => setReviewNote(e.target.value)}
-              rows={3}
-              placeholder="选填，如拒绝请填写原因"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            />
-          </div>
+          {/* 审批操作区 - 仅待审批时显示 */}
+          {reviewingItem?.reimbursement_status === 'pending' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                审批备注
+              </label>
+              <textarea
+                value={reviewNote}
+                onChange={(e) => setReviewNote(e.target.value)}
+                rows={3}
+                placeholder="选填，如拒绝请填写原因"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              />
+            </div>
+          )}
         </div>
       </Modal>
     </div>

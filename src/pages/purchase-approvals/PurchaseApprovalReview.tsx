@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { ClipboardCheck, FileText, ExternalLink } from 'lucide-react';
+import { ClipboardCheck, FileText, ExternalLink, Eye, Paperclip } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
@@ -265,7 +265,10 @@ export default function PurchaseApprovalReview() {
               const regInfo = getRegistrationLabel(item);
               return (
                 <Card key={item.id}>
-                  <div className="space-y-3">
+                  <div
+                    className="space-y-3 cursor-pointer"
+                    onClick={() => openReview(item)}
+                  >
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -296,66 +299,28 @@ export default function PurchaseApprovalReview() {
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mb-1">
-                          申请人：{item.applicant?.name ?? '未知'}
+                          申请人：{item.applicant?.name ?? '未知'} | {dayjs(item.created_at).format('YYYY-MM-DD')}
                         </p>
-                        <p className="text-xs text-gray-400">
-                          {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
-                        </p>
+                        {item.attachments && (item.attachments as ReimbursementFile[]).length > 0 && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1">
+                            <Paperclip className="w-3 h-3" />
+                            {(item.attachments as ReimbursementFile[]).length} 个附件
+                          </p>
+                        )}
                       </div>
 
-                      {item.estimated_amount != null && (
-                        <div className="shrink-0 ml-3 text-right">
+                      <div className="shrink-0 ml-3 text-right">
+                        {item.estimated_amount != null && (
                           <p className="text-lg font-bold text-gray-900">
                             ¥{item.estimated_amount.toFixed(2)}
                           </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 用途说明 */}
-                    {item.description && (
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1 font-medium">
-                          用途说明
-                        </p>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                          {item.description}
+                        )}
+                        <p className="text-xs text-blue-500 mt-1 flex items-center gap-0.5 justify-end">
+                          <Eye className="w-3 h-3" />
+                          查看详情
                         </p>
                       </div>
-                    )}
-
-                    {/* 附件 */}
-                    {item.attachments &&
-                      (item.attachments as ReimbursementFile[]).length > 0 && (
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 mb-1.5">
-                            附件（{(item.attachments as ReimbursementFile[]).length}）
-                          </p>
-                          <div className="space-y-1.5">
-                            {(item.attachments as ReimbursementFile[]).map((file, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
-                              >
-                                <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                                <p className="text-xs text-gray-700 truncate flex-1">
-                                  {file.name}
-                                </p>
-                                {file.url && (
-                                  <a
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-500 hover:text-blue-600"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    </div>
 
                     {/* 已处理 tab: 审批备注 + 后续状态 */}
                     {tab === 'reviewed' && (
@@ -397,7 +362,7 @@ export default function PurchaseApprovalReview() {
                               )}
                             </div>
                             <button
-                              onClick={() => handleRecallApproval(item)}
+                              onClick={(e) => { e.stopPropagation(); handleRecallApproval(item); }}
                               disabled={recalling === item.id}
                               className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 rounded-lg hover:bg-orange-100 disabled:opacity-50 transition-colors"
                             >
@@ -408,17 +373,6 @@ export default function PurchaseApprovalReview() {
                       </>
                     )}
 
-                    {/* 待审批操作按钮 */}
-                    {tab === 'pending' && (
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          onClick={() => openReview(item)}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                        >
-                          审批
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </Card>
               );
@@ -431,24 +385,26 @@ export default function PurchaseApprovalReview() {
       <Modal
         open={showModal}
         onClose={() => setShowModal(false)}
-        title={`审批 - ${reviewingItem?.title ?? ''}`}
+        title={reviewingItem?.title ?? ''}
         footer={
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleReview('rejected')}
-              disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
-            >
-              {submitting ? '处理中...' : '拒绝'}
-            </button>
-            <button
-              onClick={() => handleReview('approved')}
-              disabled={submitting}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              {submitting ? '处理中...' : '批准'}
-            </button>
-          </div>
+          reviewingItem?.approval_status === 'pending' ? (
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleReview('rejected')}
+                disabled={submitting}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+              >
+                {submitting ? '处理中...' : '拒绝'}
+              </button>
+              <button
+                onClick={() => handleReview('approved')}
+                disabled={submitting}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                {submitting ? '处理中...' : '批准'}
+              </button>
+            </div>
+          ) : undefined
         }
       >
         <div className="space-y-4">
