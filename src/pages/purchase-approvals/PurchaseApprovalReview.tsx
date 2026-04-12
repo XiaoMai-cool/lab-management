@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { ClipboardCheck, FileText, ExternalLink, Eye, Paperclip } from 'lucide-react';
+import { ClipboardCheck, Eye, Paperclip } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { auditLog } from '../../lib/auditLog';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,6 +12,7 @@ import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import SubNav from '../../components/SubNav';
+import FilePreview from '../../components/FilePreview';
 
 const subNavItems = [
   { to: '/purchase-approvals/new', label: '新建采购' },
@@ -456,32 +457,10 @@ export default function PurchaseApprovalReview() {
                 </div>
               )}
 
-              {/* 采购申请附件 */}
-              {reviewingItem.attachments &&
-                (reviewingItem.attachments as ReimbursementFile[]).length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1.5">
-                      附件（{(reviewingItem.attachments as ReimbursementFile[]).length}）
-                    </p>
-                    <div className="space-y-1">
-                      {(reviewingItem.attachments as ReimbursementFile[]).map((file, idx) => (
-                        <a
-                          key={idx}
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs hover:bg-gray-100 transition-colors"
-                        >
-                          <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <span className="text-gray-700 truncate flex-1">
-                            {file.name}
-                          </span>
-                          <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <FilePreview
+                files={(reviewingItem.attachments as { name: string; url: string; type?: string; size?: number }[]) ?? []}
+                title="附件"
+              />
             </>
           )}
 

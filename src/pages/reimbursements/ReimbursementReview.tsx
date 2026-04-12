@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import {
-  CheckCircle,
-  XCircle,
   Receipt,
-  FileText,
-  ExternalLink,
   Eye,
   Paperclip,
 } from 'lucide-react';
@@ -19,14 +15,7 @@ import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
-
-const fileTypeLabels: Record<string, string> = {
-  screenshot: '购买截图',
-  invoice: '发票',
-  test_report: '检测报告',
-  cert: '资质证书',
-  other: '其他',
-};
+import FilePreview from '../../components/FilePreview';
 
 const categoryColors: Record<string, string> = {
   '试剂药品': 'bg-purple-50 text-purple-700',
@@ -466,58 +455,15 @@ export default function ReimbursementReview() {
                 </div>
               )}
 
-              {/* 采购申请附件 */}
-              {reviewingItem.attachments &&
-                (reviewingItem.attachments as ReimbursementFile[]).length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1.5">
-                      采购申请附件（{(reviewingItem.attachments as ReimbursementFile[]).length}）
-                    </p>
-                    <div className="space-y-1">
-                      {(reviewingItem.attachments as ReimbursementFile[]).map((file, idx) => (
-                        <a
-                          key={`att-${idx}`}
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-xs hover:bg-gray-100 transition-colors"
-                        >
-                          <FileText className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <span className="text-gray-700 truncate flex-1">{file.name}</span>
-                          <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <FilePreview
+                files={(reviewingItem.attachments as { name: string; url: string; type?: string; size?: number }[]) ?? []}
+                title="采购申请附件"
+              />
 
-              {/* 报销凭证 */}
-              {reviewingItem.receipt_attachments &&
-                (reviewingItem.receipt_attachments as ReimbursementFile[]).length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-1.5">
-                      报销凭证（{(reviewingItem.receipt_attachments as ReimbursementFile[]).length}）
-                    </p>
-                    <div className="space-y-1">
-                      {(reviewingItem.receipt_attachments as ReimbursementFile[]).map((file, idx) => (
-                        <a
-                          key={`rec-${idx}`}
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg text-xs hover:bg-blue-100 transition-colors"
-                        >
-                          <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                          <span className="text-gray-700 truncate flex-1">{file.name}</span>
-                          <span className="text-gray-400 shrink-0">
-                            {fileTypeLabels[file.type] ?? file.type}
-                          </span>
-                          <ExternalLink className="w-3 h-3 text-blue-500 shrink-0" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <FilePreview
+                files={(reviewingItem.receipt_attachments as { name: string; url: string; type?: string; size?: number }[]) ?? []}
+                title="报销凭证"
+              />
             </>
           )}
 
