@@ -81,68 +81,76 @@ export default function ReimbursementForm() {
     }
   }
 
-  async function uploadFiles(filesToUpload: File[]) {
-    if (!profile || filesToUpload.length === 0) return;
+  async function uploadSingleFile(file: File): Promise<ReimbursementFile | null> {
+    if (!profile) return null;
+    const ext = file.name.split('.').pop() ?? 'bin';
+    const path = `reimbursements/${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from('attachments')
+      .upload(path, file, { contentType: file.type });
+
+    if (uploadErr) throw new Error(uploadErr.message);
+
+    const { data: urlData } = supabase.storage
+      .from('attachments')
+      .getPublicUrl(path);
+
+    return {
+      name: file.name,
+      url: urlData.publicUrl,
+      type: 'other',
+      size: file.size,
+    };
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    const filesToUpload = Array.from(selectedFiles);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    // Fire and forget - state updates handle the UI
+    void doUpload(filesToUpload);
+  }
+
+  async function doUpload(filesToUpload: File[]) {
+    if (!profile || filesToUpload.length === 0 || uploading) return;
 
     setUploading(true);
     setError(null);
     const total = filesToUpload.length;
-    const newFailed: { file: File; error: string }[] = [];
 
     for (let i = 0; i < filesToUpload.length; i++) {
       const file = filesToUpload[i];
       setUploadProgress({ current: i + 1, total, fileName: file.name });
 
       try {
-        const ext = file.name.split('.').pop() ?? 'bin';
-        const path = `reimbursements/${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-
-        const { error: uploadErr } = await supabase.storage
-          .from('attachments')
-          .upload(path, file);
-
-        if (uploadErr) throw uploadErr;
-
-        const { data: urlData } = supabase.storage
-          .from('attachments')
-          .getPublicUrl(path);
-
-        setUploadedFiles((prev) => [...prev, {
-          name: file.name,
-          url: urlData.publicUrl,
-          type: 'other',
-          size: file.size,
-        }]);
+        const result = await uploadSingleFile(file);
+        if (result) {
+          setUploadedFiles((prev) => [...prev, result]);
+        }
       } catch (err: unknown) {
-        newFailed.push({ file, error: err instanceof Error ? err.message : '上传失败' });
+        setFailedFiles((prev) => [...prev, {
+          file,
+          error: err instanceof Error ? err.message : '上传失败',
+        }]);
       }
     }
 
-    if (newFailed.length > 0) {
-      setFailedFiles((prev) => [...prev, ...newFailed]);
-    }
     setUploading(false);
     setUploadProgress(null);
   }
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles || selectedFiles.length === 0) return;
-    const filesToUpload = Array.from(selectedFiles);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    await uploadFiles(filesToUpload);
-  }
-
-  async function retryFailed(index: number) {
+  function retryFailed(index: number) {
     const { file } = failedFiles[index];
     setFailedFiles((prev) => prev.filter((_, i) => i !== index));
-    await uploadFiles([file]);
+    void doUpload([file]);
   }
 
-  async function retryAllFailed() {
+  function retryAllFailed() {
     const files = failedFiles.map((f) => f.file);
     setFailedFiles([]);
-    await uploadFiles(files);
+    void doUpload(files);
   }
 
   function removeFailedFile(index: number) {

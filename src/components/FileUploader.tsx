@@ -36,7 +36,7 @@ const FileUploader = forwardRef<FileUploaderHandle, FileUploaderProps>(
         setUploadProgress({ current: i + 1, total, fileName: file.name });
         const ext = file.name.split('.').pop() ?? 'bin';
         const path = `${storagePath}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-        const { error } = await supabase.storage.from('attachments').upload(path, file);
+        const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: file.type });
         if (error) throw new Error(`上传 ${file.name} 失败: ${error.message}`);
         const { data } = supabase.storage.from('attachments').getPublicUrl(path);
         uploaded.push({ name: file.name, url: data.publicUrl, type: file.type, size: file.size });

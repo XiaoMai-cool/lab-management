@@ -206,7 +206,7 @@ export default function PurchaseApprovalForm() {
 
       const { error: uploadErr } = await supabase.storage
         .from('attachments')
-        .upload(path, file);
+        .upload(path, file, { contentType: file.type });
 
       if (uploadErr) throw new Error(`上传文件 ${file.name} 失败: ${uploadErr.message}`);
 
