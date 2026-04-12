@@ -157,17 +157,27 @@ export default function DataExport() {
         case 'chemical_inventory': {
           const { data, error: err } = await supabase
             .from('chemicals')
-            .select('name, batch_number, cas_number, category, stock, unit, location, molecular_formula, expiry_date, updated_at')
-            .order('name');
+            .select('name, batch_number, cas_number, category, stock, unit, location, storage_location, molecular_formula, specification, purity, manufacturer, expiry_date, updated_at')
+            .order('batch_number');
           if (err) throw err;
+          const getZone = (bn: string | null) => {
+            if (!bn) return '未编号';
+            const prefix = bn.charAt(0).toUpperCase();
+            const zones: Record<string, string> = { A: 'A区', B: 'B区', C: 'C区', D: 'D区' };
+            return zones[prefix] ?? '上架';
+          };
           const rows = (data ?? []).map((c: Record<string, unknown>) => ({
-            '名称': c.name,
+            '区域': getZone(c.batch_number as string | null),
             '编号': c.batch_number ?? '',
+            '名称': c.name,
             'CAS号': c.cas_number ?? '',
-            '分类': c.category ?? '',
+            '规格': c.specification ?? '',
+            '纯度': c.purity ?? '',
+            '厂家': c.manufacturer ?? '',
             '库存': c.stock,
             '单位': c.unit,
-            '存放位置': c.location,
+            '存放位置': c.storage_location ?? c.location ?? '',
+            '分类': c.category ?? '',
             '分子式': c.molecular_formula ?? '',
             '有效期': c.expiry_date ?? '',
             '更新时间': c.updated_at,
