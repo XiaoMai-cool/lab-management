@@ -299,7 +299,7 @@ export default function ProfilePage() {
                   <div className="px-1 pt-2 pb-1">
                     <span className="text-xs font-semibold text-purple-600">药品管理</span>
                   </div>
-                  <QuickLinkButton label="药品库存" path="/reagents/new" icon={FlaskConical} color="text-purple-600 bg-purple-50" navigate={navigate} />
+                  <QuickLinkButton label="药品库存" path="/reagents" icon={FlaskConical} color="text-purple-600 bg-purple-50" navigate={navigate} />
                   <QuickLinkButton label="补货管理" path="/reagents/warnings" icon={AlertTriangle} color="text-purple-600 bg-purple-50" navigate={navigate} />
                   <QuickLinkButton label="入库登记" path="/purchases/registration" icon={LogIn} color="text-purple-600 bg-purple-50" navigate={navigate} />
                 </>
@@ -311,7 +311,7 @@ export default function ProfilePage() {
                   <div className="px-1 pt-2 pb-1">
                     <span className="text-xs font-semibold text-orange-600">值日管理</span>
                   </div>
-                  <QuickLinkButton label="值日管理" path="/duty" icon={CalendarCheck} color="text-orange-600 bg-orange-50" navigate={navigate} />
+                  <QuickLinkButton label="值日管理" path="/admin/duty-manage" icon={CalendarCheck} color="text-orange-600 bg-orange-50" navigate={navigate} />
                 </>
               )}
 

@@ -62,7 +62,7 @@ export default function ReimbursementForm() {
         .eq('id', purchaseId)
         .eq('applicant_id', profile.id)
         .eq('approval_status', 'approved')
-        .or('reimbursement_status.is.null,reimbursement_status.eq.pending')
+        .or('reimbursement_status.is.null,reimbursement_status.eq.pending,reimbursement_status.eq.rejected')
         .single();
 
       if (fetchErr || !data) {
