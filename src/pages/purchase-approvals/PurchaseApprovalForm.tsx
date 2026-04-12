@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle, Upload, X, FileText, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -70,6 +70,7 @@ export default function PurchaseApprovalForm() {
 
   // Attachments
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [teachers, setTeachers] = useState<Profile[]>([]);
   const [defaultTeacherId, setDefaultTeacherId] = useState<string | null>(null);
@@ -187,9 +188,9 @@ export default function PurchaseApprovalForm() {
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFiles = e.target.files;
-    if (!selectedFiles) return;
+    if (!selectedFiles || selectedFiles.length === 0) return;
     setUploadingFiles(prev => [...prev, ...Array.from(selectedFiles)]);
-    e.target.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function removeFile(index: number) {
@@ -603,25 +604,29 @@ export default function PurchaseApprovalForm() {
           {/* 附件上传 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">附件（发票/收据等）</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-gray-400" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-500">支持图片、PDF、Word、Excel</p>
+                  <p className="text-xs text-gray-400">支持多选，也可多次添加</p>
                 </div>
-                <label className="shrink-0 cursor-pointer">
-                  <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Upload className="w-3.5 h-3.5" />
-                    选择文件
-                  </span>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </label>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {uploadingFiles.length > 0 ? '继续添加' : '选择文件'}
+                </button>
               </div>
 
               {uploadingFiles.length > 0 && (
