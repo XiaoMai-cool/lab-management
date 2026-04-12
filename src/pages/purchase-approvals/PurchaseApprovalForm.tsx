@@ -202,8 +202,7 @@ export default function PurchaseApprovalForm() {
 
     for (const file of uploadingFiles) {
       const ext = file.name.split('.').pop() ?? 'bin';
-      const timestamp = Date.now();
-      const path = `purchases/${profile.id}/${timestamp}.${ext}`;
+      const path = `purchases/${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
 
       const { error: uploadErr } = await supabase.storage
         .from('attachments')

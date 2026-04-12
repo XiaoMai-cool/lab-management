@@ -95,7 +95,7 @@ export default function ReimbursementForm() {
 
       try {
         const ext = file.name.split('.').pop() ?? 'bin';
-        const path = `reimbursements/${profile.id}/${Date.now()}.${ext}`;
+        const path = `reimbursements/${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
 
         const { error: uploadErr } = await supabase.storage
           .from('attachments')
