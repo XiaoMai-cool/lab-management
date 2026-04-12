@@ -70,7 +70,8 @@ const defaultFormData: FormData = {
 export default function ReagentForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { } = useAuth();
+  const { isAdmin, canManageModule } = useAuth();
+  const isChemicalsManager = isAdmin || canManageModule('chemicals');
   const isEdit = Boolean(id);
 
   const [form, setForm] = useState<FormData>(defaultFormData);
@@ -80,6 +81,7 @@ export default function ReagentForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [casSuggestion, setCasSuggestion] = useState<any | null>(null);
+  const [showMore, setShowMore] = useState(false);
 
   // 编号自动生成
   const [batchPrefix, setBatchPrefix] = useState('');
@@ -326,7 +328,7 @@ export default function ReagentForm() {
         <span>&larr;</span> 返回
       </button>
 
-      <PageHeader title={isEdit ? '编辑药品' : '添加药品'} />
+      <PageHeader title={isEdit ? '编辑药品' : '登记药品'} />
 
       {error && (
         <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
@@ -385,39 +387,6 @@ export default function ReagentForm() {
               )}
             </FormField>
 
-            <FormField label="CAS号" hint="如 7697-37-2">
-              <input
-                type="text"
-                value={form.cas_number}
-                onChange={(e) => updateField('cas_number', e.target.value)}
-                onBlur={handleCasBlur}
-                className="input"
-                placeholder="如 7697-37-2"
-              />
-            </FormField>
-
-            <FormField label="分子式">
-              <input
-                type="text"
-                value={form.molecular_formula}
-                onChange={(e) => updateField('molecular_formula', e.target.value)}
-                className="input"
-                placeholder="如 HNO3"
-              />
-            </FormField>
-
-            <FormField label="分类">
-              <select
-                value={form.category}
-                onChange={(e) => updateField('category', e.target.value)}
-                className="input"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </FormField>
-
             <FormField label="规格">
               <input
                 type="text"
@@ -428,108 +397,87 @@ export default function ReagentForm() {
               />
             </FormField>
 
-            <FormField label="浓度">
-              <input
-                type="text"
-                value={form.concentration}
-                onChange={(e) => updateField('concentration', e.target.value)}
-                className="input"
-                placeholder="如 65-68%"
-              />
-            </FormField>
+            {(isChemicalsManager || showMore) && (
+              <>
+                <FormField label="CAS号" hint="如 7697-37-2">
+                  <input
+                    type="text"
+                    value={form.cas_number}
+                    onChange={(e) => updateField('cas_number', e.target.value)}
+                    onBlur={handleCasBlur}
+                    className="input"
+                    placeholder="如 7697-37-2"
+                  />
+                </FormField>
 
-            <FormField label="纯度">
-              <input
-                type="text"
-                value={form.purity}
-                onChange={(e) => updateField('purity', e.target.value)}
-                className="input"
-                placeholder="如 AR, GR, CP"
-              />
-            </FormField>
+                <FormField label="分子式">
+                  <input
+                    type="text"
+                    value={form.molecular_formula}
+                    onChange={(e) => updateField('molecular_formula', e.target.value)}
+                    className="input"
+                    placeholder="如 HNO3"
+                  />
+                </FormField>
 
-            <FormField label="厂家">
-              <input
-                type="text"
-                value={form.manufacturer}
-                onChange={(e) => updateField('manufacturer', e.target.value)}
-                className="input"
-                placeholder="如 国药集团"
-              />
-            </FormField>
+                <FormField label="分类">
+                  <select
+                    value={form.category}
+                    onChange={(e) => updateField('category', e.target.value)}
+                    className="input"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </FormField>
+
+                <FormField label="浓度">
+                  <input
+                    type="text"
+                    value={form.concentration}
+                    onChange={(e) => updateField('concentration', e.target.value)}
+                    className="input"
+                    placeholder="如 65-68%"
+                  />
+                </FormField>
+
+                <FormField label="纯度">
+                  <input
+                    type="text"
+                    value={form.purity}
+                    onChange={(e) => updateField('purity', e.target.value)}
+                    className="input"
+                    placeholder="如 AR, GR, CP"
+                  />
+                </FormField>
+
+                <FormField label="厂家">
+                  <input
+                    type="text"
+                    value={form.manufacturer}
+                    onChange={(e) => updateField('manufacturer', e.target.value)}
+                    className="input"
+                    placeholder="如 国药集团"
+                  />
+                </FormField>
+              </>
+            )}
           </div>
+          {!isChemicalsManager && !showMore && (
+            <button
+              type="button"
+              onClick={() => setShowMore(true)}
+              className="mt-3 text-sm text-indigo-600 hover:text-indigo-800"
+            >
+              更多信息（选填）▼
+            </button>
+          )}
         </Card>
 
         <Card>
           <h3 className="mb-4 font-medium text-gray-900">供应与库存</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="供应商" className="sm:col-span-2">
-              <div className="flex gap-2">
-                <select
-                  value={form.supplier_id}
-                  onChange={(e) => {
-                    if (e.target.value === '__new__') {
-                      setShowNewSupplier(true);
-                      return;
-                    }
-                    updateField('supplier_id', e.target.value);
-                  }}
-                  className="input flex-1"
-                >
-                  <option value="">请选择供应商</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                  <option value="__new__">+ 添加新供应商</option>
-                </select>
-              </div>
-
-              {/* 新供应商内联表单 */}
-              {showNewSupplier && (
-                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
-                  <p className="text-sm font-medium text-gray-700">添加新供应商</p>
-                  <input
-                    type="text"
-                    value={newSupplierName}
-                    onChange={(e) => setNewSupplierName(e.target.value)}
-                    className="input"
-                    placeholder="供应商名称 *"
-                  />
-                  <input
-                    type="text"
-                    value={newSupplierContact}
-                    onChange={(e) => setNewSupplierContact(e.target.value)}
-                    className="input"
-                    placeholder="联系人"
-                  />
-                  <input
-                    type="text"
-                    value={newSupplierPhone}
-                    onChange={(e) => setNewSupplierPhone(e.target.value)}
-                    className="input"
-                    placeholder="电话"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleAddSupplier}
-                      disabled={addingSupplier || !newSupplierName.trim()}
-                      className="rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {addingSupplier ? '添加中...' : '确认添加'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowNewSupplier(false)}
-                      className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-                    >
-                      取消
-                    </button>
-                  </div>
-                </div>
-              )}
-            </FormField>
-
             <FormField label="单位">
               <input
                 type="text"
@@ -546,16 +494,6 @@ export default function ReagentForm() {
                 min={0}
                 value={form.stock}
                 onChange={(e) => updateField('stock', parseInt(e.target.value) || 0)}
-                className="input"
-              />
-            </FormField>
-
-            <FormField label="最低库存预警">
-              <input
-                type="number"
-                min={0}
-                value={form.min_stock}
-                onChange={(e) => updateField('min_stock', parseInt(e.target.value) || 0)}
                 className="input"
               />
             </FormField>
@@ -587,81 +525,167 @@ export default function ReagentForm() {
                     {p}
                   </button>
                 ))}
-                <input
-                  type="text"
-                  placeholder="自定义前缀"
-                  className="w-20 px-2 py-1 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); generateBatchNumber((e.target as HTMLInputElement).value); } }}
-                  onBlur={e => { if (e.target.value.trim()) generateBatchNumber(e.target.value); }}
-                />
+                {isChemicalsManager && (
+                  <input
+                    type="text"
+                    placeholder="自定义前缀"
+                    className="w-20 px-2 py-1 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); generateBatchNumber((e.target as HTMLInputElement).value); } }}
+                    onBlur={e => { if (e.target.value.trim()) generateBatchNumber(e.target.value); }}
+                  />
+                )}
               </div>
               <input
                 type="text"
                 value={form.batch_number}
                 onChange={(e) => updateField('batch_number', e.target.value)}
+                readOnly={!isChemicalsManager}
                 className="input"
                 placeholder="选择前缀自动生成，或手动输入"
               />
             </FormField>
 
-            <FormField label="有效期">
-              <input
-                type="date"
-                value={form.expiry_date}
-                onChange={(e) => updateField('expiry_date', e.target.value)}
-                className="input"
-              />
-            </FormField>
+            {(isChemicalsManager || showMore) && (
+              <>
+                <FormField label="供应商" className="sm:col-span-2">
+                  <div className="flex gap-2">
+                    <select
+                      value={form.supplier_id}
+                      onChange={(e) => {
+                        if (e.target.value === '__new__') {
+                          setShowNewSupplier(true);
+                          return;
+                        }
+                        updateField('supplier_id', e.target.value);
+                      }}
+                      className="input flex-1"
+                    >
+                      <option value="">请选择供应商</option>
+                      {suppliers.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                      <option value="__new__">+ 添加新供应商</option>
+                    </select>
+                  </div>
 
-            <FormField label="价格 (¥)">
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={form.price}
-                onChange={(e) => updateField('price', e.target.value)}
-                className="input"
-                placeholder="0.00"
-              />
-            </FormField>
+                  {/* 新供应商内联表单 */}
+                  {showNewSupplier && (
+                    <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                      <p className="text-sm font-medium text-gray-700">添加新供应商</p>
+                      <input
+                        type="text"
+                        value={newSupplierName}
+                        onChange={(e) => setNewSupplierName(e.target.value)}
+                        className="input"
+                        placeholder="供应商名称 *"
+                      />
+                      <input
+                        type="text"
+                        value={newSupplierContact}
+                        onChange={(e) => setNewSupplierContact(e.target.value)}
+                        className="input"
+                        placeholder="联系人"
+                      />
+                      <input
+                        type="text"
+                        value={newSupplierPhone}
+                        onChange={(e) => setNewSupplierPhone(e.target.value)}
+                        className="input"
+                        placeholder="电话"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleAddSupplier}
+                          disabled={addingSupplier || !newSupplierName.trim()}
+                          className="rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {addingSupplier ? '添加中...' : '确认添加'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewSupplier(false)}
+                          className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </FormField>
 
-            <FormField label="MSDS链接" className="sm:col-span-2">
-              <input
-                type="url"
-                value={form.msds_url}
-                onChange={(e) => updateField('msds_url', e.target.value)}
-                className="input"
-                placeholder="https://..."
-              />
-            </FormField>
-          </div>
-        </Card>
-
-        <Card>
-          <h3 className="mb-4 font-medium text-gray-900">GHS安全标签</h3>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {GHS_OPTIONS.map((opt) => {
-              const checked = form.ghs_labels.includes(opt.value);
-              return (
-                <label
-                  key={opt.value}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 transition-colors ${
-                    checked ? opt.color : 'border-gray-200 bg-white hover:bg-gray-50'
-                  }`}
-                >
+                <FormField label="最低库存预警">
                   <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleGhs(opt.value)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    type="number"
+                    min={0}
+                    value={form.min_stock}
+                    onChange={(e) => updateField('min_stock', parseInt(e.target.value) || 0)}
+                    className="input"
                   />
-                  <span className="text-base">{opt.icon}</span>
-                  <span className="text-sm font-medium">{opt.label}</span>
-                </label>
-              );
-            })}
+                </FormField>
+
+                <FormField label="有效期">
+                  <input
+                    type="date"
+                    value={form.expiry_date}
+                    onChange={(e) => updateField('expiry_date', e.target.value)}
+                    className="input"
+                  />
+                </FormField>
+
+                <FormField label="价格 (¥)">
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={form.price}
+                    onChange={(e) => updateField('price', e.target.value)}
+                    className="input"
+                    placeholder="0.00"
+                  />
+                </FormField>
+
+                <FormField label="MSDS链接" className="sm:col-span-2">
+                  <input
+                    type="url"
+                    value={form.msds_url}
+                    onChange={(e) => updateField('msds_url', e.target.value)}
+                    className="input"
+                    placeholder="https://..."
+                  />
+                </FormField>
+              </>
+            )}
           </div>
         </Card>
+
+        {(isChemicalsManager || showMore) && (
+          <Card>
+            <h3 className="mb-4 font-medium text-gray-900">GHS安全标签</h3>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {GHS_OPTIONS.map((opt) => {
+                const checked = form.ghs_labels.includes(opt.value);
+                return (
+                  <label
+                    key={opt.value}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 transition-colors ${
+                      checked ? opt.color : 'border-gray-200 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleGhs(opt.value)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <span className="text-base">{opt.icon}</span>
+                    <span className="text-sm font-medium">{opt.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         {/* 提交按钮 */}
         <div className="flex gap-3">
