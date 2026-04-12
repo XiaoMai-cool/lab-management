@@ -368,7 +368,7 @@ export default function ReimbursementForm() {
               multiple
               accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
               onChange={handleFileSelect}
-              className="hidden"
+              className="sr-only"
             />
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
               <div className="flex items-center gap-3 mb-2">

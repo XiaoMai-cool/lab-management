@@ -75,7 +75,7 @@ const FileUploader = forwardRef<FileUploaderHandle, FileUploaderProps>(
 
     return (
       <div className="space-y-2">
-        <input ref={fileInputRef} type="file" multiple accept={accept} onChange={handleFileSelect} className="hidden" />
+        <input ref={fileInputRef} type="file" multiple accept={accept} onChange={handleFileSelect} className="sr-only" />
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}

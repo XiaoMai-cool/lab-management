@@ -383,7 +383,7 @@ export default function PurchaseApprovalForm() {
         multiple
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
         onChange={handleFileSelect}
-        className="hidden"
+        className="sr-only"
       />
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">

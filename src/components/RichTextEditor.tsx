@@ -100,7 +100,7 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
         <button type="button" onClick={() => fileInputRef.current?.click()} className={btnClass(false)} title="插入图片">
           <ImageIcon className="w-4 h-4" />
         </button>
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="sr-only" />
       </div>
       {/* Editor */}
       <EditorContent editor={editor} />
