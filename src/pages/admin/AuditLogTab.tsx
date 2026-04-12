@@ -53,12 +53,12 @@ const TAG_FILTERS: TagFilter[] = [
 const MODULES = [...new Set(TAG_FILTERS.map((t) => t.module))];
 
 const MODULE_COLORS: Record<string, { selected: string; selectAll: string }> = {
-  '采购审批': { selected: 'bg-amber-100 text-amber-800 border-amber-300', selectAll: 'border-amber-400 text-amber-700' },
-  '报销审批': { selected: 'bg-yellow-100 text-yellow-800 border-yellow-300', selectAll: 'border-yellow-400 text-yellow-700' },
-  '药品管理': { selected: 'bg-purple-100 text-purple-800 border-purple-300', selectAll: 'border-purple-400 text-purple-700' },
-  '物资申领': { selected: 'bg-blue-100 text-blue-800 border-blue-300', selectAll: 'border-blue-400 text-blue-700' },
-  '物资借用': { selected: 'bg-teal-100 text-teal-800 border-teal-300', selectAll: 'border-teal-400 text-teal-700' },
-  '用户管理': { selected: 'bg-gray-200 text-gray-800 border-gray-400', selectAll: 'border-gray-400 text-gray-700' },
+  '采购审批': { selected: 'bg-amber-50 text-amber-700 border-amber-200', selectAll: 'bg-amber-50 text-amber-700 border-amber-300' },
+  '报销审批': { selected: 'bg-yellow-50 text-yellow-700 border-yellow-200', selectAll: 'bg-yellow-50 text-yellow-700 border-yellow-300' },
+  '药品管理': { selected: 'bg-purple-50 text-purple-700 border-purple-200', selectAll: 'bg-purple-50 text-purple-700 border-purple-300' },
+  '物资申领': { selected: 'bg-blue-50 text-blue-700 border-blue-200', selectAll: 'bg-blue-50 text-blue-700 border-blue-300' },
+  '物资借用': { selected: 'bg-teal-50 text-teal-700 border-teal-200', selectAll: 'bg-teal-50 text-teal-700 border-teal-300' },
+  '用户管理': { selected: 'bg-gray-100 text-gray-700 border-gray-300', selectAll: 'bg-gray-100 text-gray-700 border-gray-300' },
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -379,10 +379,10 @@ export default function AuditLogTab() {
               <span className="text-xs text-gray-500 w-16 shrink-0">{module}</span>
               <button
                 onClick={() => toggleModule(module)}
-                className={`px-2 py-0.5 text-[11px] font-medium rounded border-2 transition-colors ${
+                className={`px-2 py-0.5 text-[11px] font-medium rounded border transition-colors ${
                   allSelected
-                    ? `${colors.selectAll} bg-opacity-20 bg-current`
-                    : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                    ? colors.selectAll
+                    : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
                 }`}
               >
                 全选
