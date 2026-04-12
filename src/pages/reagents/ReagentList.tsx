@@ -400,14 +400,12 @@ export default function ReagentList() {
         title="药品总览"
         subtitle={`共 ${chemicals.length} 种药品`}
         action={
-          canManage ? (
-            <button
-              onClick={() => navigate('/reagents/new')}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
-            >
-              + 添加药品
-            </button>
-          ) : undefined
+          <button
+            onClick={() => navigate('/reagents/new')}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+          >
+            + 登记药品
+          </button>
         }
       />
 

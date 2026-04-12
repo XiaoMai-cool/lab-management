@@ -80,7 +80,7 @@ export default function App() {
 
               {/* 药品 */}
               <Route path="/reagents" element={<ReagentList />} />
-              <Route path="/reagents/new" element={<ProtectedRoute requiredModule="chemicals"><ReagentForm /></ProtectedRoute>} />
+              <Route path="/reagents/new" element={<ReagentForm />} />
               <Route path="/reagents/:id" element={<ReagentDetail />} />
               <Route path="/reagents/:id/edit" element={<ProtectedRoute requiredModule="chemicals"><ReagentForm /></ProtectedRoute>} />
               <Route path="/reagents/purchase" element={<ReagentPurchaseRequest />} />
