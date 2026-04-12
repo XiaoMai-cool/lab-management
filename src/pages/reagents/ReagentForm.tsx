@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { auditLog } from '../../lib/auditLog';
 import Card from '../../components/Card';
 import PageHeader from '../../components/PageHeader';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -88,7 +89,9 @@ export default function ReagentForm() {
   const [generatingBatch, setGeneratingBatch] = useState(false);
 
   // 药品名称搜索（重复检查）
-  const [nameSuggestions, setNameSuggestions] = useState<{ name: string; specification: string; batch_number: string | null }[]>([]);
+  const [nameSuggestions, setNameSuggestions] = useState<{ id: string; name: string; specification: string; batch_number: string | null; stock: number; unit: string }[]>([]);
+  const [stockMode, setStockMode] = useState<{ id: string; name: string; batch_number: string; currentStock: number; unit: string } | null>(null);
+  const [addStockAmount, setAddStockAmount] = useState<number>(0);
   const [nameSearchTimer, setNameSearchTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // 新供应商内联表单
@@ -163,12 +166,27 @@ export default function ReagentForm() {
       const timer = setTimeout(async () => {
         const { data } = await supabase
           .from('chemicals')
-          .select('name, specification, batch_number')
+          .select('id, name, specification, batch_number, stock, unit')
           .ilike('name', `%${keyword}%`)
-          .limit(5);
+          .limit(8);
         if (data) setNameSuggestions(data);
       }, 300);
       setNameSearchTimer(timer);
+    }
+    if (key === 'cas_number' && typeof value === 'string') {
+      const cas = (value as string).trim();
+      if (cas.length >= 5) {
+        void supabase
+          .from('chemicals')
+          .select('id, name, specification, batch_number, stock, unit')
+          .eq('cas_number', cas)
+          .limit(5)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              setNameSuggestions(data);
+            }
+          });
+      }
     }
   }
 
@@ -268,6 +286,31 @@ export default function ReagentForm() {
     }
   }
 
+  async function handleStockAdd() {
+    if (!stockMode || addStockAmount <= 0) return;
+    try {
+      setSaving(true);
+      setError(null);
+      const newStock = stockMode.currentStock + addStockAmount;
+      const { error: updateErr } = await supabase
+        .from('chemicals')
+        .update({ stock: newStock })
+        .eq('id', stockMode.id);
+      if (updateErr) throw updateErr;
+      await auditLog({
+        action: 'stock_add',
+        targetTable: 'chemicals',
+        targetId: stockMode.id,
+        details: { name: stockMode.name, batch_number: stockMode.batch_number, added: addStockAmount, before: stockMode.currentStock, after: newStock },
+      });
+      navigate(`/reagents/${stockMode.id}`);
+    } catch (err: any) {
+      setError(err.message || '更新库存失败');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
@@ -309,6 +352,14 @@ export default function ReagentForm() {
       }
 
       if (result.error) throw result.error;
+      if (!isEdit) {
+        await auditLog({
+          action: 'create',
+          targetTable: 'chemicals',
+          targetId: result.data.id,
+          details: { name: form.name.trim(), batch_number: form.batch_number.trim() || null },
+        });
+      }
       navigate(`/reagents/${result.data.id}`);
     } catch (err: any) {
       setError(err.message || '保存失败');
@@ -361,6 +412,54 @@ export default function ReagentForm() {
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+        {stockMode ? (
+          <Card>
+            <h3 className="mb-4 font-medium text-green-800">增加库存</h3>
+            <div className="space-y-4">
+              <FormField label="药品名称">
+                <input type="text" value={stockMode.name} readOnly className="input bg-gray-50" />
+              </FormField>
+              <FormField label="编号">
+                <input type="text" value={stockMode.batch_number || '无'} readOnly className="input bg-gray-50" />
+              </FormField>
+              <FormField label="当前库存">
+                <input type="text" value={`${stockMode.currentStock} ${stockMode.unit}`} readOnly className="input bg-gray-50" />
+              </FormField>
+              <FormField label="新增数量">
+                <input
+                  type="number"
+                  min={1}
+                  value={addStockAmount || ''}
+                  onChange={(e) => setAddStockAmount(parseInt(e.target.value) || 0)}
+                  className="input"
+                  placeholder="输入新增数量"
+                />
+              </FormField>
+              {addStockAmount > 0 && (
+                <p className="text-sm text-gray-600">
+                  添加后总库存: {stockMode.currentStock} + {addStockAmount} = <strong className="text-green-700">{stockMode.currentStock + addStockAmount} {stockMode.unit}</strong>
+                </p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleStockAdd}
+                  disabled={saving || addStockAmount <= 0}
+                  className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50"
+                >
+                  {saving ? '更新中...' : '确认增加库存'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStockMode(null); setAddStockAmount(0); }}
+                  className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  取消，添加为新药品
+                </button>
+              </div>
+            </div>
+          </Card>
+        ) : (<>
         <Card>
           <h3 className="mb-4 font-medium text-gray-900">基本信息</h3>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -373,16 +472,33 @@ export default function ReagentForm() {
                 placeholder="如: 硝酸"
                 required
               />
-              {nameSuggestions.length > 0 && (
+              {!stockMode && nameSuggestions.length > 0 && (
                 <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-sm">
-                  <p className="px-3 py-1.5 text-[10px] text-gray-400 border-b border-gray-100">已有相似药品</p>
+                  <p className="px-3 py-1.5 text-[10px] text-gray-400 border-b border-gray-100">已有相似药品（点击可增加库存）</p>
                   {nameSuggestions.map((s, i) => (
-                    <div key={i} className="px-3 py-1.5 text-xs text-gray-600 flex items-center gap-2 border-b border-gray-50 last:border-0">
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setStockMode({ id: s.id, name: s.name, batch_number: s.batch_number || '', currentStock: s.stock, unit: s.unit });
+                        setNameSuggestions([]);
+                        setAddStockAmount(0);
+                      }}
+                      className="w-full px-3 py-1.5 text-xs text-gray-600 flex items-center gap-2 border-b border-gray-50 last:border-0 hover:bg-indigo-50 transition-colors text-left"
+                    >
                       <span className="font-medium text-gray-900">{s.name}</span>
                       {s.batch_number && <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[10px] font-bold">{s.batch_number}</span>}
                       {s.specification && <span className="text-gray-400">{s.specification}</span>}
-                    </div>
+                      <span className="ml-auto text-gray-400">库存: {s.stock} {s.unit}</span>
+                    </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setNameSuggestions([])}
+                    className="w-full px-3 py-2 text-xs text-indigo-600 font-medium hover:bg-gray-50 transition-colors text-center border-t border-gray-100"
+                  >
+                    添加为新药品
+                  </button>
                 </div>
               )}
             </FormField>
@@ -704,6 +820,7 @@ export default function ReagentForm() {
             取消
           </button>
         </div>
+        </>)}
       </form>
     </div>
   );
