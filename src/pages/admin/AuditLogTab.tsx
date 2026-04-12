@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { downloadExcel } from '../../lib/exportExcel';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import AuditDetailModal from '../../components/AuditDetailModal';
 
 interface AuditEntry {
   id: string;
@@ -124,6 +125,8 @@ export default function AuditLogTab() {
   const [customDateStart, setCustomDateStart] = useState('');
   const [customDateEnd, setCustomDateEnd] = useState('');
   const [useCustomDate, setUseCustomDate] = useState(false);
+
+  const [detailModal, setDetailModal] = useState<{ targetTable: string; targetId: string } | null>(null);
 
   // Users list for dropdown
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -418,7 +421,13 @@ export default function AuditLogTab() {
       ) : (
         <div className="space-y-2">
           {filteredLogs.map((log) => (
-            <div key={log.id} className="bg-white border border-gray-100 rounded-lg p-3 flex items-start gap-3">
+            <div
+              key={log.id}
+              onClick={() => log.target_id && setDetailModal({ targetTable: log.target_table, targetId: log.target_id })}
+              className={`bg-white border border-gray-100 rounded-lg p-3 flex items-start gap-3 ${
+                log.target_id ? 'cursor-pointer hover:border-blue-200 hover:shadow-sm transition-all' : ''
+              }`}
+            >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-gray-900">{log.user?.name ?? '未知'}</span>
@@ -446,6 +455,14 @@ export default function AuditLogTab() {
             </div>
           ))}
         </div>
+      )}
+      {detailModal && (
+        <AuditDetailModal
+          open={true}
+          onClose={() => setDetailModal(null)}
+          targetTable={detailModal.targetTable}
+          targetId={detailModal.targetId}
+        />
       )}
     </div>
   );
