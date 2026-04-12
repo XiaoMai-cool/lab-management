@@ -377,6 +377,14 @@ export default function PurchaseApprovalForm() {
       </button>
       <PageHeader title={isEditing ? '修改采购申请' : '采购申请'} subtitle={isEditing ? '修改后将重新提交审批' : '提交采购申请，审批通过后进行采购和报销'} />
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -604,14 +612,6 @@ export default function PurchaseApprovalForm() {
           {/* 附件上传 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">附件（发票/收据等）</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-gray-400" />
