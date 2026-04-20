@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1ad9c8fe-0831-4bc5-a746-d37dd8f66004",
+    "name": "玻璃器皿",
+    "sort_order": 2
+  },
+  {
+    "id": "1e45e9b7-68ce-4bf5-8e0c-3d6b5b3a98f0",
+    "name": "一次性耗材",
+    "sort_order": 3
+  },
+  {
+    "id": "6d845ad6-b33b-471b-88a5-8cdbfd1cf1ff",
+    "name": "其他",
+    "sort_order": 4
+  },
+  {
+    "id": "8724d5f4-7823-4a36-a84a-f2e15344277e",
+    "name": "非一次性耗材",
+    "sort_order": 1
+  }
+]
