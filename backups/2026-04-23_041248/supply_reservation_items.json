@@ -1,0 +1,122 @@
+[
+  {
+    "id": "138c3ff9-0ca2-467f-9d9c-8cfe7f83c0b4",
+    "reservation_id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "f78a8690-a620-4434-a7f7-17467220ed10",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "1fd93262-a8f6-4c2b-9aa4-c5485b06101d",
+    "reservation_id": "9feda36c-ffb8-47dc-b522-ebe8d1cfa2af",
+    "supply_id": "4084c4e1-8029-4334-88da-ca9187f54aea",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "23a4ae24-b618-4ce4-9692-7bb17c7f6ba9",
+    "reservation_id": "c55207b5-b0a2-4930-a844-10c4052724c2",
+    "supply_id": "bc9de5b0-65ac-40e7-abfe-0df1fedf1879",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "3d9c72a3-7179-4ba0-b832-95433f41b687",
+    "reservation_id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "c2f3f897-eb2a-4228-b243-9315a9a38b49",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "43c2a01c-3584-42ed-a1c2-7883bf2a9db1",
+    "reservation_id": "c55207b5-b0a2-4930-a844-10c4052724c2",
+    "supply_id": "e69eaefc-7148-42a0-8350-fe1932306d91",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "52735642-ad24-4aab-b071-f34b51891c2e",
+    "reservation_id": "7f27abcb-b023-49a5-a4e9-f4484493a3f7",
+    "supply_id": "c2f3f897-eb2a-4228-b243-9315a9a38b49",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "57ee2668-9668-4cf3-b864-3659961afbeb",
+    "reservation_id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "415b8e94-a8b6-4d07-b729-8fcb21a71e38",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "5a9c7bdf-e2bd-4576-abc0-c6a02f7de684",
+    "reservation_id": "9feda36c-ffb8-47dc-b522-ebe8d1cfa2af",
+    "supply_id": "c2f3f897-eb2a-4228-b243-9315a9a38b49",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "5afc4308-60a5-4138-b4fd-5ddccfd9f5f3",
+    "reservation_id": "9feda36c-ffb8-47dc-b522-ebe8d1cfa2af",
+    "supply_id": "e535486a-fe09-4e4d-a469-8f95cfb652e5",
+    "quantity": 3,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "6b085ae9-ab45-410d-86c4-bdd624cb4b29",
+    "reservation_id": "9feda36c-ffb8-47dc-b522-ebe8d1cfa2af",
+    "supply_id": "e69eaefc-7148-42a0-8350-fe1932306d91",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "a7cbaed6-13d2-4b82-8c58-3fc6ed00afd1",
+    "reservation_id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "18af56d3-eecf-42d0-9f25-d80157c01c08",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "c20eabf1-f902-4653-9b2a-fb1bb347af7e",
+    "reservation_id": "c55207b5-b0a2-4930-a844-10c4052724c2",
+    "supply_id": "e535486a-fe09-4e4d-a469-8f95cfb652e5",
+    "quantity": 3,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "e86eaaac-6a42-428c-b831-41174bc10bbd",
+    "reservation_id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "8132a4c0-8be0-4d27-95cb-924ca23493ad",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "f4fec792-010e-4feb-bd9d-30e41ac1ff01",
+    "reservation_id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "efe29779-a3d6-4961-9b07-ec61d8f861f4",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  },
+  {
+    "id": "f91d0f64-6adc-4bca-849a-4c7eb4af3712",
+    "reservation_id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "c6796516-db1c-4ae3-aca9-65fab9854fdf",
+    "quantity": 1,
+    "approved_quantity": null,
+    "removed": false
+  }
+]

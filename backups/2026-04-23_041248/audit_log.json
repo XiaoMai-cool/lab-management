@@ -1,0 +1,122 @@
+[
+  {
+    "id": "29b0635c-3714-4208-a9ef-f686e61d2051",
+    "user_id": "49459c18-6a4e-4ad3-b74f-3197689ecb27",
+    "action": "approve",
+    "target_table": "purchases",
+    "target_id": "0fa230fe-42a1-4454-ae8a-7359a0e48bba",
+    "details": {
+      "note": null,
+      "type": "reimbursement",
+      "title": "测试",
+      "amount": 1000
+    },
+    "created_at": "2026-04-12T16:42:04.794482+00:00"
+  },
+  {
+    "id": "3aa112b4-ec6a-4331-b902-141aa14290c5",
+    "user_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "action": "reject",
+    "target_table": "supply_reservations",
+    "target_id": "c55207b5-b0a2-4930-a844-10c4052724c2",
+    "details": {
+      "note": "需归还",
+      "quantity": 5,
+      "supplyName": "塑料量杯"
+    },
+    "created_at": "2026-04-20T04:55:51.48115+00:00"
+  },
+  {
+    "id": "41fea2fd-f408-468e-99de-98b0f386f9b1",
+    "user_id": "49459c18-6a4e-4ad3-b74f-3197689ecb27",
+    "action": "approve",
+    "target_table": "purchases",
+    "target_id": "14224e1a-fb5c-4ae9-bb3f-956c4565cdfe",
+    "details": {
+      "note": null,
+      "type": "reimbursement",
+      "title": "长沙市",
+      "amount": 1000
+    },
+    "created_at": "2026-04-12T16:42:09.834009+00:00"
+  },
+  {
+    "id": "4289b68c-b53f-4ee2-8623-2e9d56027974",
+    "user_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "action": "approve",
+    "target_table": "purchases",
+    "target_id": "14224e1a-fb5c-4ae9-bb3f-956c4565cdfe",
+    "details": {
+      "note": null,
+      "title": "长沙市",
+      "skipRegistration": true
+    },
+    "created_at": "2026-04-12T08:14:12.032842+00:00"
+  },
+  {
+    "id": "83bb9ac3-3099-4718-b4ed-e6487f7126b0",
+    "user_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "action": "approve",
+    "target_table": "purchases",
+    "target_id": "733a1e1e-b6ff-48a2-b213-552301730852",
+    "details": {
+      "note": null,
+      "title": "测试",
+      "skipRegistration": true
+    },
+    "created_at": "2026-04-20T05:17:56.538534+00:00"
+  },
+  {
+    "id": "92f729dc-deaa-4657-b130-1aff0e6e656a",
+    "user_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "action": "reject",
+    "target_table": "supply_reservations",
+    "target_id": "9feda36c-ffb8-47dc-b522-ebe8d1cfa2af",
+    "details": {
+      "note": "测试",
+      "quantity": 6,
+      "supplyName": "公牛插座"
+    },
+    "created_at": "2026-04-20T04:59:45.785952+00:00"
+  },
+  {
+    "id": "aa0a30a6-8abc-4dd4-8b17-c1598c84c1d1",
+    "user_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "action": "approve",
+    "target_table": "purchases",
+    "target_id": "0fa230fe-42a1-4454-ae8a-7359a0e48bba",
+    "details": {
+      "note": null,
+      "title": "测试",
+      "skipRegistration": true
+    },
+    "created_at": "2026-04-12T08:14:19.851163+00:00"
+  },
+  {
+    "id": "ab9b4788-7e8f-48c4-ad7b-ebe74f0ae878",
+    "user_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "action": "approve",
+    "target_table": "supply_reservations",
+    "target_id": "7f27abcb-b023-49a5-a4e9-f4484493a3f7",
+    "details": {
+      "note": null,
+      "quantity": 1,
+      "supplyName": "公牛插座"
+    },
+    "created_at": "2026-04-20T04:59:39.097943+00:00"
+  },
+  {
+    "id": "d30c24e1-e8a4-499a-9a78-72cbef586f4c",
+    "user_id": "49459c18-6a4e-4ad3-b74f-3197689ecb27",
+    "action": "approve",
+    "target_table": "purchases",
+    "target_id": "39a4ee19-474a-4911-9d73-796b1970e7c3",
+    "details": {
+      "note": null,
+      "type": "reimbursement",
+      "title": "测试",
+      "amount": 500
+    },
+    "created_at": "2026-04-12T16:41:59.961149+00:00"
+  }
+]

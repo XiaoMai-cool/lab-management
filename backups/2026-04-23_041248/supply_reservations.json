@@ -1,0 +1,54 @@
+[
+  {
+    "id": "7f27abcb-b023-49a5-a4e9-f4484493a3f7",
+    "supply_id": "c2f3f897-eb2a-4228-b243-9315a9a38b49",
+    "user_id": "af9bbdee-f570-427b-9f2a-b6638e0badc6",
+    "quantity": 1,
+    "purpose": "课题实验",
+    "is_returnable": false,
+    "status": "approved",
+    "reviewer_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "review_note": null,
+    "created_at": "2026-04-20T04:59:15.261383+00:00",
+    "reviewed_at": "2026-04-20T04:59:37.105+00:00"
+  },
+  {
+    "id": "9feda36c-ffb8-47dc-b522-ebe8d1cfa2af",
+    "supply_id": "c2f3f897-eb2a-4228-b243-9315a9a38b49",
+    "user_id": "af9bbdee-f570-427b-9f2a-b6638e0badc6",
+    "quantity": 6,
+    "purpose": "",
+    "is_returnable": false,
+    "status": "rejected",
+    "reviewer_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "review_note": "测试",
+    "created_at": "2026-04-20T04:56:26.778037+00:00",
+    "reviewed_at": "2026-04-20T04:59:44.374+00:00"
+  },
+  {
+    "id": "c55207b5-b0a2-4930-a844-10c4052724c2",
+    "supply_id": "e69eaefc-7148-42a0-8350-fe1932306d91",
+    "user_id": "af9bbdee-f570-427b-9f2a-b6638e0badc6",
+    "quantity": 5,
+    "purpose": "",
+    "is_returnable": false,
+    "status": "rejected",
+    "reviewer_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "review_note": "需归还",
+    "created_at": "2026-04-20T04:52:50.660168+00:00",
+    "reviewed_at": "2026-04-20T04:55:48.872+00:00"
+  },
+  {
+    "id": "fef00548-1189-4bfd-afe0-dfa89035cd60",
+    "supply_id": "c2f3f897-eb2a-4228-b243-9315a9a38b49",
+    "user_id": "af9bbdee-f570-427b-9f2a-b6638e0badc6",
+    "quantity": 7,
+    "purpose": "",
+    "is_returnable": false,
+    "status": "rejected",
+    "reviewer_id": "d464dc4d-6941-4582-bcee-c7280a94fd28",
+    "review_note": "测试",
+    "created_at": "2026-04-09T03:18:48.896621+00:00",
+    "reviewed_at": "2026-04-09T03:20:48.587+00:00"
+  }
+]
