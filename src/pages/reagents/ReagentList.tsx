@@ -28,6 +28,22 @@ const REAGENT_SUB_NAV: SubNavItem[] = [
   { to: '/reagents', label: '药品总览', exact: true },
 ];
 
+// 自然数序比较批号：A1 < A2 < A10 < B1 < 上-1 < 上-2 ...
+function compareBatchNumber(a: string | null, b: string | null): number {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  const re = /^(.*?)(\d+)$/;
+  const ma = a.match(re);
+  const mb = b.match(re);
+  if (ma && mb) {
+    const prefixCmp = ma[1].localeCompare(mb[1], 'zh');
+    if (prefixCmp !== 0) return prefixCmp;
+    return parseInt(ma[2], 10) - parseInt(mb[2], 10);
+  }
+  return a.localeCompare(b, 'zh');
+}
+
 interface ActiveWarning {
   id: string;
   chemical_id: string;
@@ -159,7 +175,11 @@ export default function ReagentList() {
       ]);
 
       if (chemRes.error) throw chemRes.error;
-      setChemicals(chemRes.data || []);
+      // 自然数序排序：A1, A2, ..., A10, A11（而非 A1, A10, A11, A2）
+      const sorted = (chemRes.data || []).slice().sort((a: any, b: any) => {
+        return compareBatchNumber(a.batch_number, b.batch_number);
+      });
+      setChemicals(sorted);
       setActiveWarnings((warnRes.data || []) as ActiveWarning[]);
     } catch (err: any) {
       setError(err.message || '加载药品列表失败');

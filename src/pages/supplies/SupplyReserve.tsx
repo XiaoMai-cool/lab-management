@@ -265,7 +265,7 @@ export default function SupplyReserve() {
   const selectedCount = selectedItems.size;
 
   return (
-    <div className="pb-32">
+    <div className={selectedCount > 0 ? 'pb-80 md:pb-72' : 'pb-8'}>
       <PageHeader title="申领物资" subtitle="选择需要的物资，提交后等待审批" />
 
       <div className="px-4 md:px-6 mt-2">
@@ -430,45 +430,15 @@ export default function SupplyReserve() {
             )}
           </div>
 
-          {/* Purpose with quick tags */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              用途 <span className="text-gray-400 font-normal">(选填)</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {PURPOSE_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handlePurposeTag(tag)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                    purpose === tag
-                      ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-            <input
-              ref={purposeInputRef}
-              type="text"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              placeholder="请简要说明用途"
-              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            />
-          </div>
         </form>
       </div>
 
-      {/* Sticky bottom summary */}
+      {/* Sticky bottom summary — includes purpose input so user doesn't need to scroll */}
       {selectedCount > 0 && (
         <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
-          <div className="max-w-2xl mx-auto px-4 py-3">
+          <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
             {/* Selected items list */}
-            <div className="flex flex-wrap gap-1.5 mb-2">
+            <div className="flex flex-wrap gap-1.5">
               {Array.from(selectedItems.values()).map(({ supply, quantity }) => (
                 <span
                   key={supply.id}
@@ -493,10 +463,41 @@ export default function SupplyReserve() {
 
             {/* Return-required hint */}
             {Array.from(selectedItems.values()).some(({ supply }) => supply.is_returnable) && (
-              <p className="text-[11px] text-amber-700 mb-2">
+              <p className="text-[11px] text-amber-700">
                 黄色标签物品为非一次性耗材/玻璃器皿，使用后需在"归还"页面归还。
               </p>
             )}
+
+            {/* Purpose: compact tag row + inline input */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-500 shrink-0">
+                用途 <span className="text-gray-400">(选填)</span>
+              </span>
+              <div className="flex gap-1 flex-wrap">
+                {PURPOSE_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handlePurposeTag(tag)}
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                      purpose === tag
+                        ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <input
+              ref={purposeInputRef}
+              type="text"
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              placeholder="请简要说明用途"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-colors"
+            />
 
             {/* Submit button */}
             <button
