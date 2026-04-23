@@ -7,6 +7,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { SupplyReservation } from '../../lib/types';
 import PageHeader from '../../components/PageHeader';
 
+interface ReservationItem {
+  id: string;
+  supply_id: string;
+  quantity: number;
+  supply: { name: string; specification: string; unit: string; stock: number; is_returnable?: boolean } | null;
+}
+
 function formatDateTime(dateStr: string) {
   const d = new Date(dateStr);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -25,6 +32,7 @@ export default function ReservationReview() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<SupplyReservation | null>(null);
   const [editStatus, setEditStatus] = useState<string>('');
+  const [reservationItems, setReservationItems] = useState<Record<string, ReservationItem[]>>({});
 
   const canReview = isAdmin || canManageModule('supplies');
 
@@ -44,6 +52,23 @@ export default function ReservationReview() {
 
         if (fetchError) throw fetchError;
         setReservations(data || []);
+
+        // Fetch reservation items
+        if (data && data.length > 0) {
+          const ids = data.map((r: any) => r.id);
+          const { data: items } = await supabase
+            .from('supply_reservation_items')
+            .select('id, reservation_id, supply_id, quantity, supply:supplies(name, specification, unit, stock, is_returnable)')
+            .in('reservation_id', ids);
+          if (items) {
+            const grouped: Record<string, ReservationItem[]> = {};
+            for (const item of items as any[]) {
+              if (!grouped[item.reservation_id]) grouped[item.reservation_id] = [];
+              grouped[item.reservation_id].push(item);
+            }
+            setReservationItems(prev => ({ ...prev, ...grouped }));
+          }
+        }
       } else {
         const { data, error: fetchError } = await supabase
           .from('supply_reservations')
@@ -55,6 +80,23 @@ export default function ReservationReview() {
 
         if (fetchError) throw fetchError;
         setReviewedList(data || []);
+
+        // Fetch reservation items for reviewed list
+        if (data && data.length > 0) {
+          const ids = data.map((r: any) => r.id);
+          const { data: items } = await supabase
+            .from('supply_reservation_items')
+            .select('id, reservation_id, supply_id, quantity, supply:supplies(name, specification, unit, stock, is_returnable)')
+            .in('reservation_id', ids);
+          if (items) {
+            const grouped: Record<string, ReservationItem[]> = {};
+            for (const item of items as any[]) {
+              if (!grouped[item.reservation_id]) grouped[item.reservation_id] = [];
+              grouped[item.reservation_id].push(item);
+            }
+            setReservationItems(prev => ({ ...prev, ...grouped }));
+          }
+        }
       }
     } catch (err: any) {
       setError(err.message || '加载失败');
@@ -75,6 +117,17 @@ export default function ReservationReview() {
     setActionError(null);
     try {
       const supply = reservation.supply as any;
+
+      // Block recall if any linked borrowing has been processed (returned/damaged)
+      const { data: borrowings } = await supabase
+        .from('supply_borrowings')
+        .select('id, status')
+        .eq('reservation_id', reservation.id);
+      if (borrowings?.some((b) => b.status !== 'borrowed')) {
+        setActionError('撤回失败：该申领已有物品归还或报损，请先在"借用管理"中处理。');
+        setProcessingId(null);
+        return;
+      }
 
       // Restore stock for all items first
       const { data: items } = await supabase
@@ -98,6 +151,15 @@ export default function ReservationReview() {
           p_delta: reservation.quantity,
         });
         if (stockError) throw stockError;
+      }
+
+      // Clear linked borrowings (they'll be re-created if re-approved)
+      if (borrowings && borrowings.length > 0) {
+        const { error: delError } = await supabase
+          .from('supply_borrowings')
+          .delete()
+          .eq('reservation_id', reservation.id);
+        if (delError) throw delError;
       }
 
       // Reset reservation status after stock is restored
@@ -133,15 +195,24 @@ export default function ReservationReview() {
       const oldStatus = reservation.status;
       const supply = reservation.supply as any;
 
-      // Adjust stock when changing to/from 'approved'
+      // Adjust stock + borrowings when changing to/from 'approved'
       if (oldStatus !== newStatus) {
         const { data: items } = await supabase
           .from('supply_reservation_items')
-          .select('supply_id, quantity')
+          .select('supply_id, quantity, supply:supplies(is_returnable)')
           .eq('reservation_id', reservation.id);
 
         if (oldStatus === 'approved' && newStatus !== 'approved') {
-          // Leaving approved: restore stock
+          // Leaving approved: block if any borrowings processed
+          const { data: borrowings } = await supabase
+            .from('supply_borrowings')
+            .select('id, status')
+            .eq('reservation_id', reservation.id);
+          if (borrowings?.some((b) => b.status !== 'borrowed')) {
+            throw new Error('该申领已有物品归还或报损，无法修改状态');
+          }
+
+          // Restore stock
           if (items && items.length > 0) {
             for (const item of items) {
               const { error: stockError } = await supabase.rpc('adjust_stock', {
@@ -159,8 +230,17 @@ export default function ReservationReview() {
             });
             if (stockError) throw stockError;
           }
+
+          // Delete borrowings
+          if (borrowings && borrowings.length > 0) {
+            const { error: delError } = await supabase
+              .from('supply_borrowings')
+              .delete()
+              .eq('reservation_id', reservation.id);
+            if (delError) throw delError;
+          }
         } else if (oldStatus !== 'approved' && newStatus === 'approved') {
-          // Entering approved: deduct stock
+          // Entering approved: deduct stock + create borrowings for returnables
           if (items && items.length > 0) {
             for (const item of items) {
               const { error: stockError } = await supabase.rpc('adjust_stock', {
@@ -170,6 +250,24 @@ export default function ReservationReview() {
               });
               if (stockError) throw stockError;
             }
+
+            const borrowingRows = (items as any[])
+              .filter((it) => it.supply?.is_returnable)
+              .map((it) => ({
+                supply_id: it.supply_id,
+                user_id: reservation.user_id,
+                quantity: it.quantity,
+                purpose: reservation.purpose || '',
+                status: 'borrowed',
+                borrowed_at: new Date().toISOString(),
+                reservation_id: reservation.id,
+              }));
+            if (borrowingRows.length > 0) {
+              const { error: borrowError } = await supabase
+                .from('supply_borrowings')
+                .insert(borrowingRows);
+              if (borrowError) throw borrowError;
+            }
           } else if (supply) {
             const { error: stockError } = await supabase.rpc('adjust_stock', {
               p_table: 'supplies',
@@ -177,6 +275,20 @@ export default function ReservationReview() {
               p_delta: -reservation.quantity,
             });
             if (stockError) throw stockError;
+            if (supply.is_returnable) {
+              const { error: borrowError } = await supabase
+                .from('supply_borrowings')
+                .insert({
+                  supply_id: supply.id,
+                  user_id: reservation.user_id,
+                  quantity: reservation.quantity,
+                  purpose: reservation.purpose || '',
+                  status: 'borrowed',
+                  borrowed_at: new Date().toISOString(),
+                  reservation_id: reservation.id,
+                });
+              if (borrowError) throw borrowError;
+            }
           }
         }
       }
@@ -242,14 +354,14 @@ export default function ReservationReview() {
     setActionError(null);
 
     try {
-      // Deduct stock for all items FIRST
+      // Load items with returnable flag so we can create borrowings for返还类
       const { data: items } = await supabase
         .from('supply_reservation_items')
-        .select('supply_id, quantity')
+        .select('supply_id, quantity, supply:supplies(is_returnable)')
         .eq('reservation_id', reservation.id);
 
+      // Deduct stock
       if (items && items.length > 0) {
-        // Multi-item: deduct each item's stock
         for (const item of items) {
           const { error: stockError } = await supabase.rpc('adjust_stock', {
             p_table: 'supplies',
@@ -259,7 +371,6 @@ export default function ReservationReview() {
           if (stockError) throw stockError;
         }
       } else if (supply) {
-        // Single-item fallback (header supply_id)
         const { error: stockError } = await supabase.rpc('adjust_stock', {
           p_table: 'supplies',
           p_id: supply.id,
@@ -268,7 +379,49 @@ export default function ReservationReview() {
         if (stockError) throw stockError;
       }
 
-      // Update reservation status after stock deduction succeeds
+      // Create borrowing records for returnable items so they show up in "我的归还"
+      const borrowings: Array<{
+        supply_id: string;
+        user_id: string;
+        quantity: number;
+        purpose: string;
+        status: string;
+        borrowed_at: string;
+        reservation_id: string;
+      }> = [];
+      if (items && items.length > 0) {
+        for (const item of items as any[]) {
+          if (item.supply?.is_returnable) {
+            borrowings.push({
+              supply_id: item.supply_id,
+              user_id: reservation.user_id,
+              quantity: item.quantity,
+              purpose: reservation.purpose || '',
+              status: 'borrowed',
+              borrowed_at: new Date().toISOString(),
+              reservation_id: reservation.id,
+            });
+          }
+        }
+      } else if (supply?.is_returnable) {
+        borrowings.push({
+          supply_id: supply.id,
+          user_id: reservation.user_id,
+          quantity: reservation.quantity,
+          purpose: reservation.purpose || '',
+          status: 'borrowed',
+          borrowed_at: new Date().toISOString(),
+          reservation_id: reservation.id,
+        });
+      }
+      if (borrowings.length > 0) {
+        const { error: borrowError } = await supabase
+          .from('supply_borrowings')
+          .insert(borrowings);
+        if (borrowError) throw borrowError;
+      }
+
+      // Update reservation status after stock + borrowings succeed
       const { error: updateError } = await supabase
         .from('supply_reservations')
         .update({
@@ -284,7 +437,12 @@ export default function ReservationReview() {
         action: 'approve',
         targetTable: 'supply_reservations',
         targetId: reservation.id,
-        details: { supplyName: supply?.name, quantity: reservation.quantity, note: reviewNotes[reservation.id]?.trim() || null },
+        details: {
+          supplyName: supply?.name,
+          quantity: reservation.quantity,
+          note: reviewNotes[reservation.id]?.trim() || null,
+          borrowingsCreated: borrowings.length,
+        },
       });
 
       // Remove from local list
@@ -464,10 +622,17 @@ export default function ReservationReview() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">
                       <h3 className="text-sm font-semibold text-gray-900">
-                        {supply?.name || '未知耗材'}
-                        {supply?.specification && (
-                          <span className="text-gray-400 font-normal ml-1.5">({supply.specification})</span>
-                        )}
+                        {reservationItems[reservation.id] && reservationItems[reservation.id].length > 1
+                          ? `物资申领 (${reservationItems[reservation.id].length}种)`
+                          : (
+                            <>
+                              {supply?.name || '未知耗材'}
+                              {supply?.specification && (
+                                <span className="text-gray-400 font-normal ml-1.5">({supply.specification})</span>
+                              )}
+                            </>
+                          )
+                        }
                       </h3>
                       <p className="text-xs text-gray-500 mt-0.5">
                         申请人: {requester?.name || '未知'}
@@ -478,10 +643,30 @@ export default function ReservationReview() {
                     </span>
                   </div>
 
+                  {/* Item details for reviewed */}
+                  {reservationItems[reservation.id] && reservationItems[reservation.id].length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-400 mb-1.5">申领明细</p>
+                      <div className="bg-gray-50 rounded-lg divide-y divide-gray-100">
+                        {reservationItems[reservation.id].map((item) => (
+                          <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                            <span className="text-gray-900">
+                              {item.supply?.name || '未知'}
+                              {item.supply?.specification && (
+                                <span className="text-gray-400 ml-1">({item.supply.specification})</span>
+                              )}
+                            </span>
+                            <span className="text-gray-900 text-xs font-medium">x{item.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-xs">
                     <div>
-                      <p className="text-gray-400">预约数量</p>
-                      <p className="text-sm font-semibold text-gray-900">{reservation.quantity} {supply?.unit || ''}</p>
+                      <p className="text-gray-400">总数量</p>
+                      <p className="text-sm font-semibold text-gray-900">{reservation.quantity} 件</p>
                     </div>
                     <div>
                       <p className="text-gray-400">申请时间</p>
@@ -593,12 +778,19 @@ export default function ReservationReview() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">
                       <h3 className="text-sm font-semibold text-gray-900">
-                        {supply?.name || '未知耗材'}
-                        {supply?.specification && (
-                          <span className="text-gray-400 font-normal ml-1.5">
-                            ({supply.specification})
-                          </span>
-                        )}
+                        {reservationItems[reservation.id] && reservationItems[reservation.id].length > 1
+                          ? `物资申领 (${reservationItems[reservation.id].length}种)`
+                          : (
+                            <>
+                              {supply?.name || '未知耗材'}
+                              {supply?.specification && (
+                                <span className="text-gray-400 font-normal ml-1.5">
+                                  ({supply.specification})
+                                </span>
+                              )}
+                            </>
+                          )
+                        }
                       </h3>
                       <p className="text-xs text-gray-500 mt-0.5">
                         申请人: {requester?.name || '未知'}
@@ -614,24 +806,55 @@ export default function ReservationReview() {
                     </span>
                   </div>
 
-                  {/* Details */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                    <div>
-                      <p className="text-xs text-gray-400">预约数量</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {reservation.quantity} {supply?.unit || ''}
-                      </p>
+                  {/* Item details */}
+                  {reservationItems[reservation.id] && reservationItems[reservation.id].length > 0 ? (
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-400 mb-1.5">申领明细</p>
+                      <div className="bg-gray-50 rounded-lg divide-y divide-gray-100">
+                        {reservationItems[reservation.id].map((item) => (
+                          <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                            <span className="text-gray-900">
+                              {item.supply?.name || '未知'}
+                              {item.supply?.specification && (
+                                <span className="text-gray-400 ml-1">({item.supply.specification})</span>
+                              )}
+                            </span>
+                            <div className="flex items-center gap-4 text-xs">
+                              <span className="text-gray-900 font-medium">x{item.quantity}</span>
+                              <span className={`${item.supply && item.supply.stock < item.quantity ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                库存 {item.supply?.stock ?? '-'}{item.supply?.unit ? ` ${item.supply.unit}` : ''}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  ) : (
+                    /* Fallback: single-item display */
+                    <div className="mb-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                          <p className="text-xs text-gray-400">预约数量</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {reservation.quantity} {supply?.unit || ''}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">当前库存</p>
+                          <p className={`text-sm font-semibold ${supply && supply.stock < reservation.quantity ? 'text-red-600' : 'text-gray-900'}`}>
+                            {supply?.stock ?? '-'} {supply?.unit || ''}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Details */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                     <div>
-                      <p className="text-xs text-gray-400">当前库存</p>
-                      <p
-                        className={`text-sm font-semibold ${
-                          supply && supply.stock < reservation.quantity
-                            ? 'text-red-600'
-                            : 'text-gray-900'
-                        }`}
-                      >
-                        {supply?.stock ?? '-'} {supply?.unit || ''}
+                      <p className="text-xs text-gray-400">总数量</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {reservation.quantity} 件
                       </p>
                     </div>
                     <div>

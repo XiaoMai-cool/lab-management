@@ -314,7 +314,4 @@ SUPABASE_SERVICE_KEY=你的key node scripts/restore-data.mjs backups/2026-04-05_
 ## 待办 / 下一版
 
 - [ ] 功能全面测试（各角色各流程，190+ 项测试清单）
-- [ ] 仪器设备管理
-- [ ] 组会管理 / Progress Report
-- [ ] 微信通知（企业微信机器人）
-- [ ] 配置自定义域名
+- [ ] 数据导出按日期筛选范围导出

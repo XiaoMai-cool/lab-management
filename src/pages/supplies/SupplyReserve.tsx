@@ -170,6 +170,9 @@ export default function SupplyReserve() {
       const firstItem = itemsArray[0];
       const totalQuantity = itemsArray.reduce((sum, item) => sum + item.quantity, 0);
 
+      // 聚合级 is_returnable：有任一项可归还即标记 true（用于历史兼容）
+      const anyReturnable = itemsArray.some((it) => it.supply.is_returnable);
+
       // Create reservation header (supply_id is NOT NULL, use first item for backward compat)
       const { data: reservation, error: insertError } = await supabase
         .from('supply_reservations')
@@ -178,7 +181,7 @@ export default function SupplyReserve() {
           user_id: user.id,
           quantity: totalQuantity,
           purpose: purpose.trim() || '',
-          is_returnable: false,
+          is_returnable: anyReturnable,
           status: 'pending',
         })
         .select('id')
@@ -465,23 +468,35 @@ export default function SupplyReserve() {
         <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30">
           <div className="max-w-2xl mx-auto px-4 py-3">
             {/* Selected items list */}
-            <div className="flex flex-wrap gap-1.5 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-2">
               {Array.from(selectedItems.values()).map(({ supply, quantity }) => (
                 <span
                   key={supply.id}
-                  className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-lg"
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg ${
+                    supply.is_returnable
+                      ? 'bg-amber-50 text-amber-700'
+                      : 'bg-blue-50 text-blue-700'
+                  }`}
                 >
-                  {supply.name} x{quantity}
+                  {supply.name}{supply.specification ? ` (${supply.specification})` : ''} x{quantity}
+                  {supply.is_returnable && <span className="text-[10px] opacity-70">需归还</span>}
                   <button
                     type="button"
                     onClick={() => toggleItem(supply)}
-                    className="hover:text-blue-900 cursor-pointer"
+                    className="hover:opacity-70 cursor-pointer"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
             </div>
+
+            {/* Return-required hint */}
+            {Array.from(selectedItems.values()).some(({ supply }) => supply.is_returnable) && (
+              <p className="text-[11px] text-amber-700 mb-2">
+                黄色标签物品为非一次性耗材/玻璃器皿，使用后需在"归还"页面归还。
+              </p>
+            )}
 
             {/* Submit button */}
             <button
