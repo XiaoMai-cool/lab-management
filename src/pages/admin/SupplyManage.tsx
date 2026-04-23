@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Pencil, Trash2, Package, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { auditLog } from '../../lib/auditLog';
 import type { Supply, SupplyCategory } from '../../lib/types';
@@ -7,6 +7,8 @@ import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+
+type ReturnableFilter = 'all' | 'returnable' | 'non-returnable';
 
 interface SupplyForm {
   name: string;
@@ -45,6 +47,9 @@ export default function SupplyManage() {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
+
+  const [returnableFilter, setReturnableFilter] = useState<ReturnableFilter>('all');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   async function fetchData() {
     setLoading(true);
@@ -165,6 +170,42 @@ export default function SupplyManage() {
     }
   }
 
+  async function toggleReturnable(supply: Supply) {
+    if (togglingId) return;
+    setTogglingId(supply.id);
+    const next = !supply.is_returnable;
+    // Optimistic update
+    setSupplies((prev) =>
+      prev.map((s) => (s.id === supply.id ? { ...s, is_returnable: next } : s))
+    );
+    try {
+      const { error: updateError } = await supabase
+        .from('supplies')
+        .update({ is_returnable: next, updated_at: new Date().toISOString() })
+        .eq('id', supply.id);
+      if (updateError) throw updateError;
+      await auditLog({
+        action: 'update',
+        targetTable: 'supplies',
+        targetId: supply.id,
+        details: {
+          field: 'is_returnable',
+          name: supply.name,
+          specification: supply.specification,
+          value: next,
+        },
+      });
+    } catch (err: any) {
+      // Rollback on failure
+      setSupplies((prev) =>
+        prev.map((s) => (s.id === supply.id ? { ...s, is_returnable: supply.is_returnable } : s))
+      );
+      setError(err.message || '切换失败');
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   async function handleDelete(id: string) {
     setDeleting(true);
 
@@ -193,16 +234,25 @@ export default function SupplyManage() {
     }
   }
 
+  // Apply filter
+  const filteredSupplies = useMemo(() => {
+    if (returnableFilter === 'returnable') return supplies.filter((s) => s.is_returnable);
+    if (returnableFilter === 'non-returnable') return supplies.filter((s) => !s.is_returnable);
+    return supplies;
+  }, [supplies, returnableFilter]);
+
   // Group supplies by category
   const grouped = categories.map((cat) => ({
     category: cat,
-    items: supplies.filter((s) => s.category_id === cat.id),
+    items: filteredSupplies.filter((s) => s.category_id === cat.id),
   }));
 
   // Supplies without a category
-  const uncategorized = supplies.filter(
+  const uncategorized = filteredSupplies.filter(
     (s) => !categories.some((c) => c.id === s.category_id)
   );
+
+  const returnableCount = supplies.filter((s) => s.is_returnable).length;
 
   if (loading) return <LoadingSpinner />;
 
@@ -232,6 +282,35 @@ export default function SupplyManage() {
         {/* Batch import hint */}
         <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-xs text-blue-700">
           如需批量导入库存数据，请联系管理员
+        </div>
+
+        {/* Returnable filter */}
+        <div className="mb-4 flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-500 shrink-0">归还属性：</span>
+          <div className="inline-flex bg-gray-100 rounded-lg p-0.5">
+            {(
+              [
+                { key: 'all', label: `全部 (${supplies.length})` },
+                { key: 'returnable', label: `可归还 (${returnableCount})` },
+                { key: 'non-returnable', label: `不归还 (${supplies.length - returnableCount})` },
+              ] as { key: ReturnableFilter; label: string }[]
+            ).map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setReturnableFilter(opt.key)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                  returnableFilter === opt.key
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-gray-400 ml-2">
+            点击物品上的"可归还/不归还"标签即可切换
+          </span>
         </div>
 
         {supplies.length === 0 ? (
@@ -272,15 +351,23 @@ export default function SupplyManage() {
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-sm font-semibold text-gray-900">
                                     {supply.name}
                                   </span>
-                                  {supply.is_returnable && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-600">
-                                      可归还
-                                    </span>
-                                  )}
+                                  <button
+                                    onClick={() => toggleReturnable(supply)}
+                                    disabled={togglingId === supply.id}
+                                    title="点击切换是否需要归还"
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+                                      supply.is_returnable
+                                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    }`}
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                    {supply.is_returnable ? '可归还' : '不归还'}
+                                  </button>
                                   {supply.stock <= supply.min_stock && (
                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
                                       库存不足

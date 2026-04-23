@@ -99,6 +99,21 @@ async function getCategoryMap(token) {
   return map;
 }
 
+// 在清空 supplies 之前抓取当前的 (name+spec -> is_returnable) 映射
+async function fetchReturnableSnapshot(token) {
+  const snap = new Map();
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/supplies?select=name,specification,is_returnable`,
+    { headers: headers(token) }
+  );
+  if (!res.ok) return snap;
+  const rows = await res.json();
+  for (const r of rows) {
+    snap.set(`${r.name}|${r.specification || ''}`, r.is_returnable);
+  }
+  return snap;
+}
+
 // 解析库存值：数字直接返回；"/" 表示未盘点（使用上一次记录）；"11+4" 求和；否则 0
 function parseStock(val) {
   if (val === null || val === undefined || val === '') return null;
@@ -369,6 +384,12 @@ async function main() {
   console.log(`✅ 登录成功 (${auth.mode})\n`);
   const token = auth;
 
+  // 0. 抓取当前 supplies 的 is_returnable 快照，用于在导入后沿用管理员的手动设置
+  const returnableSnapshot = await fetchReturnableSnapshot(token);
+  if (returnableSnapshot.size > 0) {
+    console.log(`📸 已保存 ${returnableSnapshot.size} 条现有 is_returnable 设置，刷新后会沿用\n`);
+  }
+
   // 1. 清空所有操作记录（保留 profiles / announcements / documents / duty_roster 等）
   console.log('--- 清空测试操作记录 ---');
   const opTables = [
@@ -403,8 +424,17 @@ async function main() {
   if (Object.keys(catMap).length === 0) {
     throw new Error('supply_categories 表为空，请先运行 schema.sql 的 seed 数据');
   }
-  // 可归还 = 非一次性耗材 + 玻璃器皿
-  const RETURNABLE_CATS = new Set(['非一次性耗材', '玻璃器皿']);
+
+  // 按"名称+类别"判断默认可归还性。单独为"其他"类别中的可复用物品做覆盖。
+  // 管理员此前已经改过的条目（在 snapshot 里）优先沿用旧值。
+  const RETURNABLE_BY_CATEGORY = new Set(['非一次性耗材', '玻璃器皿']);
+  const RETURNABLE_OVERRIDES = new Set([
+    // "其他"类别里的可复用设备/防护装备
+    '便携式哈希多功能测试仪',
+    '防毒面具',
+    '缝纫机',
+  ]);
+
   const supplyRows = [];
   for (const [catName, items] of Object.entries(suppliesByCategory)) {
     const categoryId = catMap[catName];
@@ -413,15 +443,26 @@ async function main() {
       continue;
     }
     for (const item of items) {
+      const key = `${item.name}|${item.specification}`;
+      // Priority: admin's previous manual setting > name override > category default
+      const is_returnable =
+        returnableSnapshot.has(key)
+          ? returnableSnapshot.get(key) === true
+          : RETURNABLE_OVERRIDES.has(item.name) ||
+            RETURNABLE_BY_CATEGORY.has(catName);
       supplyRows.push({
         ...item,
         category_id: categoryId,
-        is_returnable: RETURNABLE_CATS.has(catName),
+        is_returnable,
       });
     }
   }
   await insertBatch(token, 'supplies', supplyRows);
-  console.log(`  ✅ 导入 ${supplyRows.length} 条耗材\n`);
+  console.log(`  ✅ 导入 ${supplyRows.length} 条耗材`);
+  const sameCount = supplyRows.filter(
+    (r) => returnableSnapshot.has(`${r.name}|${r.specification}`)
+  ).length;
+  console.log(`  （沿用 ${sameCount} 条管理员旧设置）\n`);
 
   console.log('--- 导入药品 ---');
   await insertBatch(token, 'chemicals', chemicals, 20);
