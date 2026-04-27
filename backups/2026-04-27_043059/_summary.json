@@ -1,21 +1,21 @@
 {
-  "backup_time": "2026-04-05T14:54:31.304Z",
-  "total_tables": 25,
-  "total_rows": 206,
+  "backup_time": "2026-04-27T04:30:59.089Z",
+  "total_tables": 26,
+  "total_rows": 271,
   "tables": {
     "profiles": 14,
     "announcements": 4,
     "daily_notices": 5,
     "documents": 0,
     "supply_categories": 4,
-    "supplies": 51,
+    "supplies": 95,
     "supply_reservations": 0,
     "supply_reservation_items": 0,
     "supply_borrowings": 0,
-    "chemicals": 120,
+    "chemicals": 136,
     "chemical_usage_logs": 0,
     "chemical_purchases": 0,
-    "chemical_warnings": 5,
+    "chemical_warnings": 0,
     "duty_roster": 0,
     "duty_config": 2,
     "duty_overrides": 0,
@@ -26,7 +26,8 @@
     "purchase_logs": 0,
     "purchase_approvals": 0,
     "purchases": 0,
-    "student_teacher_assignments": 0,
-    "reagent_lists": 1
+    "student_teacher_assignments": 6,
+    "reagent_lists": 1,
+    "audit_log": 4
   }
 }
