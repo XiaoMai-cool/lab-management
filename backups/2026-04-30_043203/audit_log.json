@@ -1,0 +1,58 @@
+[
+  {
+    "id": "5ee6d1ec-9af1-441e-8b2c-b48e9c9647e7",
+    "user_id": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "action": "update",
+    "target_table": "supplies",
+    "target_id": "cf178ec9-4862-4d17-9117-364c4e54e391",
+    "details": {
+      "name": "公牛插座",
+      "field": "is_returnable",
+      "value": true,
+      "specification": ""
+    },
+    "created_at": "2026-04-23T05:12:19.309593+00:00"
+  },
+  {
+    "id": "e08dde22-5c13-4485-95a5-c1edc8f2bae3",
+    "user_id": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "action": "update",
+    "target_table": "supplies",
+    "target_id": "cf178ec9-4862-4d17-9117-364c4e54e391",
+    "details": {
+      "name": "公牛插座",
+      "field": "is_returnable",
+      "value": true,
+      "specification": ""
+    },
+    "created_at": "2026-04-23T05:12:23.857793+00:00"
+  },
+  {
+    "id": "f232066d-3b81-43b9-b3ea-69459a98b2ca",
+    "user_id": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "action": "update",
+    "target_table": "supplies",
+    "target_id": "cf178ec9-4862-4d17-9117-364c4e54e391",
+    "details": {
+      "name": "公牛插座",
+      "field": "is_returnable",
+      "value": false,
+      "specification": ""
+    },
+    "created_at": "2026-04-23T05:12:21.622759+00:00"
+  },
+  {
+    "id": "faeb15f0-7f9d-4662-abac-3b3e67f546c6",
+    "user_id": "bd59a0d1-b9d3-47df-99bb-bb6eae06862f",
+    "action": "update",
+    "target_table": "supplies",
+    "target_id": "cf178ec9-4862-4d17-9117-364c4e54e391",
+    "details": {
+      "name": "公牛插座",
+      "field": "is_returnable",
+      "value": false,
+      "specification": ""
+    },
+    "created_at": "2026-04-23T05:12:17.242925+00:00"
+  }
+]
